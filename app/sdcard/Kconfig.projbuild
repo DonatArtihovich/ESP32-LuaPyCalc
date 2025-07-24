@@ -1,0 +1,20 @@
+
+config GPIO_SD_MISO
+    int "SD MISO number"
+    default 13
+
+config GPIO_SD_MOSI
+    int "SD MOSI number"
+    default 14
+
+config GPIO_SD_CS
+    int "SD CS number"
+    default 27
+
+config GPIO_SD_CLK
+    int "SD CLK number"
+    default 26
+
+config MOUNT_POINT
+    string "SD Card mount point"
+    default "/sdcard"
