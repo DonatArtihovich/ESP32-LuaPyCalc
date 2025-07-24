@@ -1,0 +1,23 @@
+config GPIO_KEYBOARD_SIPO_CLK 
+    int "Keyboard SIPO CLK number"
+    default 2
+
+config GPIO_KEYBOARD_SIPO_DS
+    int "Keyboard SIPO DS number"
+    default 4
+    
+config GPIO_KEYBOARD_SIPO_LH
+    int "Keyboard SIPO LH number"
+    default 15
+
+config GPIO_KEYBOARD_PISO_CLK
+    int "Keyboard PISO CLK number"
+    default 21
+
+config GPIO_KEYBOARD_PISO_LH
+    int "Keyboard PISO LH number"
+    default 23
+    
+config GPIO_KEYBOARD_PISO_DS
+    int "Keyboard PISO DS number"
+    default 35
