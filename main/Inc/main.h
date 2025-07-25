@@ -20,5 +20,6 @@ namespace Main
 
     public:
         static void Setup();
+        static void Tick();
     };
 }

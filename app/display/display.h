@@ -16,6 +16,14 @@ namespace Display
         Main,
     };
 
+    enum class Direction
+    {
+        Up,
+        Right,
+        Left,
+        Bottom,
+    };
+
     class DisplayController
     {
         LCD::ST7789V lcd;
@@ -47,5 +55,6 @@ namespace Display
 
         esp_err_t Init();
         void MainMenu();
+        void Focus(Direction direction);
     };
 }

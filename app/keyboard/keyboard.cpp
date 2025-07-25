@@ -31,6 +31,11 @@ namespace Keyboard
 
         return ESP_OK;
     }
+
+    bool KeyboardController::IsKeyPressed(Key key)
+    {
+        return ((~KeyState & (1ULL << (int)key)) != 0);
+    }
 }
 
 void TaskReadKeyboard(void *args)
@@ -56,6 +61,6 @@ void TaskReadKeyboard(void *args)
 
         ESP_LOGD(TAG, "KeyState 0x%016llx", ~Keyboard::KeyState);
 
-        vTaskDelay(pdMS_TO_TICKS(500));
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }

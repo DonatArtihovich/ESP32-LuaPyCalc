@@ -4,6 +4,15 @@
 
 namespace Keyboard
 {
+    enum class Key
+    {
+        Top = 9,
+        Right = 16,
+        Enter = 25,
+        Left = 32,
+        Bottom = 49,
+    };
+
     static volatile uint64_t KeyState = 0xFFFFFFFF;
 
     class KeyboardController
@@ -19,14 +28,6 @@ namespace Keyboard
             gpio_num_t piso_ds);
 
         esp_err_t Init();
-    };
-
-    enum class Key
-    {
-        Top = 9,
-        Right = 16,
-        Enter = 25,
-        Left = 32,
-        Bottom = 49,
+        bool IsKeyPressed(Key key);
     };
 }

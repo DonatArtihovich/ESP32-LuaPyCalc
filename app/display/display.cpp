@@ -121,4 +121,8 @@ namespace Display
             lcd.DrawString(item_font, lcd.GetWidth() - hfh - (ifh - 1), 0, (uint8_t *)items[i], Color::White);
         }
     }
+
+    void DisplayController::Focus(Direction direction)
+    {
+        }
 }

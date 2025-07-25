@@ -45,9 +45,52 @@ namespace Main
 
         display.MainMenu();
     }
+
+    void Main::Tick()
+    {
+        using Keyboard::Key, Display::Direction;
+        Key controllers[]{Key::Enter, Key::Top, Key::Right, Key::Bottom, Key::Left};
+
+        for (auto key : controllers)
+        {
+            if (keyboard.IsKeyPressed(key))
+            {
+                switch (key)
+                {
+                case Key::Enter:
+                    ESP_LOGD(TAG, "Enter pressed.");
+                    break;
+                case Key::Top:
+                    ESP_LOGD(TAG, "Top pressed.");
+                    display.Focus(Direction::Up);
+                    break;
+                case Key::Right:
+                    ESP_LOGD(TAG, "Right pressed.");
+                    display.Focus(Direction::Right);
+                    break;
+                case Key::Bottom:
+                    ESP_LOGD(TAG, "Bottom pressed.");
+                    display.Focus(Direction::Bottom);
+                    break;
+                case Key::Left:
+                    ESP_LOGD(TAG, "Left pressed.");
+                    display.Focus(Direction::Left);
+                    break;
+                }
+            }
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(300));
+    }
 }
 
 extern "C" void app_main(void)
 {
-    Main::Main::Setup();
+    using Main::Main;
+    Main::Setup();
+
+    while (1)
+    {
+        Main::Tick();
+    }
 }
