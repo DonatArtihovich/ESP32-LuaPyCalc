@@ -21,10 +21,11 @@ namespace Scene
     {
     protected:
         DisplayController &display;
+        std::vector<Display::UiStringItem> ui;
 
     public:
         Scene(DisplayController &display);
         virtual void Init();
-        virtual void Focus(Direction direction);
+        virtual void Arrow(Direction direction);
     };
 }

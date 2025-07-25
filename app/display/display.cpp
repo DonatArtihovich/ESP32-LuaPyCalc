@@ -4,6 +4,30 @@ static const char *TAG = "Display";
 
 namespace Display
 {
+    uint16_t UiStringItem::lastId = 0;
+    UiStringItem::UiStringItem(const char *label,
+                               Color color,
+                               FontxFile *font,
+                               Color backgroundColor,
+                               bool focusable,
+                               uint16_t x,
+                               uint16_t y)
+    {
+        id = UiStringItem::lastId++;
+        this->label = label;
+        this->x = x;
+        this->y = y;
+        this->color = color;
+        this->backgroundColor = backgroundColor;
+        this->font = font;
+        this->focusable = focusable;
+    }
+
+    UiStringItem::~UiStringItem()
+    {
+        UiStringItem::lastId--;
+    }
+
     DisplayController::DisplayController(
         gpio_num_t mosi,
         gpio_num_t clk,
@@ -29,7 +53,7 @@ namespace Display
             return ret;
         }
 
-        lcd.Init(240, 320, 0, 0);
+        lcd.Init(240, 320);
 
         return ESP_OK;
     }
@@ -95,29 +119,91 @@ namespace Display
 
     void DisplayController::Clear(Color color)
     {
-        lcd.DrawFillRect(0, 0, lcd.GetWidth(), lcd.GetHeight(), color);
+        lcd.DrawFillRect(0, 0, GetHeight(), GetWidth(), color);
     }
 
-    void DisplayController::DrawMenu(
-        FontxFile *header_font,
-        const char *header,
-        Color header_color,
-        FontxFile *item_font,
-        std::vector<const char *> items,
-        Color item_color)
+    void DisplayController::DrawStringItem(UiStringItem *item, Position hp, Position vp)
+    {
+        uint8_t fw, fh;
+        Font::GetFontx(item->font, 0, &fw, &fh);
+        uint16_t label_width = fw * strlen(item->label);
+
+        switch (hp)
+        {
+        case Position::Start:
+            item->x = 0;
+            break;
+        case Position::Center:
+            item->x = (GetWidth() - label_width) / 2;
+            break;
+        case Position::End:
+            item->x = GetWidth() - label_width;
+            break;
+        case Position::NotSpecified:
+            break;
+        }
+
+        switch (vp)
+        {
+        case Position::Start:
+            item->y = 0;
+            break;
+        case Position::Center:
+            item->y = (GetHeight() - fh) / 2;
+            break;
+        case Position::End:
+            item->y = GetHeight() - fh;
+            break;
+        case Position::NotSpecified:
+            break;
+        }
+
+        if (item->backgroundColor != Color::None)
+        {
+            ESP_LOGI(TAG, "Background Color: %d, %d", fh, label_width);
+            lcd.DrawFillRect(item->y, item->x, item->y + fh, item->x + label_width, item->backgroundColor);
+        }
+
+        lcd.SetFontDirection(1);
+        lcd.DrawString(item->font, item->y, item->x, (uint8_t *)item->label, item->color);
+    }
+
+    void DisplayController::DrawStringItems(std::vector<UiStringItem>::iterator items, size_t len, uint16_t x, uint16_t y, bool direction)
     {
         lcd.SetFontDirection(1);
-
-        uint8_t hfw, hfh;
-        Font::GetFontx(header_font, 0, &hfw, &hfh);
-        lcd.DrawString(header_font, lcd.GetWidth() - hfh, (lcd.GetHeight() - (strlen(header) * hfw)) / 2, (uint8_t *)header, Color::White);
-
-        uint8_t ifw, ifh;
-        for (int i = 0; i < items.size(); i++)
+        uint8_t fw, fh;
+        for (auto it = items; it < items + len; it++)
         {
-            ESP_LOGI(TAG, "Menu item: %s", items[i]);
-            Font::GetFontx(item_font, 0, &ifw, &ifh);
-            lcd.DrawString(item_font, lcd.GetWidth() - hfh - (ifh - 1), 0, (uint8_t *)items[i], Color::White);
+            it->x = x;
+            it->y = y;
+            Font::GetFontx(it->font, 0, &fw, &fh);
+            uint16_t width = strlen(it->label) * fw;
+
+            if (it->backgroundColor != Color::None)
+            {
+                lcd.DrawFillRect(it->y, it->x, it->y + fh, it->x + width, it->backgroundColor);
+            }
+
+            lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label, it->color);
+
+            if (direction)
+            {
+                y -= fh;
+            }
+            else
+            {
+                x += width;
+            }
         }
+    }
+
+    uint16_t DisplayController::GetWidth()
+    {
+        return lcd.height;
+    }
+
+    uint16_t DisplayController::GetHeight()
+    {
+        return lcd.width;
     }
 }

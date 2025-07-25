@@ -33,7 +33,7 @@ namespace LCD
         Yellow = (uint16_t)rgb565(255, 255, 0),  // 0xFFE0
         Cyan = (uint16_t)rgb565(0, 156, 209),    // 0x04FA
         Purple = (uint16_t)rgb565(128, 0, 128),  // 0x8010
-
+        None,
     };
 
     typedef enum
@@ -83,16 +83,17 @@ namespace LCD
         bool spi_master_write_colors(Color *colors, uint16_t size);
 
         TFT_t dev;
-        uint16_t _width, _height;
         gpio_num_t _mosi, _clk, _cs, _dc, _rst, _bl;
 
     public:
+        uint16_t width, height;
+
         ST7789V(TFT_t _dev, gpio_num_t mosi, gpio_num_t clk, gpio_num_t cs, gpio_num_t dc, gpio_num_t rst, gpio_num_t bl);
         ST7789V(gpio_num_t mosi, gpio_num_t clk, gpio_num_t cs, gpio_num_t dc, gpio_num_t rst, gpio_num_t bl);
         ST7789V();
 
         void delayMS(int ms);
-        void Init(uint16_t width, uint16_t height, int offsetx, int offsety);
+        void Init(uint16_t width, uint16_t height, int offsetx = 0, int offsety = 0);
         void DrawPixel(uint16_t x, uint16_t y, Color color);
         void DrawMultiPixels(uint16_t x, uint16_t y, uint16_t size, Color *colors);
         void DrawFillRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, Color color);
@@ -131,9 +132,6 @@ namespace LCD
         void SetCursor(uint16_t x0, uint16_t y0, uint16_t r, Color color, uint16_t *save);
         void ResetCursor(uint16_t x0, uint16_t y0, uint16_t r, Color color, uint16_t *save);
         void DrawFinish();
-
-        uint16_t GetWidth();
-        uint16_t GetHeight();
     };
 }
 

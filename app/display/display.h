@@ -11,9 +11,35 @@ using Fontx::Font, Fontx::FontxFile, LCD::Color;
 
 namespace Display
 {
-    enum class Menu
+    struct UiStringItem
     {
-        Main,
+        uint16_t id;
+        const char *label;
+        uint16_t x, y;
+        Color color;
+        Color backgroundColor;
+        FontxFile *font;
+        bool focusable;
+
+        static uint16_t lastId;
+
+        UiStringItem(const char *label,
+                     Color color,
+                     FontxFile *font,
+                     Color backgroundColor = Color::None,
+                     bool focusable = true,
+                     uint16_t x = 0,
+                     uint16_t y = 0);
+
+        ~UiStringItem();
+    };
+
+    enum class Position
+    {
+        Start,
+        Center,
+        End,
+        NotSpecified,
     };
 
     class DisplayController
@@ -23,9 +49,6 @@ namespace Display
 
         esp_err_t mountSPIFFS(const char *path, const char *label, size_t max_files);
         esp_err_t initFonts();
-        std::map<Menu, std::vector<const char *>> menus{
-            {Menu::Main, {"Files"}},
-        };
 
     public:
         FontxFile fx16G[2], fx24G[2], fx32G[2], fx32L[2], fx16M[2], fx24M[2], fx32M[2];
@@ -40,12 +63,9 @@ namespace Display
 
         esp_err_t Init();
         void Clear(Color color);
-        void DrawMenu(
-            FontxFile *header_font,
-            const char *header,
-            Color header_color,
-            FontxFile *item_font,
-            std::vector<const char *> items,
-            Color item_color);
+        void DrawStringItem(UiStringItem *item, Position hp = Position::NotSpecified, Position vp = Position::NotSpecified);
+        void DrawStringItems(std::vector<UiStringItem>::iterator items, size_t len, uint16_t x, uint16_t y, bool direction = false);
+        uint16_t GetWidth();
+        uint16_t GetHeight();
     };
 }

@@ -247,8 +247,8 @@ namespace LCD
         dev._font_fill = false;
         dev._font_underline = false;
 
-        this->_width = width;
-        this->_height = height;
+        this->width = width;
+        this->height = height;
 
         spi_master_write_command(0x01); // Software Reset
         delayMS(150);
@@ -1377,15 +1377,5 @@ int DrawUTF8String(TFT_t * dev, FontxFile *fx, uint16_t x, uint16_t y, unsigned 
             image += bs;
         }
         return;
-    }
-
-    uint16_t ST7789V::GetWidth()
-    {
-        return this->_width;
-    }
-
-    uint16_t ST7789V::GetHeight()
-    {
-        return this->_height;
     }
 }

@@ -20,6 +20,8 @@ namespace Main
         {
             ESP_LOGE(TAG, "SD card mount error.");
         }
+
+        scene->Init();
     }
 
     void Main::Tick()
@@ -38,19 +40,19 @@ namespace Main
                     break;
                 case Key::Top:
                     ESP_LOGD(TAG, "Top pressed.");
-                    scene->Focus(Direction::Up);
+                    scene->Arrow(Direction::Up);
                     break;
                 case Key::Right:
                     ESP_LOGD(TAG, "Right pressed.");
-                    scene->Focus(Direction::Right);
+                    scene->Arrow(Direction::Right);
                     break;
                 case Key::Bottom:
                     ESP_LOGD(TAG, "Bottom pressed.");
-                    scene->Focus(Direction::Bottom);
+                    scene->Arrow(Direction::Bottom);
                     break;
                 case Key::Left:
                     ESP_LOGD(TAG, "Left pressed.");
-                    scene->Focus(Direction::Left);
+                    scene->Arrow(Direction::Left);
                     break;
                 }
             }
