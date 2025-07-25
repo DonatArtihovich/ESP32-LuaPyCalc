@@ -10,7 +10,8 @@ namespace Main
         (gpio_num_t)CONFIG_GPIO_KEYBOARD_SIPO_LH,
         (gpio_num_t)CONFIG_GPIO_KEYBOARD_SIPO_DS,
         (gpio_num_t)CONFIG_GPIO_KEYBOARD_PISO_LH,
-        (gpio_num_t)CONFIG_GPIO_KEYBOARD_PISO_DS};
+        (gpio_num_t)CONFIG_GPIO_KEYBOARD_PISO_DS,
+    };
 
     SDCard Main::sdcard{
         (gpio_num_t)CONFIG_GPIO_SD_MISO,
@@ -19,9 +20,19 @@ namespace Main
         (gpio_num_t)CONFIG_GPIO_SD_CS,
     };
 
+    DisplayController Main::display{
+        (gpio_num_t)CONFIG_GPIO_DISPLAY_MOSI,
+        (gpio_num_t)CONFIG_GPIO_DISPLAY_SCK,
+        (gpio_num_t)CONFIG_GPIO_DISPLAY_CS,
+        (gpio_num_t)CONFIG_GPIO_DISPLAY_DC,
+        (gpio_num_t)CONFIG_GPIO_DISPLAY_RST,
+        (gpio_num_t)CONFIG_GPIO_DISPLAY_BL,
+    };
+
     void Main::Setup()
     {
         ESP_ERROR_CHECK(keyboard.Init());
+        ESP_ERROR_CHECK(display.Init());
 
         if (ESP_OK == sdcard.Mount(CONFIG_MOUNT_POINT))
         {

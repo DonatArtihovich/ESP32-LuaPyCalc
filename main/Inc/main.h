@@ -6,8 +6,9 @@
 
 #include "keyboard.h"
 #include "sd.h"
+#include "display.h"
 
-using Keyboard::KeyboardController, SD::SDCard;
+using Keyboard::KeyboardController, SD::SDCard, Display::DisplayController;
 
 namespace Main
 {
@@ -15,8 +16,10 @@ namespace Main
     {
         static KeyboardController keyboard;
         static SDCard sdcard;
+        static DisplayController display;
 
     public:
-        static void Setup();
+        static void
+        Setup();
     };
 }
