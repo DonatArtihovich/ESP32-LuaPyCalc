@@ -93,13 +93,12 @@ namespace Display
         return ESP_OK;
     }
 
-    void DisplayController::MainMenu()
+    void DisplayController::Clear(Color color)
     {
-        lcd.DrawFillRect(0, 0, lcd.GetWidth(), lcd.GetHeight(), Color::Black);
-        drawMenu(fx32L, "Menu", Color::White, fx24M, menus[Menu::Main], Color::White);
+        lcd.DrawFillRect(0, 0, lcd.GetWidth(), lcd.GetHeight(), color);
     }
 
-    void DisplayController::drawMenu(
+    void DisplayController::DrawMenu(
         FontxFile *header_font,
         const char *header,
         Color header_color,
@@ -121,8 +120,4 @@ namespace Display
             lcd.DrawString(item_font, lcd.GetWidth() - hfh - (ifh - 1), 0, (uint8_t *)items[i], Color::White);
         }
     }
-
-    void DisplayController::Focus(Direction direction)
-    {
-        }
 }
