@@ -19,7 +19,6 @@ namespace Main
         static DisplayController display;
 
     public:
-        static void
-        Setup();
+        static void Setup();
     };
 }

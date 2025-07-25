@@ -201,28 +201,28 @@ namespace LCD
         return spi_master_write_byte(dev._SPIHandle, Byte, 4);
     }
 
-    bool ST7789V::spi_master_write_color(uint16_t color, uint16_t size)
+    bool ST7789V::spi_master_write_color(Color color, uint16_t size)
     {
         static uint8_t Byte[1024];
         int index = 0;
         for (int i = 0; i < size; i++)
         {
-            Byte[index++] = (color >> 8) & 0xFF;
-            Byte[index++] = color & 0xFF;
+            Byte[index++] = ((uint16_t)color >> 8) & 0xFF;
+            Byte[index++] = (uint16_t)color & 0xFF;
         }
         gpio_set_level(dev._dc, SPI_Data_Mode);
         return spi_master_write_byte(dev._SPIHandle, Byte, size * 2);
     }
 
     // Add 202001
-    bool ST7789V::spi_master_write_colors(uint16_t *colors, uint16_t size)
+    bool ST7789V::spi_master_write_colors(Color *colors, uint16_t size)
     {
         static uint8_t Byte[1024];
         int index = 0;
         for (int i = 0; i < size; i++)
         {
-            Byte[index++] = (colors[i] >> 8) & 0xFF;
-            Byte[index++] = colors[i] & 0xFF;
+            Byte[index++] = ((uint16_t)colors[i] >> 8) & 0xFF;
+            Byte[index++] = (uint16_t)colors[i] & 0xFF;
         }
         gpio_set_level(dev._dc, SPI_Data_Mode);
         return spi_master_write_byte(dev._SPIHandle, Byte, size * 2);
@@ -236,7 +236,7 @@ namespace LCD
         vTaskDelay(xTicksToDelay);
     }
 
-    void ST7789V::Init(int width, int height, int offsetx, int offsety)
+    void ST7789V::Init(uint16_t width, uint16_t height, int offsetx, int offsety)
     {
         spi_master_init(_mosi, _clk, _cs, _dc, _rst, _bl);
         dev._width = width;
@@ -246,6 +246,9 @@ namespace LCD
         dev._font_direction = DIRECTION0;
         dev._font_fill = false;
         dev._font_underline = false;
+
+        this->_width = width;
+        this->_height = height;
 
         spi_master_write_command(0x01); // Software Reset
         delayMS(150);
@@ -309,7 +312,7 @@ namespace LCD
     // x:X coordinate
     // y:Y coordinate
     // color:color
-    void ST7789V::DrawPixel(uint16_t x, uint16_t y, uint16_t color)
+    void ST7789V::DrawPixel(uint16_t x, uint16_t y, Color color)
     {
         if (x >= dev._width)
             return;
@@ -318,7 +321,7 @@ namespace LCD
 
         if (dev._use_frame_buffer)
         {
-            dev._frame_buffer[y * dev._width + x] = color;
+            dev._frame_buffer[y * dev._width + x] = (uint16_t)color;
         }
         else
         {
@@ -340,7 +343,7 @@ namespace LCD
     // y:Y coordinate
     // size:Number of colors
     // colors:colors
-    void ST7789V::DrawMultiPixels(uint16_t x, uint16_t y, uint16_t size, uint16_t *colors)
+    void ST7789V::DrawMultiPixels(uint16_t x, uint16_t y, uint16_t size, Color *colors)
     {
         if (x + size > dev._width)
             return;
@@ -358,7 +361,7 @@ namespace LCD
             {
                 for (int16_t i = _x1; i <= _x2; i++)
                 {
-                    dev._frame_buffer[j * dev._width + i] = colors[index++];
+                    dev._frame_buffer[j * dev._width + i] = (uint16_t)colors[index++];
                 }
             }
         }
@@ -384,7 +387,7 @@ namespace LCD
     // x2:End X coordinate
     // y2:End Y coordinate
     // color:color
-    void ST7789V::DrawFillRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
+    void ST7789V::DrawFillRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, Color color)
     {
         if (x1 >= dev._width)
             return;
@@ -403,7 +406,7 @@ namespace LCD
             {
                 for (int16_t i = x1; i <= x2; i++)
                 {
-                    dev._frame_buffer[j * dev._width + i] = color;
+                    dev._frame_buffer[j * dev._width + i] = (uint16_t)color;
                 }
             }
         }
@@ -432,7 +435,7 @@ namespace LCD
     // y0:Center Y coordinate
     // size:Square size
     // color:color
-    void ST7789V::DrawFillSquare(uint16_t x0, uint16_t y0, uint16_t size, uint16_t color)
+    void ST7789V::DrawFillSquare(uint16_t x0, uint16_t y0, uint16_t size, Color color)
     {
         uint16_t x1 = x0 - size;
         uint16_t y1 = y0 - size;
@@ -455,7 +458,7 @@ namespace LCD
 
     // Fill screen
     // color:color
-    void ST7789V::FillScreen(uint16_t color)
+    void ST7789V::FillScreen(Color color)
     {
         DrawFillRect(0, 0, dev._width - 1, dev._height - 1, color);
     }
@@ -466,7 +469,7 @@ namespace LCD
     // x2:End	X coordinate
     // y2:End	Y coordinate
     // color:color
-    void ST7789V::DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
+    void ST7789V::DrawLine(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, Color color)
     {
         int i;
         int dx, dy;
@@ -522,7 +525,7 @@ namespace LCD
     // x2:End	X coordinate
     // y2:End	Y coordinate
     // color:color
-    void ST7789V::DrawRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color)
+    void ST7789V::DrawRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, Color color)
     {
         DrawLine(x1, y1, x2, y1, color);
         DrawLine(x2, y1, x2, y2, color);
@@ -541,7 +544,7 @@ namespace LCD
     // When the origin is (0, 0), the point (x1, y1) after rotating the point (x, y) by the angle is obtained by the following calculation.
     //  x1 = x * cos(angle) - y * sin(angle)
     //  y1 = x * sin(angle) + y * cos(angle)
-    void ST7789V::DrawRectAngle(uint16_t xc, uint16_t yc, uint16_t w, uint16_t h, uint16_t angle, uint16_t color)
+    void ST7789V::DrawRectAngle(uint16_t xc, uint16_t yc, uint16_t w, uint16_t h, uint16_t angle, Color color)
     {
         double xd, yd, rd;
         int x1, y1;
@@ -584,7 +587,7 @@ namespace LCD
     // When the origin is (0, 0), the point (x1, y1) after rotating the point (x, y) by the angle is obtained by the following calculation.
     //  x1 = x * cos(angle) - y * sin(angle)
     //  y1 = x * sin(angle) + y * cos(angle)
-    void ST7789V::DrawTriangle(uint16_t xc, uint16_t yc, uint16_t w, uint16_t h, uint16_t angle, uint16_t color)
+    void ST7789V::DrawTriangle(uint16_t xc, uint16_t yc, uint16_t w, uint16_t h, uint16_t angle, Color color)
     {
         double xd, yd, rd;
         int x1, y1;
@@ -617,7 +620,7 @@ namespace LCD
     // r:radius
     // angle:Angle of regular polygon
     // color:color
-    void ST7789V::DrawRegularPolygon(uint16_t xc, uint16_t yc, uint16_t n, uint16_t r, uint16_t angle, uint16_t color)
+    void ST7789V::DrawRegularPolygon(uint16_t xc, uint16_t yc, uint16_t n, uint16_t r, uint16_t angle, Color color)
     {
         double xd, yd, rd;
         int x1, y1;
@@ -646,7 +649,7 @@ namespace LCD
     // y0:Central Y coordinate
     // r:radius
     // color:color
-    void ST7789V::DrawCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color)
+    void ST7789V::DrawCircle(uint16_t x0, uint16_t y0, uint16_t r, Color color)
     {
         int x;
         int y;
@@ -674,7 +677,7 @@ namespace LCD
     // y0:Central Y coordinate
     // r:radius
     // color:color
-    void ST7789V::DrawFillCircle(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color)
+    void ST7789V::DrawFillCircle(uint16_t x0, uint16_t y0, uint16_t r, Color color)
     {
         int x;
         int y;
@@ -708,7 +711,7 @@ namespace LCD
     // y2:End	Y coordinate
     // r:radius
     // color:color
-    void ST7789V::DrawRoundRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t r, uint16_t color)
+    void ST7789V::DrawRoundRect(uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t r, Color color)
     {
         int x;
         int y;
@@ -772,7 +775,7 @@ namespace LCD
     // w:Width of the botom
     // color:color
     // Thanks http://k-hiura.cocolog-nifty.com/blog/2010/11/post-2a62.html
-    void ST7789V::DrawArrow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t w, uint16_t color)
+    void ST7789V::DrawArrow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t w, Color color)
     {
         double Vx = x1 - x0;
         double Vy = y1 - y0;
@@ -801,7 +804,7 @@ namespace LCD
     // y2:End	Y coordinate
     // w:Width of the botom
     // color:color
-    void ST7789V::DrawFillArrow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t w, uint16_t color)
+    void ST7789V::DrawFillArrow(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t w, Color color)
     {
         double Vx = x1 - x0;
         double Vy = y1 - y0;
@@ -840,7 +843,7 @@ namespace LCD
     // y:Y coordinate
     // ascii: ascii code
     // color:color
-    int ST7789V::DrawChar(FontxFile *fxs, uint16_t x, uint16_t y, uint8_t ascii, uint16_t color)
+    int ST7789V::DrawChar(FontxFile *fxs, uint16_t x, uint16_t y, uint8_t ascii, Color color)
     {
         uint16_t xx, yy, bit, ofs;
         unsigned char pw, ph;
@@ -939,7 +942,7 @@ namespace LCD
         }
 
         if (dev._font_fill)
-            DrawFillRect(x0, y0, x1, y1, dev._font_fill_color);
+            DrawFillRect(x0, y0, x1, y1, (Color)dev._font_fill_color);
 
         int bits;
         if (_DEBUG_)
@@ -973,9 +976,9 @@ namespace LCD
                         // if (dev._font_fill) DrawPixel(xx, yy, dev._font_fill_color);
                     }
                     if (h == (ph - 2) && dev._font_underline)
-                        DrawPixel(xx, yy, dev._font_underline_color);
+                        DrawPixel(xx, yy, (Color)dev._font_underline_color);
                     if (h == (ph - 1) && dev._font_underline)
-                        DrawPixel(xx, yy, dev._font_underline_color);
+                        DrawPixel(xx, yy, (Color)dev._font_underline_color);
                     xx = xx + xd1;
                     yy = yy + yd2;
                     mask = mask >> 1;
@@ -991,7 +994,7 @@ namespace LCD
         return next;
     }
 
-    int ST7789V::DrawString(FontxFile *fx, uint16_t x, uint16_t y, uint8_t *ascii, uint16_t color)
+    int ST7789V::DrawString(FontxFile *fx, uint16_t x, uint16_t y, uint8_t *ascii, Color color)
     {
         int length = strlen((char *)ascii);
         if (_DEBUG_)
@@ -1025,7 +1028,7 @@ namespace LCD
     // y:Y coordinate
     // code:character code
     // color:color
-    int ST7789V::DrawCode(FontxFile *fx, uint16_t x, uint16_t y, uint8_t code, uint16_t color)
+    int ST7789V::DrawCode(FontxFile *fx, uint16_t x, uint16_t y, uint8_t code, Color color)
     {
         if (_DEBUG_)
             printf("code=%x x=%d y=%d\n", code, x, y);
@@ -1102,10 +1105,10 @@ int DrawUTF8String(TFT_t * dev, FontxFile *fx, uint16_t x, uint16_t y, unsigned 
 
     // Set font filling
     // color:fill color
-    void ST7789V::SetFontFill(uint16_t color)
+    void ST7789V::SetFontFill(Color color)
     {
         dev._font_fill = true;
-        dev._font_fill_color = color;
+        dev._font_fill_color = (uint16_t)color;
     }
 
     // UnSet font filling
@@ -1116,10 +1119,10 @@ int DrawUTF8String(TFT_t * dev, FontxFile *fx, uint16_t x, uint16_t y, unsigned 
 
     // Set font underline
     // color:frame color
-    void ST7789V::SetFontUnderLine(uint16_t color)
+    void ST7789V::SetFontUnderLine(Color color)
     {
         dev._font_underline = true;
-        dev._font_underline_color = color;
+        dev._font_underline_color = (uint16_t)color;
     }
 
     // UnSet font underline
@@ -1338,13 +1341,13 @@ int DrawUTF8String(TFT_t * dev, FontxFile *fx, uint16_t x, uint16_t y, unsigned 
     // y0:Central Y coordinate
     // r:radius
     // color:color
-    void ST7789V::SetCursor(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color, uint16_t *save)
+    void ST7789V::SetCursor(uint16_t x0, uint16_t y0, uint16_t r, Color color, uint16_t *save)
     {
         GetRect(x0 - r, y0 - r, x0 + r, y0 + r, save);
         DrawCircle(x0, y0, r, color);
     }
 
-    void ST7789V::ResetCursor(uint16_t x0, uint16_t y0, uint16_t r, uint16_t color, uint16_t *save)
+    void ST7789V::ResetCursor(uint16_t x0, uint16_t y0, uint16_t r, Color color, uint16_t *save)
     {
         SetRect(x0 - r, y0 - r, x0 + r, y0 + r, save);
         // DrawCircle(x0, y0, r, color);
@@ -1369,10 +1372,20 @@ int DrawUTF8String(TFT_t * dev, FontxFile *fx, uint16_t x, uint16_t y, unsigned 
         {
             // 1024 bytes per time.
             uint16_t bs = (size > 1024) ? 1024 : size;
-            spi_master_write_colors(image, bs);
+            spi_master_write_colors((Color *)image, bs);
             size -= bs;
             image += bs;
         }
         return;
+    }
+
+    uint16_t ST7789V::GetWidth()
+    {
+        return this->_width;
+    }
+
+    uint16_t ST7789V::GetHeight()
+    {
+        return this->_height;
     }
 }

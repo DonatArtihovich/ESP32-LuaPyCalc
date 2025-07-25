@@ -30,11 +30,11 @@ namespace Display
         }
 
         lcd.Init(240, 320, 0, 0);
-        lcd.DrawFillRect(0, 0, 240, 320, BLACK);
+
         return ESP_OK;
     }
 
-    esp_err_t DisplayController::mountSPIFFS(char *path, char *label, size_t max_files)
+    esp_err_t DisplayController::mountSPIFFS(const char *path, const char *label, size_t max_files)
     {
         esp_vfs_spiffs_conf_t conf = {
             .base_path = path,
@@ -91,5 +91,16 @@ namespace Display
         Font::InitFontx(fx32M, "/fonts/ILMH32XB.FNT", "");
 
         return ESP_OK;
+    }
+
+    void DisplayController::MainMenu()
+    {
+        lcd.DrawFillRect(0, 0, lcd.GetWidth(), lcd.GetHeight(), Color::Black);
+        lcd.SetFontDirection(1);
+
+        uint8_t fw, fh;
+        Font::GetFontx(fx32L, 0, &fw, &fh);
+        const char *str = "Menu";
+        lcd.DrawString(fx32L, lcd.GetWidth() - fh, (lcd.GetHeight() - (strlen(str) * fw)) / 2, (uint8_t *)str, Color::White);
     }
 }

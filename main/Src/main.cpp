@@ -42,6 +42,8 @@ namespace Main
         {
             ESP_LOGE(TAG, "SD card mount error.");
         }
+
+        display.MainMenu();
     }
 }
 
