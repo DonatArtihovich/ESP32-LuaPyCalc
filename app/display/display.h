@@ -4,11 +4,18 @@
 #include "esp_vfs.h"
 #include "esp_spiffs.h"
 #include "esp_log.h"
+#include <map>
+#include <vector>
 
 using Fontx::Font, Fontx::FontxFile, LCD::Color;
 
 namespace Display
 {
+    enum class Menu
+    {
+        Main,
+    };
+
     class DisplayController
     {
         LCD::ST7789V lcd;
@@ -17,6 +24,17 @@ namespace Display
 
         esp_err_t mountSPIFFS(const char *path, const char *label, size_t max_files);
         esp_err_t initFonts();
+        std::map<Menu, std::vector<const char *>> menus{
+            {Menu::Main, {"Files"}},
+        };
+
+        void drawMenu(
+            FontxFile *header_font,
+            const char *header,
+            Color header_color,
+            FontxFile *item_font,
+            std::vector<const char *> items,
+            Color item_color);
 
     public:
         DisplayController(

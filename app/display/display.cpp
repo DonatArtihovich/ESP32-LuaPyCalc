@@ -96,11 +96,29 @@ namespace Display
     void DisplayController::MainMenu()
     {
         lcd.DrawFillRect(0, 0, lcd.GetWidth(), lcd.GetHeight(), Color::Black);
+        drawMenu(fx32L, "Menu", Color::White, fx24M, menus[Menu::Main], Color::White);
+    }
+
+    void DisplayController::drawMenu(
+        FontxFile *header_font,
+        const char *header,
+        Color header_color,
+        FontxFile *item_font,
+        std::vector<const char *> items,
+        Color item_color)
+    {
         lcd.SetFontDirection(1);
 
-        uint8_t fw, fh;
-        Font::GetFontx(fx32L, 0, &fw, &fh);
-        const char *str = "Menu";
-        lcd.DrawString(fx32L, lcd.GetWidth() - fh, (lcd.GetHeight() - (strlen(str) * fw)) / 2, (uint8_t *)str, Color::White);
+        uint8_t hfw, hfh;
+        Font::GetFontx(header_font, 0, &hfw, &hfh);
+        lcd.DrawString(header_font, lcd.GetWidth() - hfh, (lcd.GetHeight() - (strlen(header) * hfw)) / 2, (uint8_t *)header, Color::White);
+
+        uint8_t ifw, ifh;
+        for (int i = 0; i < items.size(); i++)
+        {
+            ESP_LOGI(TAG, "Menu item: %s", items[i]);
+            Font::GetFontx(item_font, 0, &ifw, &ifh);
+            lcd.DrawString(item_font, lcd.GetWidth() - hfh - (ifh - 1), 0, (uint8_t *)items[i], Color::White);
+        }
     }
 }
