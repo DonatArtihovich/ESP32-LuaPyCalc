@@ -10,22 +10,20 @@ namespace Keyboard
     TaskHandle_t TaskReadKeyboardHandler = NULL;
 
     KeyboardController::KeyboardController(
-        gpio_num_t sipo_clk,
+        gpio_num_t _clk,
         gpio_num_t sipo_lh,
         gpio_num_t sipo_ds,
-        gpio_num_t piso_clk,
         gpio_num_t piso_lh,
         gpio_num_t piso_ds)
-        : _sipo_clk{sipo_clk},
+        : _clk{_clk},
           _sipo_lh{sipo_lh},
           _sipo_ds{sipo_ds},
-          _piso_clk{piso_clk},
           _piso_lh{piso_lh},
           _piso_ds{piso_ds} {}
 
     esp_err_t KeyboardController::Init()
     {
-        gpio_num_t pins[6] = {_sipo_clk, _sipo_lh, _sipo_ds, _piso_clk, _piso_lh, _piso_ds};
+        gpio_num_t pins[6] = {_clk, _sipo_lh, _sipo_ds, _piso_lh, _piso_ds};
         if (pdPASS != xTaskCreate(TaskReadKeyboard, "TaskReadKeyboard", 4096, pins, 10, &TaskReadKeyboardHandler))
         {
             return ESP_FAIL;
@@ -39,7 +37,7 @@ void TaskReadKeyboard(void *args)
 {
     gpio_num_t *pins{(gpio_num_t *)args};
     SipoController sipo{*pins, *(pins + 1), *(pins + 2)};
-    PisoController piso{*(pins + 3), *(pins + 4), *(pins + 5)};
+    PisoController piso{*pins, *(pins + 3), *(pins + 4)};
 
     sipo.Init();
     piso.Init();
@@ -56,7 +54,8 @@ void TaskReadKeyboard(void *args)
             Keyboard::KeyState = (Keyboard::KeyState << 8) | read;
         }
 
-        ESP_LOGD(TAG, "KeyState 0x%02llx", Keyboard::KeyState);
-        vTaskDelay(pdMS_TO_TICKS(100));
+        ESP_LOGD(TAG, "KeyState 0x%016llx", ~Keyboard::KeyState);
+
+        vTaskDelay(pdMS_TO_TICKS(500));
     }
 }

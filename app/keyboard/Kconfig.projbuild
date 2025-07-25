@@ -1,5 +1,5 @@
-config GPIO_KEYBOARD_SIPO_CLK 
-    int "Keyboard SIPO CLK number"
+config GPIO_KEYBOARD_CLK 
+    int "Keyboard shift registers CLK number"
     default 2
 
 config GPIO_KEYBOARD_SIPO_DS
@@ -9,10 +9,6 @@ config GPIO_KEYBOARD_SIPO_DS
 config GPIO_KEYBOARD_SIPO_LH
     int "Keyboard SIPO LH number"
     default 15
-
-config GPIO_KEYBOARD_PISO_CLK
-    int "Keyboard PISO CLK number"
-    default 21
 
 config GPIO_KEYBOARD_PISO_LH
     int "Keyboard PISO LH number"
