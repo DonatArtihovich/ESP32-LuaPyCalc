@@ -1,12 +1,17 @@
 #pragma once
 
 #include <stdio.h>
+#include <dirent.h>
 #include <string.h>
+#include <vector>
+#include <string>
+
 #include "esp_log.h"
 #include "driver/spi_master.h"
+#include "sdkconfig.h"
+
 #include "sdmmc_cmd.h"
 #include "esp_vfs_fat.h"
-#include "sdkconfig.h"
 
 #define SD(path) CONFIG_MOUNT_POINT path
 
@@ -27,5 +32,6 @@ namespace SD
 
         esp_err_t ReadFile(const char *path, char *buff, size_t len);
         esp_err_t WriteFile(const char *path, char *buff);
+        std::vector<std::string> ReadDirectory(const char *path);
     };
 }

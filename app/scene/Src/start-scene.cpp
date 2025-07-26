@@ -11,15 +11,15 @@ namespace Scene
     void StartScene::Init()
     {
         ui.push_back(
-            Display::UiStringItem{"Menu", Color::White, display.fx32L, Color::None, false});
+            Display::UiStringItem{"Menu", Color::White, display.fx32L, false});
         ui.push_back(
-            Display::UiStringItem{"> Files     ", Color::White, display.fx24G, Color::Blue});
+            Display::UiStringItem{"> Files     ", Color::White, display.fx24G});
         ui.push_back(
             Display::UiStringItem{"> Code      ", Color::White, display.fx24G});
         ui.push_back(
             Display::UiStringItem{"> Settings  ", Color::White, display.fx24G});
 
-        ui[1].focused = true;
+        ChangeItemFocus(&ui[1], true);
         RenderAll();
     }
 
@@ -33,7 +33,7 @@ namespace Scene
     {
         display.Clear(Color::Black);
         display.DrawStringItem(&ui[0], Display::Position::Center, Display::Position::End);
-        display.DrawStringItems(ui.begin() + 1, 3, 0, display.GetHeight() - 80, true);
+        display.DrawStringItems(ui.begin() + 1, ui.end(), 0, display.GetHeight() - 80, true);
     }
 
     SceneId StartScene::Enter()
@@ -49,6 +49,7 @@ namespace Scene
             std::string label{focused->label};
             if (label.contains("Files"))
             {
+                display.Clear(Color::Black);
                 return SceneId::FilesScene;
             }
         }

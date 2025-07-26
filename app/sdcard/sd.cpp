@@ -83,6 +83,29 @@ namespace SD
         return ret;
     }
 
+    std::vector<std::string> SDCard::ReadDirectory(const char *path)
+    {
+        std::vector<std::string> files{};
+        DIR *dir = opendir(path);
+
+        if (!dir)
+        {
+            ESP_LOGE(TAG, "Failed to read directory \"%s\"", path);
+            closedir(dir);
+            return files;
+        }
+
+        dirent *curr = nullptr;
+        while ((curr = readdir(dir)) != nullptr)
+        {
+            ESP_LOGI(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
+            files.push_back(std::string(curr->d_name));
+        }
+
+        closedir(dir);
+        return files;
+    }
+
     esp_err_t SDCard::Unmount()
     {
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_vfs_fat_sdcard_unmount(_mount_path, card));

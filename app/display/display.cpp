@@ -8,8 +8,8 @@ namespace Display
     UiStringItem::UiStringItem(const char *label,
                                Color color,
                                FontxFile *font,
-                               Color backgroundColor,
                                bool focusable,
+                               Color backgroundColor,
                                uint16_t x,
                                uint16_t y)
     {
@@ -168,15 +168,15 @@ namespace Display
     }
 
     void DisplayController::DrawStringItems(
-        std::vector<UiStringItem>::iterator items,
-        size_t len,
+        std::vector<UiStringItem>::iterator start,
+        std::vector<UiStringItem>::iterator end,
         uint16_t x,
         uint16_t y,
         bool direction)
     {
         lcd.SetFontDirection(1);
         uint8_t fw, fh;
-        for (auto it = items; it < items + len; it++)
+        for (auto it = start; it < end; it++)
         {
             it->x = x;
             it->y = y;
@@ -197,6 +197,11 @@ namespace Display
             else
             {
                 x += width;
+            }
+
+            if (x > GetWidth() || y < 0)
+            {
+                return;
             }
         }
     }
