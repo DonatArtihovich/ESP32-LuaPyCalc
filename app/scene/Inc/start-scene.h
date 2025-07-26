@@ -10,5 +10,6 @@ namespace Scene
         StartScene(DisplayController &display);
         void Init() override;
         void Arrow(Direction direction) override;
+        void RenderAll() override;
     };
 }

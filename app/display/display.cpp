@@ -4,7 +4,7 @@ static const char *TAG = "Display";
 
 namespace Display
 {
-    uint16_t UiStringItem::lastId = 0;
+    uint32_t UiStringItem::lastId = 0;
     UiStringItem::UiStringItem(const char *label,
                                Color color,
                                FontxFile *font,
@@ -21,11 +21,6 @@ namespace Display
         this->backgroundColor = backgroundColor;
         this->font = font;
         this->focusable = focusable;
-    }
-
-    UiStringItem::~UiStringItem()
-    {
-        UiStringItem::lastId--;
     }
 
     DisplayController::DisplayController(
@@ -160,15 +155,24 @@ namespace Display
 
         if (item->backgroundColor != Color::None)
         {
-            ESP_LOGI(TAG, "Background Color: %d, %d", fh, label_width);
-            lcd.DrawFillRect(item->y, item->x, item->y + fh, item->x + label_width, item->backgroundColor);
+            lcd.DrawFillRect(
+                item->y,
+                item->x,
+                item->y + fh,
+                item->x + label_width,
+                item->backgroundColor);
         }
 
         lcd.SetFontDirection(1);
         lcd.DrawString(item->font, item->y, item->x, (uint8_t *)item->label, item->color);
     }
 
-    void DisplayController::DrawStringItems(std::vector<UiStringItem>::iterator items, size_t len, uint16_t x, uint16_t y, bool direction)
+    void DisplayController::DrawStringItems(
+        std::vector<UiStringItem>::iterator items,
+        size_t len,
+        uint16_t x,
+        uint16_t y,
+        bool direction)
     {
         lcd.SetFontDirection(1);
         uint8_t fw, fh;

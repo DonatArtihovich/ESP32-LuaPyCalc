@@ -13,15 +13,16 @@ namespace Display
 {
     struct UiStringItem
     {
-        uint16_t id;
+        uint32_t id;
         const char *label;
         uint16_t x, y;
         Color color;
         Color backgroundColor;
         FontxFile *font;
         bool focusable;
+        bool focused = false;
 
-        static uint16_t lastId;
+        static uint32_t lastId;
 
         UiStringItem(const char *label,
                      Color color,
@@ -30,8 +31,6 @@ namespace Display
                      bool focusable = true,
                      uint16_t x = 0,
                      uint16_t y = 0);
-
-        ~UiStringItem();
     };
 
     enum class Position
