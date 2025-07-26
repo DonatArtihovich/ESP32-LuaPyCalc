@@ -27,7 +27,7 @@ namespace Main
     void Main::Tick()
     {
         using Keyboard::Key, Scene::Direction;
-        Key controllers[]{Key::Enter, Key::Top, Key::Right, Key::Bottom, Key::Left};
+        Key controllers[]{Key::Enter, Key::Escape, Key::Top, Key::Right, Key::Bottom, Key::Left};
         Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
 
         for (auto key : controllers)
@@ -40,6 +40,10 @@ namespace Main
                 case Key::Enter:
                     ESP_LOGD(TAG, "Enter pressed.");
                     sceneId = scene->Enter();
+                    break;
+                case Key::Escape:
+                    ESP_LOGI(TAG, "Escape pressed.");
+                    sceneId = scene->Escape();
                     break;
                 case Key::Top:
                     ESP_LOGD(TAG, "Top pressed.");

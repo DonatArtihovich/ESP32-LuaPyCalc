@@ -25,4 +25,9 @@ namespace Scene
     {
         return SceneId::CurrentScene;
     }
+
+    SceneId FilesScene::Escape()
+    {
+        return SceneId::StartScene;
+    }
 }

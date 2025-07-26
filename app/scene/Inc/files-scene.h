@@ -16,5 +16,6 @@ namespace Scene
         void Arrow(Direction direction);
         void RenderAll() override;
         SceneId Enter() override;
+        SceneId Escape() override;
     };
 }

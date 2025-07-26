@@ -10,6 +10,7 @@ namespace Keyboard
         Right = 16,
         Enter = 25,
         Left = 32,
+        Escape = 40,
         Bottom = 49,
     };
 
