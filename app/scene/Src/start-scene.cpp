@@ -1,5 +1,7 @@
 #include "start-scene.h"
 
+#include <string>
+
 static const char *TAG = "StartScene";
 
 namespace Scene
@@ -23,23 +25,8 @@ namespace Scene
 
     void StartScene::Arrow(Direction direction)
     {
-        switch (direction)
-        {
-        case Direction::Up:
-            ESP_LOGI(TAG, "Arrow Up");
-            break;
-        case Direction::Right:
-            ESP_LOGI(TAG, "Arrow Right");
-            break;
-        case Direction::Bottom:
-            ESP_LOGI(TAG, "Arrow Bottom");
-            break;
-        case Direction::Left:
-            ESP_LOGI(TAG, "Arrow Left");
-            break;
-        }
-
-        Focus(direction);
+        Scene::Arrow(direction);
+        Scene::Focus(direction);
     }
 
     void StartScene::RenderAll()
@@ -48,4 +35,26 @@ namespace Scene
         display.DrawStringItem(&ui[0], Display::Position::Center, Display::Position::End);
         display.DrawStringItems(ui.begin() + 1, 3, 0, display.GetHeight() - 80, true);
     }
+
+    SceneId StartScene::Enter()
+    {
+        auto focused = std::find_if(
+            ui.cbegin(),
+            ui.cend(),
+            [](auto &item)
+            { return item.focused; });
+
+        if (focused != ui.cend())
+        {
+            std::string label{focused->label};
+            if (label.contains("Files"))
+            {
+                return SceneId::FilesScene;
+            }
+        }
+
+        return SceneId::CurrentScene;
+    }
+
+    // StartScene::
 }

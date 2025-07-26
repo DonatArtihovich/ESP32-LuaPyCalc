@@ -10,6 +10,7 @@
 
 #include "scene.h"
 #include "start-scene.h"
+#include "files-scene.h"
 
 using Keyboard::KeyboardController, SD::SDCard, Display::DisplayController;
 
@@ -42,6 +43,8 @@ namespace Main
         };
 
         Scene::Scene *scene;
+
+        void SwitchScene(Scene::SceneId id);
 
     public:
         Main();

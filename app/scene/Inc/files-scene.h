@@ -1,17 +1,20 @@
 #pragma once
-
 #include "scene.h"
+#include "sd.h"
+
+using SD::SDCard;
 
 namespace Scene
 {
-    class StartScene : public Scene
+    class FilesScene : public Scene
     {
+        SDCard &sdcard;
+
     public:
-        StartScene(DisplayController &display);
+        FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;
         void Arrow(Direction direction);
         void RenderAll() override;
         SceneId Enter() override;
-        // ~StartScene();
     };
 }

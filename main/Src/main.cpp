@@ -28,15 +28,18 @@ namespace Main
     {
         using Keyboard::Key, Scene::Direction;
         Key controllers[]{Key::Enter, Key::Top, Key::Right, Key::Bottom, Key::Left};
+        Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
 
         for (auto key : controllers)
         {
             if (keyboard.IsKeyPressed(key))
             {
+
                 switch (key)
                 {
                 case Key::Enter:
                     ESP_LOGD(TAG, "Enter pressed.");
+                    sceneId = scene->Enter();
                     break;
                 case Key::Top:
                     ESP_LOGD(TAG, "Top pressed.");
@@ -58,7 +61,41 @@ namespace Main
             }
         }
 
+        if (sceneId != Scene::SceneId::CurrentScene)
+        {
+            SwitchScene(sceneId);
+        }
+
         vTaskDelay(pdMS_TO_TICKS(300));
+    }
+
+    void Main::SwitchScene(Scene::SceneId id)
+    {
+        using Scene::SceneId;
+
+        switch (id)
+        {
+        case SceneId::CurrentScene:
+            return;
+        case SceneId::StartScene:
+            ESP_LOGI(TAG, "Switch to Start Scene");
+            delete scene;
+            scene = new Scene::StartScene{display};
+            break;
+        case SceneId::FilesScene:
+            ESP_LOGI(TAG, "Switch to Files Scene");
+            delete scene;
+            scene = new Scene::FilesScene{display, sdcard};
+            break;
+        case SceneId::CodeScene:
+            ESP_LOGI(TAG, "Switch to Code Scene");
+            break;
+        case SceneId::SettingsScene:
+            ESP_LOGI(TAG, "Switch to Settings Scene");
+            break;
+        }
+
+        scene->Init();
     }
 }
 

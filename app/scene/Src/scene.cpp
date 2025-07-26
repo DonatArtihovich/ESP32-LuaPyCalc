@@ -104,4 +104,23 @@ namespace Scene
 
         display.DrawStringItem(item, Position::NotSpecified, Position::NotSpecified);
     }
+
+    void Scene::Arrow(Direction direction)
+    {
+        switch (direction)
+        {
+        case Direction::Up:
+            ESP_LOGI(TAG, "Arrow Up");
+            break;
+        case Direction::Right:
+            ESP_LOGI(TAG, "Arrow Right");
+            break;
+        case Direction::Bottom:
+            ESP_LOGI(TAG, "Arrow Bottom");
+            break;
+        case Direction::Left:
+            ESP_LOGI(TAG, "Arrow Left");
+            break;
+        }
+    }
 }

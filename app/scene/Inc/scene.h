@@ -11,6 +11,15 @@ using LCD::Color, Display::DisplayController, Display::UiStringItem, Display::Po
 
 namespace Scene
 {
+    enum class SceneId
+    {
+        CurrentScene = 0,
+        StartScene = 1,
+        FilesScene = 2,
+        CodeScene = 3,
+        SettingsScene = 4,
+    };
+
     enum class Direction
     {
         Up,
@@ -28,10 +37,13 @@ namespace Scene
     public:
         Scene(DisplayController &display);
         virtual void Init() = 0;
-        virtual void Arrow(Direction direction) = 0;
+        virtual void Arrow(Direction direction);
+        virtual SceneId Enter() = 0;
         virtual void RenderAll() = 0;
 
         void ChangeItemFocus(UiStringItem *item, bool focus);
         void Focus(Direction direction);
+
+        virtual ~Scene() = default;
     };
 }
