@@ -9,10 +9,9 @@ namespace Scene
     public:
         StartScene(DisplayController &display);
         void Init() override;
-        void Arrow(Direction direction);
+        void Arrow(Direction direction) override;
         void RenderAll() override;
         SceneId Enter() override;
         SceneId Escape() override;
-        // ~StartScene();
     };
 }

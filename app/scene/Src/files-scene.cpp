@@ -1,5 +1,7 @@
 #include "files-scene.h"
 
+static const char *TAG = "FileScene";
+
 namespace Scene
 {
     FilesScene::FilesScene(DisplayController &display, SDCard &_sdcard)
@@ -32,13 +34,13 @@ namespace Scene
         display.Clear(Color::Black);
         display.DrawStringItem(&ui[0], Position::Center, Position::End);
         display.DrawStringItem(&ui[1], Position::Start, Position::End);
-        display.DrawStringItems(ui.begin() + 2, ui.end(), 10, display.GetHeight() - 80, true);
+        display.DrawStringItems(ui.begin() + 2, ui.end(), 10, display.GetHeight() - 60, true);
     }
 
     void FilesScene::Arrow(Direction direction)
     {
         Scene::Arrow(direction);
-        Scene::Focus(direction);
+        Focus(direction);
     }
 
     SceneId FilesScene::Enter()
@@ -50,5 +52,56 @@ namespace Scene
     {
         display.Clear(Color::Black);
         return SceneId::StartScene;
+    }
+
+    uint8_t FilesScene::Focus(Direction direction)
+    {
+        if (!Scene::Focus(direction))
+        {
+            ESP_LOGI(TAG, "Basic focus not found");
+
+            if (direction == Direction::Bottom)
+            {
+                auto prev = std::find_if(ui.begin() + 2, ui.end(), [](auto &item)
+                                         { return item.displayable; });
+
+                if (prev != ui.end())
+                {
+                    auto next = std::find_if(prev + 1, ui.end(), [](auto &item)
+                                             { return !item.displayable; });
+
+                    if (next != ui.end())
+                    {
+                        prev->displayable = false;
+                        next->displayable = true;
+
+                        RenderAll();
+                        Scene::Focus(direction);
+                    }
+                }
+            }
+            else if (direction == Direction::Up)
+            {
+                auto prev = std::find_if(ui.rbegin(), ui.rend() - 2, [](auto &item)
+                                         { return item.displayable; });
+
+                if (prev != ui.rend() - 2)
+                {
+                    auto next = std::find_if(prev + 1, ui.rend() - 2, [](auto &item)
+                                             { return !item.displayable; });
+
+                    if (next != ui.rend() - 2)
+                    {
+                        prev->displayable = false;
+                        next->displayable = true;
+
+                        RenderAll();
+                        Scene::Focus(direction);
+                    }
+                }
+            }
+        }
+
+        return true;
     }
 }

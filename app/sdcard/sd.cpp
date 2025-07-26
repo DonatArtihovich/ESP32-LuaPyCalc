@@ -98,8 +98,14 @@ namespace SD
         dirent *curr = nullptr;
         while ((curr = readdir(dir)) != nullptr)
         {
-            ESP_LOGI(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
-            files.push_back(std::string(curr->d_name));
+            ESP_LOGD(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
+            std::string filename(curr->d_name);
+            if (curr->d_type == 2)
+            {
+                filename.push_back('/');
+            }
+
+            files.push_back(filename);
         }
 
         closedir(dir);

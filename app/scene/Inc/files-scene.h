@@ -13,9 +13,10 @@ namespace Scene
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;
-        void Arrow(Direction direction);
+        void Arrow(Direction direction) override;
         void RenderAll() override;
         SceneId Enter() override;
         SceneId Escape() override;
+        uint8_t Focus(Direction direction) override;
     };
 }

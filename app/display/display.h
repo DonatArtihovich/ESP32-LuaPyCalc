@@ -21,6 +21,7 @@ namespace Display
         FontxFile *font;
         bool focusable;
         bool focused = false;
+        bool displayable = true;
 
         static uint32_t lastId;
 

@@ -119,6 +119,11 @@ namespace Display
 
     void DisplayController::DrawStringItem(UiStringItem *item, Position hp, Position vp)
     {
+        if (!item->displayable)
+        {
+            return;
+        }
+
         uint8_t fw, fh;
         Font::GetFontx(item->font, 0, &fw, &fh);
         uint16_t label_width = fw * strlen(item->label);
@@ -178,6 +183,21 @@ namespace Display
         uint8_t fw, fh;
         for (auto it = start; it < end; it++)
         {
+            if (x > GetWidth() || y < 0 || y > GetHeight() || x < 0)
+            {
+                it->displayable = false;
+            }
+
+            if (!it->displayable)
+            {
+                ESP_LOGI(TAG, "Item not displayable, %s", it->label);
+                continue;
+            }
+            else
+            {
+                ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label, x, y);
+            }
+
             it->x = x;
             it->y = y;
             Font::GetFontx(it->font, 0, &fw, &fh);
@@ -197,11 +217,6 @@ namespace Display
             else
             {
                 x += width;
-            }
-
-            if (x > GetWidth() || y < 0)
-            {
-                return;
             }
         }
     }

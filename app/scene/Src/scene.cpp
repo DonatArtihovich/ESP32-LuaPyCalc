@@ -6,7 +6,7 @@ namespace Scene
 {
     Scene::Scene(DisplayController &_display) : display{_display} {}
 
-    void Scene::Focus(Direction direction)
+    uint8_t Scene::Focus(Direction direction)
     {
         auto last_focused = std::find_if(
             ui.begin(),
@@ -17,7 +17,7 @@ namespace Scene
         if (last_focused == ui.end())
         {
             ESP_LOGE(TAG, "Last focus not found");
-            return;
+            return -1;
         }
 
         std::function<void(UiStringItem &)> fe_cb = nullptr;
@@ -29,8 +29,8 @@ namespace Scene
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
                 if (
-                    (!new_focused && item.y > last_focused->y && item.focusable) ||
-                    (item.y > last_focused->y && item.focusable && item.y < new_focused->y))
+                    (!new_focused && item.y > last_focused->y && item.focusable && item.displayable) ||
+                    (item.y > last_focused->y && item.focusable && item.displayable && item.y < new_focused->y))
                 {
                     new_focused = &item;
                 }
@@ -40,8 +40,8 @@ namespace Scene
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
                 if (
-                    (!new_focused && item.x > last_focused->x && item.focusable) ||
-                    (item.x > last_focused->x && item.focusable && item.x < new_focused->x))
+                    (!new_focused && item.x > last_focused->x && item.focusable && item.displayable) ||
+                    (item.x > last_focused->x && item.focusable && item.displayable && item.x < new_focused->x))
                 {
                     new_focused = &item;
                 }
@@ -51,8 +51,8 @@ namespace Scene
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
                 if (
-                    (!new_focused && item.y < last_focused->y && item.focusable) ||
-                    (item.y < last_focused->y && item.focusable && item.y > new_focused->y))
+                    (!new_focused && item.y < last_focused->y && item.focusable && item.displayable) ||
+                    (item.y < last_focused->y && item.focusable && item.displayable && item.y > new_focused->y))
                 {
                     new_focused = &item;
                 }
@@ -62,8 +62,8 @@ namespace Scene
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
                 if (
-                    (!new_focused && item.x < last_focused->x && item.focusable) ||
-                    (item.x < last_focused->x && item.focusable && item.x > new_focused->x))
+                    (!new_focused && item.x < last_focused->x && item.focusable && item.displayable) ||
+                    (item.x < last_focused->x && item.focusable && item.displayable && item.x > new_focused->x))
                 {
                     new_focused = &item;
                 }
@@ -80,11 +80,11 @@ namespace Scene
 
             ESP_LOGI(TAG, "Last focused %lu: %s", last_focused->id, last_focused->label);
             ESP_LOGI(TAG, "New focused %lu: %s", new_focused->id, new_focused->label);
+            return 1;
         }
-        else
-        {
-            ESP_LOGI(TAG, "New focus not found.");
-        }
+
+        ESP_LOGI(TAG, "New focus not found.");
+        return 0;
     }
 
     void Scene::ChangeItemFocus(UiStringItem *item, bool focus)
