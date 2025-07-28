@@ -62,14 +62,14 @@ namespace Display
             gpio_num_t bl);
 
         esp_err_t Init();
-        void Clear(Color color);
+        void Clear(Color color, uint16_t x = 0, uint16_t y = 0, uint16_t x2 = 0, uint16_t y2 = 0);
         void DrawStringItem(UiStringItem *item,
                             Position hp = Position::NotSpecified,
                             Position vp = Position::NotSpecified);
         void DrawStringItems(
             std::vector<UiStringItem>::iterator start,
             std::vector<UiStringItem>::iterator end,
-            uint16_t x, uint16_t y, bool direction = false);
+            int16_t x, int16_t y, bool direction = false);
         uint16_t GetWidth();
         uint16_t GetHeight();
     };

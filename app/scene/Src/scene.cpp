@@ -75,8 +75,8 @@ namespace Scene
 
         if (new_focused != nullptr)
         {
-            ChangeItemFocus(&(*last_focused), false);
-            ChangeItemFocus(&(*new_focused), true);
+            ChangeItemFocus(&(*last_focused), false, true);
+            ChangeItemFocus(&(*new_focused), true, true);
 
             ESP_LOGI(TAG, "Last focused %lu: %s", last_focused->id, last_focused->label);
             ESP_LOGI(TAG, "New focused %lu: %s", new_focused->id, new_focused->label);
@@ -87,22 +87,32 @@ namespace Scene
         return 0;
     }
 
-    void Scene::ChangeItemFocus(UiStringItem *item, bool focus)
+    void Scene::ChangeItemFocus(UiStringItem *item, bool focus, bool rerender)
     {
         if (!item->focusable || item->focused == focus)
             return;
 
+        ESP_LOGI(TAG, "Item focus changed to %d", focus);
         item->focused = focus;
         if (focus)
         {
             item->backgroundColor = Color::Blue;
         }
-        else
+        else if (rerender)
         {
             item->backgroundColor = Color::Black;
         }
+        else
+        {
+            item->backgroundColor = Color::None;
+        }
 
-        display.DrawStringItem(item, Position::NotSpecified, Position::NotSpecified);
+        if (rerender)
+        {
+            display.DrawStringItem(item, Position::NotSpecified, Position::NotSpecified);
+            if (!focus)
+                item->backgroundColor = Color::None;
+        }
     }
 
     void Scene::Arrow(Direction direction)

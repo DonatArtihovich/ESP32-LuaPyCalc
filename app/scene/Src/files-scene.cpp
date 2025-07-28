@@ -11,10 +11,39 @@ namespace Scene
     {
         ui.push_back(UiStringItem{"Files", Color::White, display.fx32L, false});
         ui.push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
+        // ui.push_back(UiStringItem{"^", Color::White, display.fx24M});
 
-        ChangeItemFocus(&ui[1], true);
+        if (ReadDirectory(2))
+        {
+            ChangeItemFocus(&ui[2], true);
+        }
+        else
+        {
+            ChangeItemFocus(&ui[1], true);
+        }
 
-        std::vector<std::string> files{sdcard.ReadDirectory(SD("/"))};
+        RenderAll();
+    }
+
+    void FilesScene::RenderAll()
+    {
+        display.Clear(Color::Black, 0, 0, 10, display.GetHeight() - 60);
+        display.Clear(Color::Black);
+        display.DrawStringItem(&ui[0], Position::Center, Position::End);
+        display.DrawStringItem(&ui[1], Position::Start, Position::End);
+        RenderDirectory(2);
+    }
+
+    void FilesScene::RenderDirectory(int ui_start)
+    {
+        display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 40);
+        display.DrawStringItems(ui.begin() + ui_start, ui.end(), 10, display.GetHeight() - 60, true);
+    }
+
+    size_t FilesScene::ReadDirectory(int ui_start)
+    {
+        std::vector<std::string> files{sdcard.ReadDirectory(curr_directory.c_str())};
+        ui.erase(ui.begin() + ui_start, ui.end());
         if (!files.size())
         {
             ui.push_back(UiStringItem{"No files found", Color::White, display.fx24G, false});
@@ -26,15 +55,8 @@ namespace Scene
                 ui.push_back(UiStringItem{file.c_str(), Color::White, display.fx16M});
             }
         }
-        RenderAll();
-    }
 
-    void FilesScene::RenderAll()
-    {
-        display.Clear(Color::Black);
-        display.DrawStringItem(&ui[0], Position::Center, Position::End);
-        display.DrawStringItem(&ui[1], Position::Start, Position::End);
-        display.DrawStringItems(ui.begin() + 2, ui.end(), 10, display.GetHeight() - 60, true);
+        return files.size();
     }
 
     void FilesScene::Arrow(Direction direction)
@@ -59,23 +81,30 @@ namespace Scene
         if (!Scene::Focus(direction))
         {
             ESP_LOGI(TAG, "Basic focus not found");
+            // auto last_focused = std::find_if(
+            //     ui.begin(),
+            //     ui.end(),
+            //     [](auto &item)
+            //     { return item.focused; });
 
             if (direction == Direction::Bottom)
             {
-                auto prev = std::find_if(ui.begin() + 2, ui.end(), [](auto &item)
-                                         { return item.displayable; });
+                auto first_displayable = std::find_if(ui.begin() + 2, ui.end(), [](auto &item)
+                                                      { return item.displayable; });
 
-                if (prev != ui.end())
+                if (first_displayable != ui.end())
                 {
-                    auto next = std::find_if(prev + 1, ui.end(), [](auto &item)
-                                             { return !item.displayable; });
+                    auto next_displayable = std::find_if(first_displayable + 1, ui.end(), [](auto &item)
+                                                         { return !item.displayable; });
 
-                    if (next != ui.end())
+                    if (next_displayable != ui.end())
                     {
-                        prev->displayable = false;
-                        next->displayable = true;
+                        first_displayable->displayable = false;
+                        next_displayable->displayable = true;
 
-                        RenderAll();
+                        // ChangeItemFocus(&(*last_focused), false);
+                        RenderDirectory(2);
+                        // ChangeItemFocus(&(*last_focused), true);
                         Scene::Focus(direction);
                     }
                 }

@@ -112,9 +112,19 @@ namespace Display
         return ESP_OK;
     }
 
-    void DisplayController::Clear(Color color)
+    void DisplayController::Clear(Color color, uint16_t x, uint16_t y, uint16_t x2, uint16_t y2)
     {
-        lcd.DrawFillRect(0, 0, GetHeight(), GetWidth(), color);
+        if (x2 <= x || x2 > GetWidth())
+        {
+            x2 = GetWidth();
+        }
+
+        if (y2 <= y || y2 > GetHeight())
+        {
+            y2 = GetHeight();
+        }
+
+        lcd.DrawFillRect(y, x, y2, x2, color);
     }
 
     void DisplayController::DrawStringItem(UiStringItem *item, Position hp, Position vp)
@@ -175,17 +185,44 @@ namespace Display
     void DisplayController::DrawStringItems(
         std::vector<UiStringItem>::iterator start,
         std::vector<UiStringItem>::iterator end,
-        uint16_t x,
-        uint16_t y,
+        int16_t x,
+        int16_t y,
         bool direction)
     {
         lcd.SetFontDirection(1);
         uint8_t fw, fh;
+
         for (auto it = start; it < end; it++)
         {
-            if (x > GetWidth() || y < 0 || y > GetHeight() || x < 0)
+            if (!it->displayable)
+            {
+                ESP_LOGI(TAG, "Item not displayable, %s", it->label);
+                continue;
+            }
+            Font::GetFontx(it->font, 0, &fw, &fh);
+            uint16_t width = strlen(it->label) * fw;
+
+            // if (it == start)
+            // {
+            //     y -= fh;
+            // }
+
+            it->x = x;
+            it->y = y;
+
+            if (direction)
+            {
+                y -= fh;
+            }
+            else
+            {
+                x += width;
+            }
+
+            if ((x > GetWidth() || y < 0 || y > GetHeight() || x < 0) && it < (end - 1))
             {
                 it->displayable = false;
+                (it + 1)->displayable = false;
             }
 
             if (!it->displayable)
@@ -198,25 +235,30 @@ namespace Display
                 ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label, x, y);
             }
 
-            it->x = x;
-            it->y = y;
-            Font::GetFontx(it->font, 0, &fw, &fh);
-            uint16_t width = strlen(it->label) * fw;
-
             if (it->backgroundColor != Color::None)
             {
                 lcd.DrawFillRect(it->y, it->x, it->y + fh, it->x + width, it->backgroundColor);
             }
-
             lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label, it->color);
+        }
 
-            if (direction)
+        if (!(end - 1)->displayable)
+        {
+            for (auto it = end - 1; it >= start; it--)
             {
-                y -= fh;
-            }
-            else
-            {
-                x += width;
+                if (it->displayable)
+                {
+                    Font::GetFontx(it->font, 0, &fw, &fh);
+                    uint8_t label[30]{0};
+                    snprintf((char *)label, 29, "%d More items", end - it - 1);
+                    lcd.DrawString(
+                        it->font,
+                        direction ? it->y - fh : it->y,
+                        direction ? it->x : it->x + strlen(it->label) * fw,
+                        label,
+                        Color::White);
+                    break;
+                }
             }
         }
     }

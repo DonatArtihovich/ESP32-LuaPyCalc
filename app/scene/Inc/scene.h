@@ -42,7 +42,7 @@ namespace Scene
         virtual SceneId Escape() = 0;
         virtual void RenderAll() = 0;
 
-        void ChangeItemFocus(UiStringItem *item, bool focus);
+        void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
 
         virtual ~Scene() = default;
