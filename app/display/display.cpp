@@ -136,7 +136,7 @@ namespace Display
 
         uint8_t fw, fh;
         Font::GetFontx(item->font, 0, &fw, &fh);
-        uint16_t label_width = fw * strlen(item->label);
+        uint16_t label_width = fw * item->label.size();
 
         switch (hp)
         {
@@ -179,7 +179,7 @@ namespace Display
         }
 
         lcd.SetFontDirection(1);
-        lcd.DrawString(item->font, item->y, item->x, (uint8_t *)item->label, item->color);
+        lcd.DrawString(item->font, item->y, item->x, (uint8_t *)item->label.c_str(), item->color);
     }
 
     void DisplayController::DrawStringItems(
@@ -196,16 +196,11 @@ namespace Display
         {
             if (!it->displayable)
             {
-                ESP_LOGI(TAG, "Item not displayable, %s", it->label);
+                ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
             Font::GetFontx(it->font, 0, &fw, &fh);
-            uint16_t width = strlen(it->label) * fw;
-
-            // if (it == start)
-            // {
-            //     y -= fh;
-            // }
+            uint16_t width = it->label.size() * fw;
 
             it->x = x;
             it->y = y;
@@ -227,19 +222,19 @@ namespace Display
 
             if (!it->displayable)
             {
-                ESP_LOGI(TAG, "Item not displayable, %s", it->label);
+                ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
             else
             {
-                ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label, x, y);
+                ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
             }
 
             if (it->backgroundColor != Color::None)
             {
                 lcd.DrawFillRect(it->y, it->x, it->y + fh, it->x + width, it->backgroundColor);
             }
-            lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label, it->color);
+            lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label.c_str(), it->color);
         }
 
         if (!(end - 1)->displayable)
@@ -254,7 +249,7 @@ namespace Display
                     lcd.DrawString(
                         it->font,
                         direction ? it->y - fh : it->y,
-                        direction ? it->x : it->x + strlen(it->label) * fw,
+                        direction ? it->x : it->x + it->label.size() * fw,
                         label,
                         Color::White);
                     break;

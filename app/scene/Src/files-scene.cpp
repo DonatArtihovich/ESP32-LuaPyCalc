@@ -11,11 +11,11 @@ namespace Scene
     {
         ui.push_back(UiStringItem{"Files", Color::White, display.fx32L, false});
         ui.push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
-        // ui.push_back(UiStringItem{"^", Color::White, display.fx24M});
+        ui.push_back(UiStringItem{"", Color::White, display.fx24M, false});
 
-        if (ReadDirectory(2))
+        if (ReadDirectory(directory_ui_start + 1))
         {
-            ChangeItemFocus(&ui[2], true);
+            ChangeItemFocus(&ui[directory_ui_start + 1], true);
         }
         else
         {
@@ -28,15 +28,14 @@ namespace Scene
     void FilesScene::RenderAll()
     {
         display.Clear(Color::Black, 0, 0, 10, display.GetHeight() - 60);
-        display.Clear(Color::Black);
         display.DrawStringItem(&ui[0], Position::Center, Position::End);
         display.DrawStringItem(&ui[1], Position::Start, Position::End);
-        RenderDirectory(2);
+        RenderDirectory(directory_ui_start);
     }
 
     void FilesScene::RenderDirectory(int ui_start)
     {
-        display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 40);
+        display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
         display.DrawStringItems(ui.begin() + ui_start, ui.end(), 10, display.GetHeight() - 60, true);
     }
 
@@ -67,12 +66,26 @@ namespace Scene
 
     SceneId FilesScene::Enter()
     {
+        auto focused = std::find_if(ui.begin(), ui.end(), [](auto &item)
+                                    { return item.focused; });
+
+        if (focused != ui.end())
+        {
+            if (focused->label.contains("^ Up"))
+            {
+                ScrollDirectoryFiles(Direction::Up);
+            }
+            else if (focused->label.contains("< Esc"))
+            {
+                return Escape();
+            }
+        }
+
         return SceneId::CurrentScene;
     }
 
     SceneId FilesScene::Escape()
     {
-        display.Clear(Color::Black);
         return SceneId::StartScene;
     }
 
@@ -81,56 +94,89 @@ namespace Scene
         if (!Scene::Focus(direction))
         {
             ESP_LOGI(TAG, "Basic focus not found");
-            // auto last_focused = std::find_if(
-            //     ui.begin(),
-            //     ui.end(),
-            //     [](auto &item)
-            //     { return item.focused; });
-
             if (direction == Direction::Bottom)
             {
-                auto first_displayable = std::find_if(ui.begin() + 2, ui.end(), [](auto &item)
-                                                      { return item.displayable; });
-
-                if (first_displayable != ui.end())
-                {
-                    auto next_displayable = std::find_if(first_displayable + 1, ui.end(), [](auto &item)
-                                                         { return !item.displayable; });
-
-                    if (next_displayable != ui.end())
-                    {
-                        first_displayable->displayable = false;
-                        next_displayable->displayable = true;
-
-                        // ChangeItemFocus(&(*last_focused), false);
-                        RenderDirectory(2);
-                        // ChangeItemFocus(&(*last_focused), true);
-                        Scene::Focus(direction);
-                    }
-                }
-            }
-            else if (direction == Direction::Up)
-            {
-                auto prev = std::find_if(ui.rbegin(), ui.rend() - 2, [](auto &item)
-                                         { return item.displayable; });
-
-                if (prev != ui.rend() - 2)
-                {
-                    auto next = std::find_if(prev + 1, ui.rend() - 2, [](auto &item)
-                                             { return !item.displayable; });
-
-                    if (next != ui.rend() - 2)
-                    {
-                        prev->displayable = false;
-                        next->displayable = true;
-
-                        RenderAll();
-                        Scene::Focus(direction);
-                    }
-                }
+                ScrollDirectoryFiles(direction);
+                Scene::Focus(direction);
             }
         }
 
         return true;
+    }
+
+    void FilesScene::ScrollDirectoryFiles(Direction direction)
+    {
+        // auto last_focused = std::find_if(
+        //     ui.begin(),
+        //     ui.end(),
+        //     [](auto &item)
+        //     { return item.focused; });
+
+        if (direction == Direction::Bottom)
+        {
+            auto first_displayable = std::find_if(
+                ui.begin() + directory_ui_start + 1,
+                ui.end(),
+                [](auto &item)
+                { return item.displayable; });
+
+            if (first_displayable != ui.end())
+            {
+                auto next_displayable = std::find_if(
+                    first_displayable + 1, ui.end(),
+                    [](auto &item)
+                    { return !item.displayable; });
+
+                if (next_displayable != ui.end())
+                {
+                    first_displayable->displayable = false;
+                    next_displayable->displayable = true;
+
+                    if (!ui[directory_ui_start].focusable)
+                    {
+                        ui[directory_ui_start].label = "^ Up";
+                        ui[directory_ui_start].focusable = true;
+                    }
+
+                    // ChangeItemFocus(&(*last_focused), false);
+                    RenderDirectory(directory_ui_start);
+                    // ChangeItemFocus(&(*last_focused), true);
+                }
+            }
+        }
+        else if (direction == Direction::Up)
+        {
+            auto first_displayable = std::find_if(
+                ui.rbegin(),
+                ui.rend() - 2,
+                [](auto &item)
+                { return item.displayable; });
+
+            if (first_displayable != ui.rend() - 2)
+            {
+                auto next_displayable = std::find_if(
+                    first_displayable + 1,
+                    ui.rend() - 2,
+                    [](auto &item)
+                    { return !item.displayable; });
+
+                if (next_displayable != ui.rend() - 2)
+                {
+                    first_displayable->displayable = false;
+                    next_displayable->displayable = true;
+
+                    if (next_displayable == ui.rend() - directory_ui_start - 2)
+                    {
+                        ChangeItemFocus(&ui[directory_ui_start], false);
+                        ui[directory_ui_start].label.clear();
+                        ui[directory_ui_start].focusable = false;
+
+                        ChangeItemFocus(&ui[directory_ui_start + 1], true);
+                    }
+
+                    RenderDirectory(directory_ui_start);
+                }
+            }
+        }
     }
 }

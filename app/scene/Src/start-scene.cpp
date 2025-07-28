@@ -46,8 +46,7 @@ namespace Scene
 
         if (focused != ui.cend())
         {
-            std::string label{focused->label};
-            if (label.contains("Files"))
+            if (focused->label.contains("Files"))
             {
                 display.Clear(Color::Black);
                 return SceneId::FilesScene;

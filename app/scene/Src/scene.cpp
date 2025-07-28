@@ -78,8 +78,8 @@ namespace Scene
             ChangeItemFocus(&(*last_focused), false, true);
             ChangeItemFocus(&(*new_focused), true, true);
 
-            ESP_LOGI(TAG, "Last focused %lu: %s", last_focused->id, last_focused->label);
-            ESP_LOGI(TAG, "New focused %lu: %s", new_focused->id, new_focused->label);
+            ESP_LOGI(TAG, "Last focused %lu: %s", last_focused->id, last_focused->label.c_str());
+            ESP_LOGI(TAG, "New focused %lu: %s", new_focused->id, new_focused->label.c_str());
             return 1;
         }
 

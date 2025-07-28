@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include <map>
 #include <vector>
+#include <string>
 
 using Fontx::Font, Fontx::FontxFile, LCD::Color;
 
@@ -14,7 +15,7 @@ namespace Display
     struct UiStringItem
     {
         uint32_t id;
-        const char *label;
+        std::string label;
         uint16_t x, y;
         Color color;
         Color backgroundColor;
