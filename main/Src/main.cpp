@@ -70,7 +70,7 @@ namespace Main
             SwitchScene(sceneId);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(300));
+        vTaskDelay(pdMS_TO_TICKS(150));
     }
 
     void Main::SwitchScene(Scene::SceneId id)
