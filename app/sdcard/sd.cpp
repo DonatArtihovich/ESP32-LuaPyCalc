@@ -117,4 +117,21 @@ namespace SD
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_vfs_fat_sdcard_unmount(_mount_path, card));
         return spi_bus_free((spi_host_device_t)sd_spi_host.slot);
     }
+
+    int SDCard::IsDirectory(const char *path)
+    {
+        DIR *directory = opendir(path);
+
+        if (directory != nullptr)
+        {
+            closedir(directory);
+            return 1;
+        }
+        else if (errno == ENOTDIR)
+        {
+            return 0;
+        }
+
+        return -1;
+    }
 }

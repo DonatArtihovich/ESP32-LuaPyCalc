@@ -10,13 +10,15 @@ namespace Scene
     {
         SDCard &sdcard;
 
-        std::string curr_directory{SD("/")};
+        std::string curr_directory{SD("")};
         const size_t directory_ui_start{2};
 
         void RenderDirectory(int ui_start);
         size_t ReadDirectory(int ui_start);
 
         void ScrollDirectoryFiles(Direction direction);
+        void ToggleUpButton(bool mode);
+        void OpenDirectory(const char *relative_path);
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);

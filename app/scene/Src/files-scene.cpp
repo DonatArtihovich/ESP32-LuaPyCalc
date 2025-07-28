@@ -43,15 +43,20 @@ namespace Scene
     {
         std::vector<std::string> files{sdcard.ReadDirectory(curr_directory.c_str())};
         ui.erase(ui.begin() + ui_start, ui.end());
+
+        if (!curr_directory.ends_with("sdcard"))
+        {
+            ui.push_back(UiStringItem{"..", Color::White, display.fx16G});
+        }
         if (!files.size())
         {
-            ui.push_back(UiStringItem{"No files found", Color::White, display.fx24G, false});
+            ui.push_back(UiStringItem{"No files found", Color::White, display.fx16G, false});
         }
         else
         {
             for (auto &file : files)
             {
-                ui.push_back(UiStringItem{file.c_str(), Color::White, display.fx16M});
+                ui.push_back(UiStringItem{file.c_str(), Color::White, display.fx16G});
             }
         }
 
@@ -66,19 +71,51 @@ namespace Scene
 
     SceneId FilesScene::Enter()
     {
-        auto focused = std::find_if(ui.begin(), ui.end(), [](auto &item)
-                                    { return item.focused; });
+        size_t index = -1;
+        auto focused = std::find_if(
+            ui.begin(),
+            ui.end(),
+            [&index](auto &item) mutable
+            { index++; return item.focused; });
 
-        if (focused != ui.end())
+        if (focused == ui.end())
         {
-            if (focused->label.contains("^ Up"))
+            return SceneId::CurrentScene;
+        }
+
+        if (index > directory_ui_start)
+        {
+            if (focused->label == "..")
             {
-                ScrollDirectoryFiles(Direction::Up);
+                OpenDirectory(focused->label.c_str());
+                return SceneId::CurrentScene;
             }
-            else if (focused->label.contains("< Esc"))
+
+            char filename[30] = {0};
+            snprintf(filename, 29, "/%s", focused->label.c_str());
+
+            int isDir{sdcard.IsDirectory((curr_directory + filename).c_str())};
+
+            switch (isDir)
             {
-                return Escape();
+            case 1:
+                ESP_LOGI(TAG, "%s is directory", filename);
+                OpenDirectory(filename);
+                break;
+            case 0:
+                ESP_LOGI(TAG, "%s isn't directory", filename);
+                break;
+            default:
+                ESP_LOGE(TAG, "Checking %s error", filename);
             }
+        }
+        else if (focused->label.contains("^ Up"))
+        {
+            ScrollDirectoryFiles(Direction::Up);
+        }
+        else if (focused->label.contains("< Esc"))
+        {
+            return Escape();
         }
 
         return SceneId::CurrentScene;
@@ -134,8 +171,7 @@ namespace Scene
 
                     if (!ui[directory_ui_start].focusable)
                     {
-                        ui[directory_ui_start].label = "^ Up";
-                        ui[directory_ui_start].focusable = true;
+                        ToggleUpButton(true);
                     }
 
                     // ChangeItemFocus(&(*last_focused), false);
@@ -167,16 +203,50 @@ namespace Scene
 
                     if (next_displayable == ui.rend() - directory_ui_start - 2)
                     {
-                        ChangeItemFocus(&ui[directory_ui_start], false);
-                        ui[directory_ui_start].label.clear();
-                        ui[directory_ui_start].focusable = false;
-
-                        ChangeItemFocus(&ui[directory_ui_start + 1], true);
+                        ToggleUpButton(false);
                     }
 
                     RenderDirectory(directory_ui_start);
                 }
             }
+        }
+    }
+
+    void FilesScene::OpenDirectory(const char *relative_path)
+    {
+        if (!strcmp(relative_path, ".."))
+        {
+            curr_directory.erase(curr_directory.rfind('/'));
+        }
+        else
+        {
+            curr_directory += relative_path;
+        }
+
+        if (curr_directory.ends_with('/'))
+        {
+            curr_directory.erase(curr_directory.rfind('/'));
+        }
+
+        ESP_LOGI(TAG, "Opening directory %s", curr_directory.c_str());
+        ReadDirectory(directory_ui_start + 1);
+        ToggleUpButton(false);
+        RenderDirectory(directory_ui_start);
+    }
+
+    void FilesScene::ToggleUpButton(bool mode)
+    {
+        if (mode)
+        {
+            ui[directory_ui_start].label = "^ Up";
+            ui[directory_ui_start].focusable = true;
+        }
+        else
+        {
+            ChangeItemFocus(&ui[directory_ui_start], false);
+            ui[directory_ui_start].label.clear();
+            ui[directory_ui_start].focusable = false;
+            ChangeItemFocus(&ui[directory_ui_start + 1], true);
         }
     }
 }

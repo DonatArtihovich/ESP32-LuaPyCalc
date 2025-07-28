@@ -1,10 +1,11 @@
 #pragma once
 
-#include <stdio.h>
+#include <cstdio>
 #include <dirent.h>
-#include <string.h>
+#include <cstring>
 #include <vector>
 #include <string>
+#include <cerrno>
 
 #include "esp_log.h"
 #include "driver/spi_master.h"
@@ -33,5 +34,6 @@ namespace SD
         esp_err_t ReadFile(const char *path, char *buff, size_t len);
         esp_err_t WriteFile(const char *path, char *buff);
         std::vector<std::string> ReadDirectory(const char *path);
+        int IsDirectory(const char *path);
     };
 }
