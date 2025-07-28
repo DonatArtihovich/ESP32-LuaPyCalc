@@ -6,6 +6,12 @@ using SD::SDCard;
 
 namespace Scene
 {
+    struct Cursor
+    {
+        uint16_t x{0}, y{0},
+            width{10}, height{15};
+    };
+
     class FilesScene : public Scene
     {
         SDCard &sdcard;
@@ -13,11 +19,14 @@ namespace Scene
         std::string curr_directory{SD("")};
         const size_t content_ui_start{2};
         std::vector<UiStringItem> directory_backup{};
+
         bool isFileOpened{false};
+        Cursor cursor{};
 
         size_t ReadDirectory(int ui_start);
 
         void RenderContent(int ui_start, bool file = false);
+        void RenderCursor();
         void RenderHeader();
         void ScrollContent(Direction direction);
         void ToggleUpButton(bool mode);

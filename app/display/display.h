@@ -72,6 +72,8 @@ namespace Display
             std::vector<UiStringItem>::iterator end,
             int16_t x, int16_t y, bool direction = false,
             const char *extra_items_placeholder = "more items...");
+
+        void DrawCursor(uint16_t x, uint16_t y, uint8_t width = 10, uint8_t height = 15);
         uint16_t GetWidth();
         uint16_t GetHeight();
     };

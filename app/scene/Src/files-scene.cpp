@@ -278,7 +278,14 @@ namespace Scene
 
         ESP_LOGI(TAG, "Seek pos = %lu", seek_pos);
 
+        cursor.y = ui.size() - 1 - content_ui_start;
         RenderContent(content_ui_start, true);
+        cursor.x = std::find_if(ui.crbegin(), ui.crend() - content_ui_start, [](auto &item)
+                                { return item.displayable; })
+                       ->label.size() -
+                   1;
+
+        RenderCursor();
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)
@@ -317,5 +324,20 @@ namespace Scene
             directory_backup.end(),
             ui.cbegin() + content_ui_start,
             ui.cend());
+    }
+
+    void FilesScene::RenderCursor()
+    {
+        uint16_t cursor_x{static_cast<uint16_t>(cursor.x * cursor.width + 10)},
+            cursor_y{static_cast<uint16_t>(display.GetHeight() - 60 - cursor.y * cursor.height + 2)};
+
+        ESP_LOGI(TAG, "Cursor X: %d", cursor_x);
+        ESP_LOGI(TAG, "Cursor Y: %d", cursor_y);
+
+        display.DrawCursor(
+            cursor_x,
+            cursor_y,
+            cursor.width,
+            cursor.height);
     }
 }

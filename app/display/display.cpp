@@ -274,4 +274,9 @@ namespace Display
     {
         return lcd.width;
     }
+
+    void DisplayController::DrawCursor(uint16_t x, uint16_t y, uint8_t width, uint8_t height)
+    {
+        lcd.DrawFillRect(y, x, y + height, x + width, Color::White);
+    }
 }
