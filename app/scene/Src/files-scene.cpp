@@ -126,14 +126,7 @@ namespace Scene
     {
         if (isFileOpened)
         {
-
-            // OpenDirectory("/");
-            ui.erase(ui.begin() + directory_ui_start, ui.end());
-            ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
-            isFileOpened = false;
-            ChangeHeader("Files");
-            RenderAll();
-            directory_backup.clear();
+            CloseFile();
             return SceneId::CurrentScene;
         }
 
@@ -307,5 +300,15 @@ namespace Scene
     {
         display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
         display.DrawStringItems(ui.begin() + ui_start, ui.end(), 10, display.GetHeight() - 60, true);
+    }
+
+    void FilesScene::CloseFile()
+    {
+        ui.erase(ui.begin() + directory_ui_start, ui.end());
+        ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
+        isFileOpened = false;
+        ChangeHeader("Files");
+        RenderAll();
+        directory_backup.clear();
     }
 }

@@ -25,6 +25,7 @@ namespace Scene
 
         void OpenDirectory(const char *relative_path);
         void OpenFile(const char *relative_path);
+        void CloseFile();
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
