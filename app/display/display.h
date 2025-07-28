@@ -70,7 +70,8 @@ namespace Display
         void DrawStringItems(
             std::vector<UiStringItem>::iterator start,
             std::vector<UiStringItem>::iterator end,
-            int16_t x, int16_t y, bool direction = false);
+            int16_t x, int16_t y, bool direction = false,
+            const char *extra_items_placeholder = "more items...");
         uint16_t GetWidth();
         uint16_t GetHeight();
     };

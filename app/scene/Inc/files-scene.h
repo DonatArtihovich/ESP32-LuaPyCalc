@@ -11,21 +11,21 @@ namespace Scene
         SDCard &sdcard;
 
         std::string curr_directory{SD("")};
-        const size_t directory_ui_start{2};
+        const size_t content_ui_start{2};
         std::vector<UiStringItem> directory_backup{};
         bool isFileOpened{false};
 
-        void RenderDirectory(int ui_start);
         size_t ReadDirectory(int ui_start);
 
-        void RenderFile(int ui_start);
+        void RenderContent(int ui_start, bool file = false);
         void RenderHeader();
-        void ScrollDirectoryFiles(Direction direction);
+        void ScrollContent(Direction direction);
         void ToggleUpButton(bool mode);
 
         void OpenDirectory(const char *relative_path);
         void OpenFile(const char *relative_path);
         void CloseFile();
+        void SaveDirectory();
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);

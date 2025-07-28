@@ -187,10 +187,16 @@ namespace Display
         std::vector<UiStringItem>::iterator end,
         int16_t x,
         int16_t y,
-        bool direction)
+        bool direction,
+        const char *extra_items_placeholder)
     {
         lcd.SetFontDirection(1);
         uint8_t fw, fh;
+
+        for (auto it = start; it < end; it++)
+        {
+            ESP_LOGI(TAG, "%s: %s", it->label.c_str(), it->displayable ? "Displayable" : "Not displayable");
+        }
 
         for (auto it = start; it < end; it++)
         {
@@ -214,10 +220,12 @@ namespace Display
                 x += width;
             }
 
-            if ((x > GetWidth() || y < 0 || y > GetHeight() || x < 0) && it < (end - 1))
+            if ((x > GetWidth() || y < 0 || y > GetHeight() || x < 0))
             {
                 it->displayable = false;
-                (it + 1)->displayable = false;
+                if (it < (end - 1))
+                    (it + 1)->displayable = false;
+                ESP_LOGI(TAG, "Current it: %s, (it + 1): %s", it->label.c_str(), (it + 1)->label.c_str());
             }
 
             if (!it->displayable)
@@ -245,7 +253,7 @@ namespace Display
                 {
                     Font::GetFontx(it->font, 0, &fw, &fh);
                     uint8_t label[30]{0};
-                    snprintf((char *)label, 29, "%d More items", end - it - 1);
+                    snprintf((char *)label, 29, "%d %s", end - it - 1, extra_items_placeholder);
                     lcd.DrawString(
                         it->font,
                         direction ? it->y - fh : it->y,

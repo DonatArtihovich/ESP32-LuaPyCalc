@@ -13,9 +13,9 @@ namespace Scene
         ui.push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
         ui.push_back(UiStringItem{"", Color::White, display.fx24M, false});
 
-        if (ReadDirectory(directory_ui_start + 1))
+        if (ReadDirectory(content_ui_start + 1))
         {
-            ChangeItemFocus(&ui[directory_ui_start + 1], true);
+            ChangeItemFocus(&ui[content_ui_start + 1], true);
         }
         else
         {
@@ -28,20 +28,18 @@ namespace Scene
     void FilesScene::RenderAll()
     {
         RenderHeader();
-
-        if (isFileOpened)
-        {
-        }
-        else
-        {
-            RenderDirectory(directory_ui_start);
-        }
+        RenderContent(content_ui_start);
     }
 
-    void FilesScene::RenderDirectory(int ui_start)
+    void FilesScene::RenderContent(int ui_start, bool file)
     {
         display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
-        display.DrawStringItems(ui.begin() + ui_start, ui.end(), 10, display.GetHeight() - 60, true);
+        display.DrawStringItems(ui.begin() + ui_start,
+                                ui.end(),
+                                10,
+                                display.GetHeight() - 60,
+                                true,
+                                file ? "more lines..." : "more items...");
     }
 
     size_t FilesScene::ReadDirectory(int ui_start)
@@ -88,7 +86,7 @@ namespace Scene
             return SceneId::CurrentScene;
         }
 
-        if (index > directory_ui_start)
+        if (index > content_ui_start)
         {
             if (focused->label == "..")
             {
@@ -112,7 +110,7 @@ namespace Scene
         }
         else if (focused->label.contains("^ Up"))
         {
-            ScrollDirectoryFiles(Direction::Up);
+            ScrollContent(Direction::Up);
         }
         else if (focused->label.contains("< Esc"))
         {
@@ -140,7 +138,7 @@ namespace Scene
             ESP_LOGI(TAG, "Basic focus not found");
             if (direction == Direction::Bottom)
             {
-                ScrollDirectoryFiles(direction);
+                ScrollContent(direction);
                 Scene::Focus(direction);
             }
         }
@@ -148,7 +146,7 @@ namespace Scene
         return true;
     }
 
-    void FilesScene::ScrollDirectoryFiles(Direction direction)
+    void FilesScene::ScrollContent(Direction direction)
     {
         // auto last_focused = std::find_if(
         //     ui.begin(),
@@ -159,7 +157,7 @@ namespace Scene
         if (direction == Direction::Bottom)
         {
             auto first_displayable = std::find_if(
-                ui.begin() + directory_ui_start + 1,
+                ui.begin() + content_ui_start + !isFileOpened,
                 ui.end(),
                 [](auto &item)
                 { return item.displayable; });
@@ -176,13 +174,13 @@ namespace Scene
                     first_displayable->displayable = false;
                     next_displayable->displayable = true;
 
-                    if (!ui[directory_ui_start].focusable)
+                    if (!ui[content_ui_start].focusable)
                     {
                         ToggleUpButton(true);
                     }
 
                     // ChangeItemFocus(&(*last_focused), false);
-                    RenderDirectory(directory_ui_start);
+                    RenderContent(content_ui_start, isFileOpened);
                     // ChangeItemFocus(&(*last_focused), true);
                 }
             }
@@ -208,12 +206,12 @@ namespace Scene
                     first_displayable->displayable = false;
                     next_displayable->displayable = true;
 
-                    if (next_displayable == ui.rend() - directory_ui_start - 2)
+                    if (next_displayable == ui.rend() - content_ui_start - 2)
                     {
                         ToggleUpButton(false);
                     }
 
-                    RenderDirectory(directory_ui_start);
+                    RenderContent(content_ui_start, isFileOpened);
                 }
             }
         }
@@ -236,47 +234,51 @@ namespace Scene
         }
 
         ESP_LOGI(TAG, "Opening directory %s", curr_directory.c_str());
-        ReadDirectory(directory_ui_start + 1);
+        ReadDirectory(content_ui_start + 1);
         ToggleUpButton(false);
-        RenderDirectory(directory_ui_start);
+        RenderContent(content_ui_start);
     }
 
     void FilesScene::ToggleUpButton(bool mode)
     {
         if (mode)
         {
-            ui[directory_ui_start].label = "^ Up";
-            ui[directory_ui_start].focusable = true;
+            ui[content_ui_start].label = "^ Up";
+            ui[content_ui_start].focusable = true;
         }
         else
         {
-            ChangeItemFocus(&ui[directory_ui_start], false);
-            ui[directory_ui_start].label.clear();
-            ui[directory_ui_start].focusable = false;
-            ChangeItemFocus(&ui[directory_ui_start + 1], true);
+            ChangeItemFocus(&ui[content_ui_start], false);
+            ui[content_ui_start].label.clear();
+            ui[content_ui_start].focusable = false;
+            ChangeItemFocus(&ui[content_ui_start + 1], true);
         }
     }
 
     void FilesScene::OpenFile(const char *relative_path)
     {
-        directory_backup.insert(directory_backup.end(), ui.cbegin() + directory_ui_start, ui.cend());
+        SaveDirectory();
         ChangeHeader(relative_path, true);
+        ChangeItemFocus(&ui[1], true, true);
         isFileOpened = true;
-        ui.erase(ui.begin() + directory_ui_start, ui.end());
+        ui.erase(ui.begin() + content_ui_start, ui.end());
 
-        // RenderFile(directory_ui_start + 1);
+        char buff[38] = {0};
+        uint32_t seek_pos{0};
+        int read = 0;
+        while ((read = sdcard.ReadFile((curr_directory + relative_path).c_str(), buff, 38, seek_pos)) != 0)
+        {
+            ui.push_back(UiStringItem{
+                buff,
+                Color::White,
+                display.fx16G,
+            });
+            seek_pos += read;
+        }
 
-        char buff[50] = {0};
-        if (ESP_OK == sdcard.ReadFile((curr_directory + relative_path).c_str(), buff, 49))
-        {
-            ESP_LOGI(TAG, "Read from %s: %s", (curr_directory + relative_path).c_str(), buff);
-            ui.push_back(UiStringItem{buff, Color::White, display.fx16G, false});
-            RenderFile(directory_ui_start);
-        }
-        else
-        {
-            ESP_LOGE(TAG, "Error reading %s", relative_path);
-        }
+        ESP_LOGI(TAG, "Seek pos = %lu", seek_pos);
+
+        RenderContent(content_ui_start, true);
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)
@@ -296,19 +298,24 @@ namespace Scene
         display.DrawStringItem(&ui[1], Position::Start, Position::End);
     }
 
-    void FilesScene::RenderFile(int ui_start)
-    {
-        display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
-        display.DrawStringItems(ui.begin() + ui_start, ui.end(), 10, display.GetHeight() - 60, true);
-    }
-
     void FilesScene::CloseFile()
     {
-        ui.erase(ui.begin() + directory_ui_start, ui.end());
+        ui.erase(ui.begin() + content_ui_start, ui.end());
+        std::for_each(ui.begin(), ui.end(), [this](auto &item)
+                      { if (item.focused) ChangeItemFocus(&item, false); });
+
         ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
         isFileOpened = false;
         ChangeHeader("Files");
         RenderAll();
         directory_backup.clear();
+    }
+
+    void FilesScene::SaveDirectory()
+    {
+        directory_backup.insert(
+            directory_backup.end(),
+            ui.cbegin() + content_ui_start,
+            ui.cend());
     }
 }

@@ -55,18 +55,22 @@ namespace SD
         return ret;
     }
 
-    esp_err_t SDCard::ReadFile(const char *path, char *buff, size_t len)
+    size_t SDCard::ReadFile(const char *path, char *buff, size_t len, uint32_t pos, uint8_t seek_point)
     {
-        esp_err_t ret = ESP_FAIL;
         FILE *file = fopen(path, "r");
         if (file != NULL)
         {
+            fseek(file, pos, seek_point);
             fgets(buff, len, file);
-            ret = ESP_OK;
         }
 
+        uint32_t current_pos = ftell(file);
+        fseek(file, pos, seek_point);
+        size_t result = current_pos - ftell(file);
         fclose(file);
-        return ret;
+
+        ESP_LOGI(TAG, "Read %d from %s: %s", result, path, buff);
+        return result;
     }
 
     esp_err_t SDCard::WriteFile(const char *path, char *buff)
