@@ -20,14 +20,18 @@ namespace Scene
         const size_t content_ui_start{2};
         std::vector<UiStringItem> directory_backup{};
 
-        bool isFileOpened{false};
+        bool isFileOpened{};
+        bool isCursorControlling{};
         Cursor cursor{};
 
         size_t ReadDirectory(int ui_start);
 
         void RenderContent(int ui_start, bool file = false);
         void RenderCursor();
+        void GetCursorXY(uint16_t *x, uint16_t *y);
         void RenderHeader();
+
+        void MoveCursor(Direction direction);
         void ScrollContent(Direction direction);
         void ToggleUpButton(bool mode);
 

@@ -29,6 +29,10 @@ namespace Scene
     {
         RenderHeader();
         RenderContent(content_ui_start);
+        if (isCursorControlling)
+        {
+            RenderCursor();
+        }
     }
 
     void FilesScene::RenderContent(int ui_start, bool file)
@@ -69,6 +73,26 @@ namespace Scene
     void FilesScene::Arrow(Direction direction)
     {
         Scene::Arrow(direction);
+        if (isFileOpened && !isCursorControlling && direction == Direction::Bottom)
+        {
+            isCursorControlling = true;
+            auto focused = std::find_if(ui.begin(), ui.end(), [this](auto &item)
+                                        { return item.focused; });
+            if (focused != ui.end())
+            {
+                ChangeItemFocus(&(*focused), false, true);
+            }
+
+            RenderCursor();
+            return;
+        }
+
+        if (isCursorControlling)
+        {
+            MoveCursor(direction);
+            return;
+        }
+
         Focus(direction);
     }
 
@@ -124,7 +148,15 @@ namespace Scene
     {
         if (isFileOpened)
         {
-            CloseFile();
+            if (isCursorControlling)
+            {
+                ChangeItemFocus(&ui[1], true, true);
+                isCursorControlling = false;
+            }
+            else
+            {
+                CloseFile();
+            }
             return SceneId::CurrentScene;
         }
 
@@ -272,20 +304,25 @@ namespace Scene
                 buff,
                 Color::White,
                 display.fx16G,
+                false,
             });
             seek_pos += read;
         }
 
-        ESP_LOGI(TAG, "Seek pos = %lu", seek_pos);
+        uint8_t fw, fh;
+        Font::GetFontx(display.fx16G, 0, &fw, &fh);
 
-        cursor.y = ui.size() - 1 - content_ui_start;
         RenderContent(content_ui_start, true);
+
+        cursor.height = fh;
+        cursor.width = fw;
+
+        size_t lines_count = ui.size() - content_ui_start;
+        cursor.y = lines_count - 1 > 10 ? 10 : lines_count - 1;
         cursor.x = std::find_if(ui.crbegin(), ui.crend() - content_ui_start, [](auto &item)
                                 { return item.displayable; })
                        ->label.size() -
                    1;
-
-        RenderCursor();
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)
@@ -313,6 +350,7 @@ namespace Scene
 
         ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
         isFileOpened = false;
+        isCursorControlling = false;
         ChangeHeader("Files");
         RenderAll();
         directory_backup.clear();
@@ -328,8 +366,11 @@ namespace Scene
 
     void FilesScene::RenderCursor()
     {
-        uint16_t cursor_x{static_cast<uint16_t>(cursor.x * cursor.width + 10)},
-            cursor_y{static_cast<uint16_t>(display.GetHeight() - 60 - cursor.y * cursor.height + 2)};
+        if (!isCursorControlling)
+            return;
+
+        uint16_t cursor_x{}, cursor_y{};
+        GetCursorXY(&cursor_x, &cursor_y);
 
         ESP_LOGI(TAG, "Cursor X: %d", cursor_x);
         ESP_LOGI(TAG, "Cursor Y: %d", cursor_y);
@@ -339,5 +380,72 @@ namespace Scene
             cursor_y,
             cursor.width,
             cursor.height);
+    }
+
+    void FilesScene::MoveCursor(Direction direction)
+    {
+        if (!isCursorControlling || !isFileOpened)
+            return;
+
+        auto line = ui.begin() + content_ui_start + cursor.y;
+        ESP_LOGI(TAG, "Current line: %s", line->label.c_str());
+
+        uint16_t cursor_x{}, cursor_y{};
+        GetCursorXY(&cursor_x, &cursor_y);
+
+        display.Clear(Color::Black,
+                      cursor_x,
+                      cursor_y,
+                      cursor_x + cursor.width,
+                      cursor_y + cursor.height);
+
+        cursor_y -= 2;
+
+        UiStringItem previous_cursor_pos{
+            std::string(1, line->label[cursor.x]).c_str(),
+            line->color,
+            line->font,
+            false,
+            Color::None,
+            cursor_x,
+            cursor_y};
+
+        display.DrawStringItem(&previous_cursor_pos);
+
+        switch (direction)
+        {
+        case Direction::Up:
+            if (cursor.y > 0)
+            {
+                cursor.y--;
+            }
+            break;
+        case Direction::Right:
+            if (cursor.x < (line->label.size() < 38 ? line->label.size() - 1 : 37))
+            {
+                cursor.x++;
+            }
+            break;
+        case Direction::Bottom:
+            if (cursor.y < ui.size() - content_ui_start - 1)
+            {
+                cursor.y++;
+            }
+            break;
+        case Direction::Left:
+            if (cursor.x > 0)
+            {
+                cursor.x--;
+            }
+            break;
+        }
+
+        RenderCursor();
+    }
+
+    void FilesScene::GetCursorXY(uint16_t *x, uint16_t *y)
+    {
+        *x = static_cast<uint16_t>(cursor.x * cursor.width + 10);
+        *y = static_cast<uint16_t>(display.GetHeight() - 60 - cursor.y * cursor.height + 2);
     }
 }
