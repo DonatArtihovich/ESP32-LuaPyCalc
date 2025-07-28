@@ -133,4 +133,17 @@ namespace Scene
             break;
         }
     }
+
+    void Scene::ChangeHeader(const char *header, bool rerender)
+    {
+        ui[0].label = header;
+        ESP_LOGI(TAG, "Change header to \"%s\"", ui[0].label.c_str());
+
+        if (rerender)
+        {
+            ui[0].backgroundColor = Color::Black;
+            display.DrawStringItem(&ui[0], Position::Center, Position::End);
+            ui[0].backgroundColor = Color::None;
+        }
+    }
 }

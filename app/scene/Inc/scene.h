@@ -43,6 +43,7 @@ namespace Scene
         virtual void RenderAll() = 0;
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
+        virtual void ChangeHeader(const char *header, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
 
         virtual ~Scene() = default;

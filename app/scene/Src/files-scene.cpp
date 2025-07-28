@@ -9,7 +9,7 @@ namespace Scene
 
     void FilesScene::Init()
     {
-        ui.push_back(UiStringItem{"Files", Color::White, display.fx32L, false});
+        ui.push_back(UiStringItem{"  Files   ", Color::White, display.fx32L, false});
         ui.push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
         ui.push_back(UiStringItem{"", Color::White, display.fx24M, false});
 
@@ -27,10 +27,15 @@ namespace Scene
 
     void FilesScene::RenderAll()
     {
-        display.Clear(Color::Black, 0, 0, 10, display.GetHeight() - 60);
-        display.DrawStringItem(&ui[0], Position::Center, Position::End);
-        display.DrawStringItem(&ui[1], Position::Start, Position::End);
-        RenderDirectory(directory_ui_start);
+        RenderHeader();
+
+        if (isFileOpened)
+        {
+        }
+        else
+        {
+            RenderDirectory(directory_ui_start);
+        }
     }
 
     void FilesScene::RenderDirectory(int ui_start)
@@ -94,19 +99,15 @@ namespace Scene
             char filename[30] = {0};
             snprintf(filename, 29, "/%s", focused->label.c_str());
 
-            int isDir{sdcard.IsDirectory((curr_directory + filename).c_str())};
-
-            switch (isDir)
+            if (sdcard.IsDirectory((curr_directory + filename).c_str()))
             {
-            case 1:
                 ESP_LOGI(TAG, "%s is directory", filename);
                 OpenDirectory(filename);
-                break;
-            case 0:
+            }
+            else
+            {
                 ESP_LOGI(TAG, "%s isn't directory", filename);
-                break;
-            default:
-                ESP_LOGE(TAG, "Checking %s error", filename);
+                OpenFile(filename);
             }
         }
         else if (focused->label.contains("^ Up"))
@@ -123,6 +124,19 @@ namespace Scene
 
     SceneId FilesScene::Escape()
     {
+        if (isFileOpened)
+        {
+
+            // OpenDirectory("/");
+            ui.erase(ui.begin() + directory_ui_start, ui.end());
+            ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
+            isFileOpened = false;
+            ChangeHeader("Files");
+            RenderAll();
+            directory_backup.clear();
+            return SceneId::CurrentScene;
+        }
+
         return SceneId::StartScene;
     }
 
@@ -248,5 +262,50 @@ namespace Scene
             ui[directory_ui_start].focusable = false;
             ChangeItemFocus(&ui[directory_ui_start + 1], true);
         }
+    }
+
+    void FilesScene::OpenFile(const char *relative_path)
+    {
+        directory_backup.insert(directory_backup.end(), ui.cbegin() + directory_ui_start, ui.cend());
+        ChangeHeader(relative_path, true);
+        isFileOpened = true;
+        ui.erase(ui.begin() + directory_ui_start, ui.end());
+
+        // RenderFile(directory_ui_start + 1);
+
+        char buff[50] = {0};
+        if (ESP_OK == sdcard.ReadFile((curr_directory + relative_path).c_str(), buff, 49))
+        {
+            ESP_LOGI(TAG, "Read from %s: %s", (curr_directory + relative_path).c_str(), buff);
+            ui.push_back(UiStringItem{buff, Color::White, display.fx16G, false});
+            RenderFile(directory_ui_start);
+        }
+        else
+        {
+            ESP_LOGE(TAG, "Error reading %s", relative_path);
+        }
+    }
+
+    void FilesScene::ChangeHeader(const char *header, bool rerender)
+    {
+        Scene::ChangeHeader(header);
+
+        if (rerender)
+        {
+            RenderHeader();
+        }
+    }
+
+    void FilesScene::RenderHeader()
+    {
+        display.Clear(Color::Black, 0, display.GetHeight() - 60, display.GetWidth(), display.GetHeight());
+        display.DrawStringItem(&ui[0], Position::Center, Position::End);
+        display.DrawStringItem(&ui[1], Position::Start, Position::End);
+    }
+
+    void FilesScene::RenderFile(int ui_start)
+    {
+        display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
+        display.DrawStringItems(ui.begin() + ui_start, ui.end(), 10, display.GetHeight() - 60, true);
     }
 }

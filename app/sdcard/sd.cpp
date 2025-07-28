@@ -118,20 +118,16 @@ namespace SD
         return spi_bus_free((spi_host_device_t)sd_spi_host.slot);
     }
 
-    int SDCard::IsDirectory(const char *path)
+    bool SDCard::IsDirectory(const char *path)
     {
         DIR *directory = opendir(path);
 
         if (directory != nullptr)
         {
             closedir(directory);
-            return 1;
-        }
-        else if (errno == ENOTDIR)
-        {
-            return 0;
+            return true;
         }
 
-        return -1;
+        return false;
     }
 }
