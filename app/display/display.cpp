@@ -225,7 +225,6 @@ namespace Display
                 it->displayable = false;
                 if (it < (end - 1))
                     (it + 1)->displayable = false;
-                ESP_LOGI(TAG, "Current it: %s, (it + 1): %s", it->label.c_str(), (it + 1)->label.c_str());
             }
 
             if (!it->displayable)
