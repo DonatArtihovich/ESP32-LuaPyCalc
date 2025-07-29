@@ -5,7 +5,7 @@ static const char *TAG = "Display";
 namespace Display
 {
     uint32_t UiStringItem::lastId = 0;
-    UiStringItem::UiStringItem(const char *label,
+    UiStringItem::UiStringItem(std::string label,
                                Color color,
                                FontxFile *font,
                                bool focusable,
@@ -195,14 +195,9 @@ namespace Display
 
         for (auto it = start; it < end; it++)
         {
-            ESP_LOGI(TAG, "%s: %s", it->label.c_str(), it->displayable ? "Displayable" : "Not displayable");
-        }
-
-        for (auto it = start; it < end; it++)
-        {
             if (!it->displayable)
             {
-                ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
+                ESP_LOGD(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
             Font::GetFontx(it->font, 0, &fw, &fh);
@@ -229,12 +224,12 @@ namespace Display
 
             if (!it->displayable)
             {
-                ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
+                ESP_LOGD(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
             else
             {
-                ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
+                ESP_LOGD(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
             }
 
             if (it->backgroundColor != Color::None)

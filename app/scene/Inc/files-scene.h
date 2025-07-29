@@ -18,28 +18,32 @@ namespace Scene
 
         std::string curr_directory{SD("")};
         const size_t content_ui_start{2};
+        const size_t file_line_length{37}; // without \0
         std::vector<UiStringItem> directory_backup{};
 
         bool isFileOpened{};
         bool isCursorControlling{};
         Cursor cursor{};
 
-        size_t ReadDirectory(int ui_start);
-
         void RenderContent(int ui_start, bool file = false);
         void RenderCursor();
-        void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void RenderHeader();
+        void RenderLines(uint8_t first_line = 0, bool file = false);
 
+        void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
-        void MoveCursor(Direction direction);
-        void ScrollContent(Direction direction);
+        void MoveCursor(Direction direction, bool rerender = true);
+        void ScrollContent(Direction direction, bool rerender = true);
         void ToggleUpButton(bool mode);
 
         void OpenDirectory(const char *relative_path);
-        void OpenFile(const char *relative_path);
-        void CloseFile();
+        size_t ReadDirectory(int ui_start);
         void SaveDirectory();
+
+        void OpenFile(const char *relative_path);
+        // void WriteChar(char ch);
+        void InsertChar(char ch);
+        void CloseFile();
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);

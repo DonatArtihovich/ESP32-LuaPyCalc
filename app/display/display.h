@@ -26,7 +26,7 @@ namespace Display
 
         static uint32_t lastId;
 
-        UiStringItem(const char *label,
+        UiStringItem(std::string label,
                      Color color,
                      FontxFile *font,
                      bool focusable = true,

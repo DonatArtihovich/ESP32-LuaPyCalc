@@ -37,6 +37,7 @@ namespace Scene
 
     void FilesScene::RenderContent(int ui_start, bool file)
     {
+        // RenderLines(ui_start - content_ui_start, file);
         display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
         display.DrawStringItems(ui.begin() + ui_start,
                                 ui.end(),
@@ -98,6 +99,11 @@ namespace Scene
 
     SceneId FilesScene::Enter()
     {
+        if (isCursorControlling)
+        {
+            InsertChar('Q');
+            return SceneId::CurrentScene;
+        }
         size_t index = -1;
         auto focused = std::find_if(
             ui.begin(),
@@ -178,14 +184,8 @@ namespace Scene
         return true;
     }
 
-    void FilesScene::ScrollContent(Direction direction)
+    void FilesScene::ScrollContent(Direction direction, bool rerender)
     {
-        // auto last_focused = std::find_if(
-        //     ui.begin(),
-        //     ui.end(),
-        //     [](auto &item)
-        //     { return item.focused; });
-
         if (direction == Direction::Bottom)
         {
             auto first_displayable = std::find_if(
@@ -211,9 +211,10 @@ namespace Scene
                         ToggleUpButton(true);
                     }
 
-                    // ChangeItemFocus(&(*last_focused), false);
-                    RenderContent(content_ui_start, isFileOpened);
-                    // ChangeItemFocus(&(*last_focused), true);
+                    if (rerender)
+                    {
+                        RenderContent(content_ui_start, isFileOpened);
+                    }
                 }
             }
         }
@@ -243,7 +244,10 @@ namespace Scene
                         ToggleUpButton(false);
                     }
 
-                    RenderContent(content_ui_start, isFileOpened);
+                    if (rerender)
+                    {
+                        RenderContent(content_ui_start, isFileOpened);
+                    }
                 }
             }
         }
@@ -295,10 +299,14 @@ namespace Scene
         isFileOpened = true;
         ui.erase(ui.begin() + content_ui_start, ui.end());
 
-        char buff[38] = {0};
+        char buff[file_line_length + 1] = {0};
         uint32_t seek_pos{0};
         int read = 0;
-        while ((read = sdcard.ReadFile((curr_directory + relative_path).c_str(), buff, 38, seek_pos)) != 0)
+        while ((read = sdcard.ReadFile(
+                    (curr_directory + relative_path).c_str(),
+                    buff,
+                    file_line_length + 1,
+                    seek_pos)) != 0)
         {
             ui.push_back(UiStringItem{
                 buff,
@@ -382,7 +390,7 @@ namespace Scene
             cursor.height);
     }
 
-    void FilesScene::MoveCursor(Direction direction)
+    void FilesScene::MoveCursor(Direction direction, bool rerender)
     {
         if (!isCursorControlling || !isFileOpened)
             return;
@@ -413,7 +421,7 @@ namespace Scene
                 }
                 else
                 {
-                    ScrollContent(Direction::Up);
+                    ScrollContent(Direction::Up, rerender);
                     prev_cursor_y++;
                 }
 
@@ -435,7 +443,10 @@ namespace Scene
             }
             break;
         case Direction::Right:
-            if (cursor.x < (line->label.size() < 38 ? line->label.size() - 1 : 37) && line->label[cursor.x + 1] != '\n')
+            if (cursor.x < (line->label.size() < file_line_length + 1
+                                ? line->label.size() - 1
+                                : file_line_length) &&
+                line->label[cursor.x + 1] != '\n')
             {
                 cursor.x++;
             }
@@ -447,7 +458,7 @@ namespace Scene
                 }
                 else
                 {
-                    ScrollContent(Direction::Bottom);
+                    ScrollContent(Direction::Bottom, rerender);
                     prev_cursor_y--;
                 }
                 cursor.x = 0;
@@ -466,7 +477,7 @@ namespace Scene
                 }
                 else
                 {
-                    ScrollContent(Direction::Bottom);
+                    ScrollContent(Direction::Bottom, rerender);
                     prev_cursor_y--;
                 }
 
@@ -500,7 +511,7 @@ namespace Scene
                 }
                 else
                 {
-                    ScrollContent(Direction::Up);
+                    ScrollContent(Direction::Up, rerender);
                     prev_cursor_y++;
                 }
 
@@ -520,8 +531,11 @@ namespace Scene
             break;
         }
 
-        ClearCursor(line, prev_cursor_x, prev_cursor_y);
-        RenderCursor();
+        if (rerender)
+        {
+            ClearCursor(line, prev_cursor_x, prev_cursor_y);
+            RenderCursor();
+        }
     }
 
     void FilesScene::ClearCursor(std::vector<UiStringItem>::iterator line,
@@ -570,5 +584,61 @@ namespace Scene
 
         *ret_x = static_cast<uint16_t>(x * cursor.width + 10);
         *ret_y = static_cast<uint16_t>(display.GetHeight() - 60 - y * cursor.height + 2);
+    }
+
+    void FilesScene::InsertChar(char ch)
+    {
+        uint8_t insert_x{cursor.x}, insert_y{cursor.y};
+        auto line = ui.begin() + content_ui_start + insert_y;
+
+        line->label.insert(line->label.cbegin() + insert_x, ch);
+
+        ESP_LOGI(TAG, "Insert %c into \"%s\" line, x: %d, y: %d", ch, line->label.c_str(), insert_x, insert_y);
+
+        while (line->label.size() > file_line_length)
+        {
+            ch = {line->label[line->label.size() - 1]};
+            line->label.pop_back();
+
+            if (line < ui.end() - 1)
+            {
+                (line + 1)->label.insert((line + 1)->label.begin(), ch);
+                line++;
+            }
+            else
+            {
+                ui.push_back(UiStringItem{std::string(1, ch), line->color, line->font, false});
+            }
+        }
+
+        ESP_LOGI(TAG, "Last \"%s\" line, x: %d, y: %d", line->label.c_str(), insert_x, insert_y);
+
+        RenderLines(insert_y, true);
+        MoveCursor(Direction::Right);
+    }
+
+    void FilesScene::RenderLines(uint8_t first_line, bool file)
+    {
+        uint8_t fw, fh;
+        Font::GetFontx((ui.begin() + content_ui_start)->font, 0, &fw, &fh);
+
+        uint16_t lines_start_x{10},
+            lines_start_y{static_cast<uint16_t>(display.GetHeight() - 60 - first_line * fh)};
+
+        if (!first_line)
+        {
+            display.Clear(Color::Black, lines_start_x, 0, 0, display.GetHeight() - 35);
+        }
+        else
+        {
+            display.Clear(Color::Black, lines_start_x, 0, 0, lines_start_y + fh);
+        }
+
+        display.DrawStringItems(ui.begin() + content_ui_start + first_line,
+                                ui.end(),
+                                lines_start_x,
+                                lines_start_y,
+                                true,
+                                file ? "more lines..." : "more items...");
     }
 }
