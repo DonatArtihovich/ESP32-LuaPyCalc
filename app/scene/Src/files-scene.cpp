@@ -206,7 +206,7 @@ namespace Scene
                     first_displayable->displayable = false;
                     next_displayable->displayable = true;
 
-                    if (!ui[content_ui_start].focusable)
+                    if (!ui[content_ui_start].focusable && !isFileOpened)
                     {
                         ToggleUpButton(true);
                     }
@@ -238,7 +238,7 @@ namespace Scene
                     first_displayable->displayable = false;
                     next_displayable->displayable = true;
 
-                    if (next_displayable == ui.rend() - content_ui_start - 2)
+                    if (next_displayable == ui.rend() - content_ui_start - 2 && !isFileOpened)
                     {
                         ToggleUpButton(false);
                     }
@@ -387,11 +387,127 @@ namespace Scene
         if (!isCursorControlling || !isFileOpened)
             return;
 
-        auto line = ui.begin() + content_ui_start + cursor.y;
+        auto line = std::find_if(ui.begin() + content_ui_start, ui.end(), [](auto &item)
+                                 { return item.displayable; });
+
+        if (line == ui.end())
+            return;
+
+        line += cursor.y;
         ESP_LOGI(TAG, "Current line: %s", line->label.c_str());
 
         uint16_t cursor_x{}, cursor_y{};
         GetCursorXY(&cursor_x, &cursor_y);
+
+        size_t lines_num{ui.size() - content_ui_start};
+        uint16_t lines_last_index{static_cast<uint16_t>(lines_num - 1 > 10 ? 10 : lines_num - 1)};
+
+        switch (direction)
+        {
+        case Direction::Up:
+            if (cursor.y > 0 || line > ui.begin() + content_ui_start)
+            {
+                if (cursor.y > 0)
+                {
+                    cursor.y--;
+                }
+                else
+                {
+                    ScrollContent(Direction::Up);
+                }
+
+                if (cursor.x > (line - 1)->label.size() - 1)
+                {
+                    if (*((line - 1)->label.cend() - 1) == '\n')
+                    {
+                        cursor.x = (line - 1)->label.size() - 2;
+                    }
+                    else
+                    {
+                        cursor.x = (line - 1)->label.size() - 1;
+                    }
+                }
+            }
+            else
+            {
+                return;
+            }
+            break;
+        case Direction::Right:
+            if (cursor.x < (line->label.size() < 38 ? line->label.size() - 1 : 37) && line->label[cursor.x + 1] != '\n')
+            {
+                cursor.x++;
+            }
+            else if ((line + 1) != ui.end())
+            {
+                if (cursor.y < lines_last_index)
+                {
+                    cursor.y++;
+                }
+                else
+                {
+                    ScrollContent(Direction::Bottom);
+                }
+                cursor.x = 0;
+            }
+            else
+            {
+                return;
+            }
+            break;
+        case Direction::Bottom:
+            if ((line + 1) != ui.end())
+            {
+                if (cursor.y < lines_last_index)
+                {
+                    cursor.y++;
+                }
+                else
+                {
+                    ScrollContent(Direction::Bottom);
+                }
+
+                if (cursor.x > (line + 1)->label.size() - 1)
+                {
+                    if (*((line + 1)->label.cend() - 1) == '\n')
+                    {
+                        cursor.x = (line + 1)->label.size() - 2;
+                    }
+                    else
+                    {
+                        cursor.x = (line + 1)->label.size() - 1;
+                    }
+                }
+            }
+            else
+            {
+                return;
+            }
+            break;
+        case Direction::Left:
+            if (cursor.x > 0)
+            {
+                cursor.x--;
+            }
+            else if (cursor.y > 0)
+            {
+                cursor.y--;
+
+                if (*((line - 1)->label.cend() - 1) == '\n')
+                {
+                    cursor.x = (line + 1)->label.size() - 2;
+                }
+                else
+                {
+                    cursor.x = (line + 1)->label.size() - 1;
+                }
+            }
+            else
+            {
+                return;
+            }
+            break;
+        }
 
         display.Clear(Color::Black,
                       cursor_x,
@@ -411,34 +527,6 @@ namespace Scene
             cursor_y};
 
         display.DrawStringItem(&previous_cursor_pos);
-
-        switch (direction)
-        {
-        case Direction::Up:
-            if (cursor.y > 0)
-            {
-                cursor.y--;
-            }
-            break;
-        case Direction::Right:
-            if (cursor.x < (line->label.size() < 38 ? line->label.size() - 1 : 37))
-            {
-                cursor.x++;
-            }
-            break;
-        case Direction::Bottom:
-            if (cursor.y < ui.size() - content_ui_start - 1)
-            {
-                cursor.y++;
-            }
-            break;
-        case Direction::Left:
-            if (cursor.x > 0)
-            {
-                cursor.x--;
-            }
-            break;
-        }
 
         RenderCursor();
     }
