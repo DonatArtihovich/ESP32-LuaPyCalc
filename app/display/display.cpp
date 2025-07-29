@@ -248,12 +248,16 @@ namespace Display
                     Font::GetFontx(it->font, 0, &fw, &fh);
                     uint8_t label[30]{0};
                     snprintf((char *)label, 29, "%d %s", end - it - 1, extra_items_placeholder);
-                    lcd.DrawString(
-                        it->font,
-                        direction ? it->y - fh : it->y,
-                        direction ? it->x : it->x + it->label.size() * fw,
-                        label,
-                        Color::White);
+
+                    uint16_t item_x{static_cast<uint16_t>(direction ? it->x : it->x + it->label.size() * fw)},
+                        item_y{static_cast<uint16_t>(direction ? it->y - fh : it->y)};
+
+                    lcd.DrawFillRect(item_y, item_x,
+                                     item_y + fh,
+                                     item_x + strlen(extra_items_placeholder) * fw,
+                                     Color::White);
+
+                    lcd.DrawString(fx16G, item_y, item_x, label, Color::Black);
                     break;
                 }
             }

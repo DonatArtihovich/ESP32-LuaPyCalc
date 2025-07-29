@@ -592,7 +592,9 @@ namespace Scene
             return;
 
         uint8_t insert_x{cursor.x}, insert_y{cursor.y};
-        auto start_line{ui.begin() + content_ui_start + insert_y};
+        auto first_displaying = std::find_if(ui.begin() + content_ui_start, ui.end(), [](auto &item)
+                                             { return item.displayable; });
+        auto start_line{first_displaying + insert_y};
         uint8_t last_rendering_y{insert_y};
 
         for (auto line{start_line}; line < ui.end(); line++)
@@ -643,7 +645,9 @@ namespace Scene
     void FilesScene::RenderLines(uint8_t first_line, uint8_t last_line, bool file)
     {
         uint8_t fw, fh;
-        Font::GetFontx((ui.begin() + content_ui_start)->font, 0, &fw, &fh);
+        auto first_displaying = std::find_if(ui.begin() + content_ui_start, ui.end(), [](auto &item)
+                                             { return item.displayable; });
+        Font::GetFontx(first_displaying->font, 0, &fw, &fh);
 
         uint16_t lines_start_x{10},
             lines_start_y(display.GetHeight() - 60 - first_line * fh),
@@ -651,8 +655,8 @@ namespace Scene
             clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
 
         display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
-        display.DrawStringItems(ui.begin() + content_ui_start + first_line,
-                                ui.begin() + content_ui_start + last_line + 1,
+        display.DrawStringItems(first_displaying + first_line,
+                                first_displaying + last_line + 1,
                                 lines_start_x,
                                 lines_start_y,
                                 true,
