@@ -8,7 +8,7 @@ namespace Scene
 {
     struct Cursor
     {
-        uint16_t x{0}, y{0},
+        uint8_t x{0}, y{0},
             width{10}, height{15};
     };
 
@@ -28,9 +28,10 @@ namespace Scene
 
         void RenderContent(int ui_start, bool file = false);
         void RenderCursor();
-        void GetCursorXY(uint16_t *x, uint16_t *y);
+        void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void RenderHeader();
 
+        void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
         void MoveCursor(Direction direction);
         void ScrollContent(Direction direction);
         void ToggleUpButton(bool mode);

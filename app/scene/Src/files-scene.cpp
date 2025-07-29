@@ -396,11 +396,11 @@ namespace Scene
         line += cursor.y;
         ESP_LOGI(TAG, "Current line: %s", line->label.c_str());
 
-        uint16_t cursor_x{}, cursor_y{};
-        GetCursorXY(&cursor_x, &cursor_y);
+        uint16_t prev_cursor_x{cursor.x}, prev_cursor_y{cursor.y};
 
         size_t lines_num{ui.size() - content_ui_start};
-        uint16_t lines_last_index{static_cast<uint16_t>(lines_num - 1 > 10 ? 10 : lines_num - 1)};
+        uint16_t lines_last_index{
+            static_cast<uint16_t>(lines_num - 1 > 10 ? 10 : lines_num - 1)};
 
         switch (direction)
         {
@@ -414,6 +414,7 @@ namespace Scene
                 else
                 {
                     ScrollContent(Direction::Up);
+                    prev_cursor_y++;
                 }
 
                 if (cursor.x > (line - 1)->label.size() - 1)
@@ -447,6 +448,7 @@ namespace Scene
                 else
                 {
                     ScrollContent(Direction::Bottom);
+                    prev_cursor_y--;
                 }
                 cursor.x = 0;
             }
@@ -465,6 +467,7 @@ namespace Scene
                 else
                 {
                     ScrollContent(Direction::Bottom);
+                    prev_cursor_y--;
                 }
 
                 if (cursor.x > (line + 1)->label.size() - 1)
@@ -489,17 +492,25 @@ namespace Scene
             {
                 cursor.x--;
             }
-            else if (cursor.y > 0)
+            else if (cursor.y > 0 || line > ui.begin() + content_ui_start)
             {
-                cursor.y--;
-
-                if (*((line - 1)->label.cend() - 1) == '\n')
+                if (cursor.y > 0)
                 {
-                    cursor.x = (line + 1)->label.size() - 2;
+                    cursor.y--;
                 }
                 else
                 {
-                    cursor.x = (line + 1)->label.size() - 1;
+                    ScrollContent(Direction::Up);
+                    prev_cursor_y++;
+                }
+
+                if (*((line - 1)->label.cend() - 1) == '\n')
+                {
+                    cursor.x = (line - 1)->label.size() - 2;
+                }
+                else
+                {
+                    cursor.x = (line - 1)->label.size() - 1;
                 }
             }
             else
@@ -509,31 +520,55 @@ namespace Scene
             break;
         }
 
-        display.Clear(Color::Black,
-                      cursor_x,
-                      cursor_y,
-                      cursor_x + cursor.width,
-                      cursor_y + cursor.height);
+        ClearCursor(line, prev_cursor_x, prev_cursor_y);
+        RenderCursor();
+    }
 
-        cursor_y -= 2;
+    void FilesScene::ClearCursor(std::vector<UiStringItem>::iterator line,
+                                 int16_t cursor_x,
+                                 int16_t cursor_y)
+    {
+        if (cursor_x < 0)
+        {
+            cursor_x = cursor.x;
+        }
+        if (cursor_y < 0)
+        {
+            cursor_y = cursor.y;
+        }
+
+        ESP_LOGI(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
+
+        uint16_t x, y;
+        GetCursorXY(&x, &y, cursor_x, cursor_y);
+
+        display.Clear(Color::Black, x, y, x + cursor.width, y + cursor.height);
+        y -= 2;
 
         UiStringItem previous_cursor_pos{
-            std::string(1, line->label[cursor.x]).c_str(),
+            std::string(1, line->label[cursor_x]).c_str(),
             line->color,
             line->font,
             false,
             Color::None,
-            cursor_x,
-            cursor_y};
+            x, y};
 
         display.DrawStringItem(&previous_cursor_pos);
-
-        RenderCursor();
     }
 
-    void FilesScene::GetCursorXY(uint16_t *x, uint16_t *y)
+    void FilesScene::GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x, int16_t y)
     {
-        *x = static_cast<uint16_t>(cursor.x * cursor.width + 10);
-        *y = static_cast<uint16_t>(display.GetHeight() - 60 - cursor.y * cursor.height + 2);
+        if (x < 0)
+        {
+            x = cursor.x;
+        }
+
+        if (y < 0)
+        {
+            y = cursor.y;
+        }
+
+        *ret_x = static_cast<uint16_t>(x * cursor.width + 10);
+        *ret_y = static_cast<uint16_t>(display.GetHeight() - 60 - y * cursor.height + 2);
     }
 }
