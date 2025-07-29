@@ -33,7 +33,7 @@ namespace Scene
     {
         display.Clear(Color::Black);
         display.DrawStringItem(&ui[0], Display::Position::Center, Display::Position::End);
-        display.DrawStringItems(ui.begin() + 1, ui.end(), 0, display.GetHeight() - 80, true);
+        display.DrawStringItems(ui.begin() + 1, ui.end(), 0, display.GetHeight() - 80, 3);
     }
 
     SceneId StartScene::Enter()

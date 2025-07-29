@@ -187,7 +187,7 @@ namespace Display
         std::vector<UiStringItem>::iterator end,
         int16_t x,
         int16_t y,
-        bool direction,
+        uint8_t count,
         const char *extra_items_placeholder)
     {
         lcd.SetFontDirection(1);
@@ -206,16 +206,9 @@ namespace Display
             it->x = x;
             it->y = y;
 
-            if (direction)
-            {
-                y -= fh;
-            }
-            else
-            {
-                x += width;
-            }
+            y -= fh;
 
-            if ((x > GetWidth() || y < 0 || y > GetHeight() || x < 0))
+            if (count == 0 || (x > GetWidth() || y < 0 || y > GetHeight() || x < 0))
             {
                 it->displayable = false;
                 if (it < (end - 1))
@@ -237,6 +230,7 @@ namespace Display
                 lcd.DrawFillRect(it->y, it->x, it->y + fh, it->x + width, it->backgroundColor);
             }
             lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label.c_str(), it->color);
+            count--;
         }
 
         if (!(end - 1)->displayable)
@@ -249,8 +243,7 @@ namespace Display
                     uint8_t label[30]{0};
                     snprintf((char *)label, 29, "%d %s", end - it - 1, extra_items_placeholder);
 
-                    uint16_t item_x{static_cast<uint16_t>(direction ? it->x : it->x + it->label.size() * fw)},
-                        item_y{static_cast<uint16_t>(direction ? it->y - fh : it->y)};
+                    uint16_t item_x{it->x}, item_y{static_cast<uint16_t>(it->y - fh)};
 
                     lcd.DrawFillRect(item_y, item_x,
                                      item_y + fh,

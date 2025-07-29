@@ -37,13 +37,12 @@ namespace Scene
 
     void FilesScene::RenderContent(int ui_start, bool file)
     {
-        // RenderLines(ui_start - content_ui_start, file);
         display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
         display.DrawStringItems(ui.begin() + ui_start,
                                 ui.end(),
                                 10,
                                 display.GetHeight() - 60,
-                                true,
+                                11,
                                 file ? "more lines..." : "more items...");
     }
 
@@ -140,7 +139,7 @@ namespace Scene
         }
         else if (focused->label.contains("^ Up"))
         {
-            ScrollContent(Direction::Up);
+            ScrollContent(Direction::Up, true, 5);
         }
         else if (focused->label.contains("< Esc"))
         {
@@ -176,15 +175,18 @@ namespace Scene
             ESP_LOGI(TAG, "Basic focus not found");
             if (direction == Direction::Bottom)
             {
-                ScrollContent(direction);
-                Scene::Focus(direction);
+                ScrollContent(direction, true, 5);
             }
+            // else if (direction == Direction::Up)
+            // {
+            //     ScrollContent(direction, true, 5);
+            // }
         }
 
         return true;
     }
 
-    void FilesScene::ScrollContent(Direction direction, bool rerender)
+    void FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
     {
         if (direction == Direction::Bottom)
         {
@@ -194,61 +196,92 @@ namespace Scene
                 [](auto &item)
                 { return item.displayable; });
 
-            if (first_displayable != ui.end())
+            auto last_displayable = std::find_if(
+                                        ui.rbegin(),
+                                        ui.rend() - content_ui_start - !isFileOpened,
+                                        [](auto &item)
+                                        { return item.displayable; })
+                                        .base() -
+                                    1;
+
+            if (last_displayable >= ui.end() - 1 || first_displayable == ui.end())
+                return;
+
+            ESP_LOGI(TAG, "LAST DISPLAYABLE, \"%s\"", last_displayable->label.c_str());
+
+            for (auto it{ui.begin() + content_ui_start + !isFileOpened};
+                 it < last_displayable &&
+                 it < first_displayable + count;
+                 it++)
             {
-                auto next_displayable = std::find_if(
-                    first_displayable + 1, ui.end(),
-                    [](auto &item)
-                    { return !item.displayable; });
+                it->displayable = false;
+            }
 
-                if (next_displayable != ui.end())
-                {
-                    first_displayable->displayable = false;
-                    next_displayable->displayable = true;
+            for (auto it{last_displayable + 1};
+                 it < ui.end() && it < last_displayable + count + 1;
+                 it++)
+            {
+                it->displayable = true;
+            }
 
-                    if (!ui[content_ui_start].focusable && !isFileOpened)
-                    {
-                        ToggleUpButton(true);
-                    }
+            if (!ui[content_ui_start].focusable &&
+                !isFileOpened)
+            {
+                ToggleUpButton(true);
+            }
 
-                    if (rerender)
-                    {
-                        RenderContent(content_ui_start, isFileOpened);
-                    }
-                }
+            if (rerender)
+            {
+                RenderContent(content_ui_start, isFileOpened);
             }
         }
         else if (direction == Direction::Up)
         {
             auto first_displayable = std::find_if(
                 ui.rbegin(),
-                ui.rend() - 2,
+                ui.rend() - content_ui_start + !isFileOpened,
                 [](auto &item)
                 { return item.displayable; });
 
-            if (first_displayable != ui.rend() - 2)
+            auto last_displayable = std::reverse_iterator(std::find_if(
+                                        ui.begin() + content_ui_start + !isFileOpened,
+                                        ui.end(),
+                                        [](auto &item)
+                                        { return item.displayable; })) -
+                                    1;
+
+            if (last_displayable != ui.rend())
+                ESP_LOGI(TAG, "LAST DISPLAYABLE, \"%s\"", last_displayable->label.c_str());
+
+            if (last_displayable >= ui.rend() - 1 || first_displayable == ui.rend())
+                return;
+
+            ESP_LOGI(TAG, "LAST DISPLAYABLE, \"%s\"", last_displayable->label.c_str());
+
+            for (auto it{ui.rbegin()};
+                 it < last_displayable &&
+                 it < first_displayable + count;
+                 it++)
             {
-                auto next_displayable = std::find_if(
-                    first_displayable + 1,
-                    ui.rend() - 2,
-                    [](auto &item)
-                    { return !item.displayable; });
+                it->displayable = false;
+            }
 
-                if (next_displayable != ui.rend() - 2)
-                {
-                    first_displayable->displayable = false;
-                    next_displayable->displayable = true;
+            for (auto it{last_displayable + 1};
+                 it < ui.rend() && it < last_displayable + count + 1;
+                 it++)
+            {
+                it->displayable = true;
+            }
 
-                    if (next_displayable == ui.rend() - content_ui_start - 2 && !isFileOpened)
-                    {
-                        ToggleUpButton(false);
-                    }
+            if (ui[content_ui_start + 1].displayable &&
+                !isFileOpened)
+            {
+                ToggleUpButton(false);
+            }
 
-                    if (rerender)
-                    {
-                        RenderContent(content_ui_start, isFileOpened);
-                    }
-                }
+            if (rerender)
+            {
+                RenderContent(content_ui_start, isFileOpened);
             }
         }
     }
@@ -275,7 +308,7 @@ namespace Scene
         RenderContent(content_ui_start);
     }
 
-    void FilesScene::ToggleUpButton(bool mode)
+    void FilesScene::ToggleUpButton(bool mode, bool rerender)
     {
         if (mode)
         {
@@ -284,10 +317,10 @@ namespace Scene
         }
         else
         {
-            ChangeItemFocus(&ui[content_ui_start], false);
+            ChangeItemFocus(&ui[content_ui_start], false, rerender);
             ui[content_ui_start].label.clear();
             ui[content_ui_start].focusable = false;
-            ChangeItemFocus(&ui[content_ui_start + 1], true);
+            ChangeItemFocus(&ui[content_ui_start + 1], true, rerender);
         }
     }
 
@@ -659,7 +692,7 @@ namespace Scene
                                 first_displaying + last_line + 1,
                                 lines_start_x,
                                 lines_start_y,
-                                true,
+                                5,
                                 file ? "more lines..." : "more items...");
     }
 }

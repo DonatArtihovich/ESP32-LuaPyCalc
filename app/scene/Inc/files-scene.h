@@ -33,8 +33,8 @@ namespace Scene
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
         void MoveCursor(Direction direction, bool rerender = true);
-        void ScrollContent(Direction direction, bool rerender = true);
-        void ToggleUpButton(bool mode);
+        void ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
+        void ToggleUpButton(bool mode, bool rerender = false);
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory(int ui_start);
