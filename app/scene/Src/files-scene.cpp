@@ -101,7 +101,7 @@ namespace Scene
     {
         if (isCursorControlling)
         {
-            InsertChar('Q');
+            InsertChars("Q");
             return SceneId::CurrentScene;
         }
         size_t index = -1;
@@ -586,56 +586,73 @@ namespace Scene
         *ret_y = static_cast<uint16_t>(display.GetHeight() - 60 - y * cursor.height + 2);
     }
 
-    void FilesScene::InsertChar(char ch)
+    void FilesScene::InsertChars(std::string chars)
     {
+        if (!chars.size())
+            return;
+
         uint8_t insert_x{cursor.x}, insert_y{cursor.y};
-        auto line = ui.begin() + content_ui_start + insert_y;
+        auto start_line{ui.begin() + content_ui_start + insert_y};
+        uint8_t last_rendering_y{insert_y};
 
-        line->label.insert(line->label.cbegin() + insert_x, ch);
-
-        ESP_LOGI(TAG, "Insert %c into \"%s\" line, x: %d, y: %d", ch, line->label.c_str(), insert_x, insert_y);
-
-        while (line->label.size() > file_line_length)
+        for (auto line{start_line}; line < ui.end(); line++)
         {
-            ch = {line->label[line->label.size() - 1]};
-            line->label.pop_back();
+            if (!chars.size())
+                break;
 
-            if (line < ui.end() - 1)
+            if (last_rendering_y < 10 && line > start_line)
             {
-                (line + 1)->label.insert((line + 1)->label.begin(), ch);
-                line++;
+                last_rendering_y++;
             }
-            else
+
+            std::for_each(
+                chars.begin(),
+                chars.end(),
+                [&chars, &line, &insert_x](auto &curr_char)
+                {
+                    line->label.insert(line->label.cbegin() + insert_x, chars[0]);
+                    chars.erase(chars.begin());
+                    insert_x++;
+                });
+
+            if (line->label.size() > file_line_length)
             {
-                ui.push_back(UiStringItem{std::string(1, ch), line->color, line->font, false});
+                std::for_each(
+                    line->label.begin() + file_line_length,
+                    line->label.end(),
+                    [&chars](auto &item)
+                    { chars.push_back(item); });
+
+                line->label.erase(
+                    line->label.end() - (line->label.size() - file_line_length),
+                    line->label.end());
+
+                insert_x = 0;
+            }
+
+            if (line == ui.end() - 1 && chars.size())
+            {
+                ui.push_back(UiStringItem{std::string(""), line->color, line->font, false});
             }
         }
 
-        ESP_LOGI(TAG, "Last \"%s\" line, x: %d, y: %d", line->label.c_str(), insert_x, insert_y);
-
-        RenderLines(insert_y, true);
+        RenderLines(insert_y, last_rendering_y, true);
         MoveCursor(Direction::Right);
     }
 
-    void FilesScene::RenderLines(uint8_t first_line, bool file)
+    void FilesScene::RenderLines(uint8_t first_line, uint8_t last_line, bool file)
     {
         uint8_t fw, fh;
         Font::GetFontx((ui.begin() + content_ui_start)->font, 0, &fw, &fh);
 
         uint16_t lines_start_x{10},
-            lines_start_y{static_cast<uint16_t>(display.GetHeight() - 60 - first_line * fh)};
+            lines_start_y(display.GetHeight() - 60 - first_line * fh),
+            clear_start_y(display.GetHeight() - 60 - (first_line * fh) - (last_line - first_line) * fh),
+            clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
 
-        if (!first_line)
-        {
-            display.Clear(Color::Black, lines_start_x, 0, 0, display.GetHeight() - 35);
-        }
-        else
-        {
-            display.Clear(Color::Black, lines_start_x, 0, 0, lines_start_y + fh);
-        }
-
+        display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
         display.DrawStringItems(ui.begin() + content_ui_start + first_line,
-                                ui.end(),
+                                ui.begin() + content_ui_start + last_line + 1,
                                 lines_start_x,
                                 lines_start_y,
                                 true,

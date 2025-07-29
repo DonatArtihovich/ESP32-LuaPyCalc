@@ -28,7 +28,7 @@ namespace Scene
         void RenderContent(int ui_start, bool file = false);
         void RenderCursor();
         void RenderHeader();
-        void RenderLines(uint8_t first_line = 0, bool file = false);
+        void RenderLines(uint8_t first_line = 0, uint8_t last_line = 10, bool file = false);
 
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
@@ -41,8 +41,7 @@ namespace Scene
         void SaveDirectory();
 
         void OpenFile(const char *relative_path);
-        // void WriteChar(char ch);
-        void InsertChar(char ch);
+        void InsertChars(std::string chars);
         void CloseFile();
 
     public:
