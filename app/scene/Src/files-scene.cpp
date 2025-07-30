@@ -584,7 +584,7 @@ namespace Scene
                     if (scrolled_count)
                         cursor_y = file_lines_per_page - scrolled_count;
                 }
-                cursor_x = 1;
+                cursor_x = 0;
             }
             break;
         case Direction::Bottom:
