@@ -83,7 +83,7 @@ namespace Scene
                 ChangeItemFocus(&(*focused), false, true);
             }
 
-            RenderCursor();
+            SpawnCursor(cursor.x, cursor.y, false);
             return;
         }
 
@@ -424,10 +424,7 @@ namespace Scene
 
         size_t lines_count = ui.size() - content_ui_start;
         cursor.y = lines_count > file_lines_per_page ? file_lines_per_page - 1 : lines_count - 1;
-        cursor.x = std::find_if(ui.crbegin(), ui.crend() - content_ui_start, [](auto &item)
-                                { return item.displayable; })
-                       ->label.size() -
-                   1;
+        cursor.x = file_line_length - 1;
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)
@@ -515,7 +512,10 @@ namespace Scene
             }
             else
             {
-                cursor_x = line->label.size() - 1;
+                cursor_x = (line == ui.end() - 1 &&
+                            line->label.size() < file_line_length)
+                               ? line->label.size()
+                               : line->label.size() - 1;
             }
         }
 
@@ -525,6 +525,8 @@ namespace Scene
         }
         cursor.x = cursor_x;
         cursor.y = cursor_y;
+
+        ESP_LOGI(TAG, "Cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
         RenderCursor();
     }
 
@@ -565,10 +567,11 @@ namespace Scene
             }
             break;
         case Direction::Right:
-            if (cursor.x < (line->label.size() < file_line_length + 1
-                                ? line->label.size() - 1
-                                : file_line_length) &&
-                line->label[cursor.x + 1] != '\n')
+            if ((cursor_x < (line->label.size() < file_line_length + 1
+                                 ? line->label.size() - 1
+                                 : file_line_length) &&
+                 line->label[cursor.x + 1] != '\n') ||
+                line == ui.cend() - 1)
             {
                 cursor_x++;
             }
