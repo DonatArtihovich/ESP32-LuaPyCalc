@@ -187,8 +187,7 @@ namespace Display
         std::vector<UiStringItem>::iterator end,
         int16_t x,
         int16_t y,
-        uint8_t count,
-        const char *extra_items_placeholder)
+        uint8_t count)
     {
         lcd.SetFontDirection(1);
         uint8_t fw, fh;
@@ -232,29 +231,6 @@ namespace Display
             lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label.c_str(), it->color);
             count--;
         }
-
-        if (!(end - 1)->displayable)
-        {
-            for (auto it = end - 1; it >= start; it--)
-            {
-                if (it->displayable)
-                {
-                    Font::GetFontx(it->font, 0, &fw, &fh);
-                    uint8_t label[30]{0};
-                    snprintf((char *)label, 29, "%d %s", end - it - 1, extra_items_placeholder);
-
-                    uint16_t item_x{it->x}, item_y{static_cast<uint16_t>(it->y - fh)};
-
-                    lcd.DrawFillRect(item_y, item_x,
-                                     item_y + fh,
-                                     item_x + strlen(extra_items_placeholder) * fw,
-                                     Color::White);
-
-                    lcd.DrawString(fx16G, item_y, item_x, label, Color::Black);
-                    break;
-                }
-            }
-        }
     }
 
     uint16_t DisplayController::GetWidth()
@@ -270,5 +246,26 @@ namespace Display
     void DisplayController::DrawCursor(uint16_t x, uint16_t y, uint8_t width, uint8_t height)
     {
         lcd.DrawFillRect(y, x, y + height, x + width, Color::White);
+    }
+
+    void DisplayController::DrawListEndingLabel(
+        std::vector<UiStringItem>::iterator line_before,
+        size_t count,
+        const char *end_label)
+    {
+        uint8_t fw, fh;
+        Font::GetFontx(line_before->font, 0, &fw, &fh);
+        char label[30]{0};
+        snprintf(label, 29, "%d %s", count, end_label);
+
+        uint16_t item_x{line_before->x}, item_y{static_cast<uint16_t>(line_before->y - fh)};
+
+        ESP_LOGI(TAG, "Under last displayable: \"%s\"", line_before->label.c_str());
+        lcd.DrawFillRect(item_y, item_x,
+                         item_y + fh,
+                         item_x + strlen(label) * fw,
+                         Color::White);
+
+        lcd.DrawString(fx16G, item_y, item_x, (uint8_t *)label, Color::Black);
     }
 }

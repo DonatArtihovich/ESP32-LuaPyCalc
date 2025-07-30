@@ -42,8 +42,11 @@ namespace Scene
                                 ui.end(),
                                 10,
                                 display.GetHeight() - 60,
-                                file ? file_lines_per_page : directory_lines_per_page,
-                                file ? "more lines..." : "more items...");
+                                file ? file_lines_per_page : directory_lines_per_page);
+        if (!(ui.end() - 1)->displayable)
+        {
+            RenderUiListEnding(ui_start, file ? "more lines" : "more items");
+        }
     }
 
     size_t FilesScene::ReadDirectory(int ui_start)
@@ -756,7 +759,11 @@ namespace Scene
                                 first_displaying + last_line + 1,
                                 lines_start_x,
                                 lines_start_y,
-                                5,
-                                file ? "more lines..." : "more items...");
+                                5);
+
+        if (!(ui.end() - 1)->displayable)
+        {
+            RenderUiListEnding(content_ui_start + !isCursorControlling, "more lines");
+        }
     }
 }

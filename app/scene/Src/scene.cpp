@@ -146,4 +146,22 @@ namespace Scene
             ui[0].backgroundColor = Color::None;
         }
     }
+
+    void Scene::RenderUiListEnding(size_t ui_start, const char *end_label)
+    {
+        auto last_displayable{
+            std::find_if(ui.rbegin(),
+                         ui.rend() - ui_start,
+                         [](auto &item)
+                         { return item.displayable; })
+                .base() -
+            1};
+
+        if (last_displayable != ui.end())
+        {
+            display.DrawListEndingLabel(last_displayable,
+                                        ui.end() - last_displayable - 1,
+                                        end_label);
+        }
+    }
 }

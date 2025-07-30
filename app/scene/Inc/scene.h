@@ -45,6 +45,7 @@ namespace Scene
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
         virtual void ChangeHeader(const char *header, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
+        void RenderUiListEnding(size_t ui_start, const char *end_label = "more items");
 
         virtual ~Scene() = default;
     };
