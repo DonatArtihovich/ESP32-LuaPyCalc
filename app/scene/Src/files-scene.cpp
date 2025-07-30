@@ -486,7 +486,7 @@ namespace Scene
 
     void FilesScene::SpawnCursor(uint8_t cursor_x, uint8_t cursor_y, bool clearing)
     {
-        if (cursor_y > file_lines_per_page - 1)
+        if (cursor_y > file_lines_per_page)
         {
             cursor_y = file_lines_per_page - 1;
         }
@@ -570,14 +570,14 @@ namespace Scene
             if ((cursor_x < (line->label.size() < file_line_length + 1
                                  ? line->label.size() - 1
                                  : file_line_length) &&
-                 line->label[cursor.x + 1] != '\n') ||
+                 line->label[cursor_x + 1] != '\n') ||
                 line == ui.cend() - 1)
             {
                 cursor_x++;
             }
             else if ((line + 1) != ui.end())
             {
-                if (cursor_y < file_lines_per_page - 1)
+                if (cursor_y < file_lines_per_page)
                 {
                     cursor_y++;
                 }
