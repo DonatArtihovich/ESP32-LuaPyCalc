@@ -18,8 +18,11 @@ namespace Scene
 
         std::string curr_directory{SD("")};
         const size_t content_ui_start{2};
-        const size_t content_lines_per_page{9}; // including "more"
-        const size_t file_line_length{37};      // without \0
+        const size_t directory_lines_per_page{9}; // including "more"
+        const size_t file_lines_per_page{9};      // not including "more"
+        const size_t directory_lines_scroll{directory_lines_per_page};
+        const size_t file_lines_scroll{file_lines_per_page};
+        const size_t file_line_length{37}; // without \0
         std::vector<UiStringItem> directory_backup{};
 
         bool isFileOpened{};
@@ -33,9 +36,10 @@ namespace Scene
 
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
-        void MoveCursor(Direction direction, bool rerender = true);
-        void ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
+        void MoveCursor(Direction direction, bool rerender = true, bool with_scrolling = true);
+        uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
         void ToggleUpButton(bool mode, bool rerender = false);
+        void SpawnCursor(uint8_t cursor_x, uint8_t cursor_y, bool clearing = true);
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory(int ui_start);
