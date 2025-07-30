@@ -18,7 +18,8 @@ namespace Scene
 
         std::string curr_directory{SD("")};
         const size_t content_ui_start{2};
-        const size_t file_line_length{37}; // without \0
+        const size_t content_lines_per_page{9}; // including "more"
+        const size_t file_line_length{37};      // without \0
         std::vector<UiStringItem> directory_backup{};
 
         bool isFileOpened{};

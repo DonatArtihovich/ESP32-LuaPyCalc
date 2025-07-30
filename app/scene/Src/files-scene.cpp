@@ -42,7 +42,7 @@ namespace Scene
                                 ui.end(),
                                 10,
                                 display.GetHeight() - 60,
-                                11,
+                                content_lines_per_page,
                                 file ? "more lines..." : "more items...");
     }
 
@@ -139,7 +139,7 @@ namespace Scene
         }
         else if (focused->label.contains("^ Up"))
         {
-            ScrollContent(Direction::Up, true, 5);
+            ScrollContent(Direction::Up, true, content_lines_per_page - 1);
         }
         else if (focused->label.contains("< Esc"))
         {
@@ -175,7 +175,7 @@ namespace Scene
             ESP_LOGI(TAG, "Basic focus not found");
             if (direction == Direction::Bottom)
             {
-                ScrollContent(direction, true, 5);
+                ScrollContent(direction, true, content_lines_per_page - 1);
             }
             // else if (direction == Direction::Up)
             // {
@@ -188,17 +188,21 @@ namespace Scene
 
     void FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
     {
+        if (count > content_lines_per_page - 2)
+            count = content_lines_per_page - 2;
+        size_t content_ui_gap{content_ui_start + !isFileOpened};
+
         if (direction == Direction::Bottom)
         {
             auto first_displayable = std::find_if(
-                ui.begin() + content_ui_start + !isFileOpened,
+                ui.begin() + content_ui_gap,
                 ui.end(),
                 [](auto &item)
                 { return item.displayable; });
 
             auto last_displayable = std::find_if(
                                         ui.rbegin(),
-                                        ui.rend() - content_ui_start - !isFileOpened,
+                                        ui.rend() - content_ui_gap,
                                         [](auto &item)
                                         { return item.displayable; })
                                         .base() -
@@ -207,9 +211,8 @@ namespace Scene
             if (last_displayable >= ui.end() - 1 || first_displayable == ui.end())
                 return;
 
-            ESP_LOGI(TAG, "LAST DISPLAYABLE, \"%s\"", last_displayable->label.c_str());
-
-            for (auto it{ui.begin() + content_ui_start + !isFileOpened};
+            std::vector<UiStringItem>::iterator it{};
+            for (it = ui.begin() + content_ui_gap;
                  it < last_displayable &&
                  it < first_displayable + count;
                  it++)
@@ -217,11 +220,37 @@ namespace Scene
                 it->displayable = false;
             }
 
-            for (auto it{last_displayable + 1};
+            for (it = last_displayable + 1;
                  it < ui.end() && it < last_displayable + count + 1;
                  it++)
             {
                 it->displayable = true;
+            }
+
+            size_t displayable_count = std::count_if(
+                ui.begin() + content_ui_gap,
+                ui.end(),
+                [](auto &item)
+                { return item.displayable; });
+
+            if (displayable_count < content_lines_per_page - 1)
+            {
+                auto end{it + content_lines_per_page - displayable_count - 1};
+
+                for (; it < ui.end() && it < end; it++)
+                {
+                    it->displayable = true;
+                    displayable_count++;
+                }
+
+                for (it = ui.end() - displayable_count - 1;
+                     displayable_count < content_lines_per_page - 1 &&
+                     it > ui.begin() + content_ui_gap;
+                     it--)
+                {
+                    it->displayable = true;
+                    displayable_count++;
+                }
             }
 
             if (!ui[content_ui_start].focusable &&
@@ -239,26 +268,22 @@ namespace Scene
         {
             auto first_displayable = std::find_if(
                 ui.rbegin(),
-                ui.rend() - content_ui_start + !isFileOpened,
+                ui.rend() - content_ui_gap,
                 [](auto &item)
                 { return item.displayable; });
 
             auto last_displayable = std::reverse_iterator(std::find_if(
-                                        ui.begin() + content_ui_start + !isFileOpened,
+                                        ui.begin() + content_ui_gap,
                                         ui.end(),
                                         [](auto &item)
                                         { return item.displayable; })) -
                                     1;
 
-            if (last_displayable != ui.rend())
-                ESP_LOGI(TAG, "LAST DISPLAYABLE, \"%s\"", last_displayable->label.c_str());
-
             if (last_displayable >= ui.rend() - 1 || first_displayable == ui.rend())
                 return;
 
-            ESP_LOGI(TAG, "LAST DISPLAYABLE, \"%s\"", last_displayable->label.c_str());
-
-            for (auto it{ui.rbegin()};
+            std::vector<UiStringItem>::reverse_iterator it{};
+            for (it = ui.rbegin();
                  it < last_displayable &&
                  it < first_displayable + count;
                  it++)
@@ -266,11 +291,37 @@ namespace Scene
                 it->displayable = false;
             }
 
-            for (auto it{last_displayable + 1};
+            for (it = last_displayable + 1;
                  it < ui.rend() && it < last_displayable + count + 1;
                  it++)
             {
                 it->displayable = true;
+            }
+
+            size_t displayable_count = std::count_if(
+                ui.begin() + content_ui_gap,
+                ui.end(),
+                [](auto &item)
+                { return item.displayable; });
+
+            if (displayable_count < content_lines_per_page - 1)
+            {
+                auto end{it + content_lines_per_page - displayable_count - 1};
+
+                for (; it < ui.rend() - content_ui_gap && it < end; it++)
+                {
+                    it->displayable = true;
+                    displayable_count++;
+                }
+
+                for (it = ui.rend() - content_ui_gap - displayable_count - 1;
+                     displayable_count < content_lines_per_page - 1 &&
+                     it > ui.rbegin();
+                     it--)
+                {
+                    it->displayable = true;
+                    displayable_count++;
+                }
             }
 
             if (ui[content_ui_start + 1].displayable &&
@@ -359,7 +410,7 @@ namespace Scene
         cursor.width = fw;
 
         size_t lines_count = ui.size() - content_ui_start;
-        cursor.y = lines_count - 1 > 10 ? 10 : lines_count - 1;
+        cursor.y = lines_count > content_lines_per_page ? content_lines_per_page - 1 : lines_count - 1;
         cursor.x = std::find_if(ui.crbegin(), ui.crend() - content_ui_start, [](auto &item)
                                 { return item.displayable; })
                        ->label.size() -
