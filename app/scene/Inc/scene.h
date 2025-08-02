@@ -40,6 +40,7 @@ namespace Scene
         virtual void Arrow(Direction direction);
         virtual SceneId Enter() = 0;
         virtual SceneId Escape() = 0;
+        virtual void Delete();
         virtual void RenderAll() = 0;
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);

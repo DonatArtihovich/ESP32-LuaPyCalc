@@ -164,4 +164,9 @@ namespace Scene
                                         end_label);
         }
     }
+
+    void Scene::Delete()
+    {
+        ESP_LOGI(TAG, "Delete pressed.");
+    }
 }

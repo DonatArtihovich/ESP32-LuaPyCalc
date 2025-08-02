@@ -12,6 +12,7 @@ namespace Keyboard
         Left = 32,
         Escape = 40,
         Bottom = 49,
+        Delete = 63,
     };
 
     static volatile uint64_t KeyState = 0xFFFFFFFF;
