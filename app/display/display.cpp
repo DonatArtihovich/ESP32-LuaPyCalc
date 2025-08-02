@@ -216,12 +216,12 @@ namespace Display
 
             if (!it->displayable)
             {
-                ESP_LOGD(TAG, "Item not displayable, %s", it->label.c_str());
+                ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
             else
             {
-                ESP_LOGD(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
+                ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
             }
 
             if (it->backgroundColor != Color::None)

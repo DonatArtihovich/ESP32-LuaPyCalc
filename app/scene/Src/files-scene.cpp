@@ -103,7 +103,7 @@ namespace Scene
     {
         if (isCursorControlling)
         {
-            InsertChars("Q");
+            InsertChars("\n");
             return SceneId::CurrentScene;
         }
         size_t index = -1;
@@ -518,16 +518,13 @@ namespace Scene
 
         ESP_LOGI(TAG, "Spawn cursor line: \"%s\", size: %d", line->label.c_str(), line->label.size());
 
-        uint8_t max_cursor_x = line->label[line->label.size() - 1] == '\n'
-                                   ? line->label.size() - 2
-                               : (line == ui.end() - 1 &&
-                                  line->label.size() < file_line_length)
+        uint8_t max_cursor_x = (line == ui.end() - 1 &&
+                                line->label.size() < file_line_length)
                                    ? line->label.size()
                                    : line->label.size() - 1;
 
         if (cursor_x > max_cursor_x)
         {
-            ESP_LOGI(TAG, "cursor_x > max_cursor_x: %d > %d", cursor_x, max_cursor_x);
             cursor_x = max_cursor_x;
         }
 
@@ -732,7 +729,7 @@ namespace Scene
             if (!chars.size())
                 break;
 
-            if (last_rendering_y < 10 && line > start_line)
+            if (last_rendering_y < file_lines_per_page - 1 && line > start_line)
             {
                 last_rendering_y++;
             }
@@ -747,17 +744,43 @@ namespace Scene
                     insert_x++;
                 });
 
+            size_t start_index = 0;
             if (line->label.size() > file_line_length)
             {
+                start_index = file_line_length;
+                ESP_LOGI(TAG, "Start_index: %d", start_index);
+
                 std::for_each(
-                    line->label.begin() + file_line_length,
+                    line->label.begin() + start_index,
                     line->label.end(),
                     [&chars](auto &item)
                     { chars.push_back(item); });
 
                 line->label.erase(
-                    line->label.end() - (line->label.size() - file_line_length),
+                    line->label.end() - (line->label.size() - start_index),
                     line->label.end());
+
+                insert_x = 0;
+            }
+
+            size_t find_index = std::string::npos;
+            if ((find_index = line->label.find('\n')) != std::string::npos)
+            {
+                ESP_LOGI(TAG, "\\n Find_index: %d", find_index);
+                std::for_each(
+                    line->label.rbegin(),
+                    line->label.rend() - find_index - 1,
+                    [&chars](auto &item)
+                    { chars.insert(chars.begin(), item); });
+
+                std::for_each(line, line + 4 > ui.end() ? ui.end() : line + 4, [](auto &item)
+                              { printf("Line: \"%s\"\n", item.label.c_str()); });
+
+                line->label.erase(
+                    line->label.begin() + find_index + 1,
+                    line->label.end());
+
+                ESP_LOGI(TAG, "Line after erasing: \"%s\"", line->label.c_str());
 
                 insert_x = 0;
             }
@@ -765,9 +788,14 @@ namespace Scene
             if (line == ui.end() - 1 && chars.size())
             {
                 ui.push_back(UiStringItem{std::string(""), line->color, line->font, false});
+                if (ui.end() - 1 - start_line > file_lines_per_page)
+                {
+                    (ui.end() - 1)->displayable = false;
+                }
             }
         }
 
+        ESP_LOGI(TAG, "Insert y: %d, last rendering y: %d", insert_y, last_rendering_y);
         RenderLines(insert_y, last_rendering_y, true);
         MoveCursor(Direction::Right);
     }
