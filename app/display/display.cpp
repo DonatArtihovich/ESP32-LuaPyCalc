@@ -260,7 +260,6 @@ namespace Display
 
         uint16_t item_x{line_before->x}, item_y{static_cast<uint16_t>(line_before->y - fh)};
 
-        ESP_LOGI(TAG, "Under last displayable: \"%s\"", line_before->label.c_str());
         lcd.DrawFillRect(item_y, item_x,
                          item_y + fh,
                          item_x + strlen(label) * fw,
