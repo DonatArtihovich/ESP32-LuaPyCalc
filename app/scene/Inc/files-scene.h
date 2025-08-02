@@ -47,6 +47,7 @@ namespace Scene
 
         void OpenFile(const char *relative_path);
         void InsertChars(std::string chars);
+        void DeleteChars(size_t count, int16_t initial_x = -1, int16_t initial_y = -1);
         void CloseFile();
 
     public:
@@ -56,6 +57,7 @@ namespace Scene
         void RenderAll() override;
         SceneId Enter() override;
         SceneId Escape() override;
+        void Delete() override;
         uint8_t Focus(Direction direction) override;
         void ChangeHeader(const char *header, bool rerender = false) override;
     };
