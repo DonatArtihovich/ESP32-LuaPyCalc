@@ -103,7 +103,7 @@ namespace Scene
     {
         if (IsCursorControlling())
         {
-            CursorInsertChars("\n");
+            CursorInsertChars("\n", file_lines_scroll);
             return SceneId::CurrentScene;
         }
         size_t index = -1;

@@ -56,7 +56,7 @@ namespace Scene
         bool IsCursorControlling();
         void CursorInit(Cursor *cursor);
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
-        void CursorInsertChars(std::string chars);
+        void CursorInsertChars(std::string chars, size_t scrolling = 0);
 
         virtual uint8_t GetLinesPerPageCount() = 0;
         virtual size_t GetLineLength();

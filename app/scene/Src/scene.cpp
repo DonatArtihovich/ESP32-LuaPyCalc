@@ -796,7 +796,7 @@ namespace Scene
         SpawnCursor(initial_x, initial_y);
     }
 
-    void Scene::CursorInsertChars(std::string chars)
+    void Scene::CursorInsertChars(std::string chars, size_t scrolling)
     {
         if (!chars.size())
             return;
@@ -880,7 +880,19 @@ namespace Scene
 
         ESP_LOGI(TAG, "Insert y: %d, last rendering y: %d", insert_y, last_rendering_y);
         RenderLines(insert_y, last_rendering_y);
-        MoveCursor(Direction::Right);
+        if (scrolling > 0)
+        {
+            MoveCursor(
+                Direction::Right,
+                true,
+                last_rendering_y - insert_y <= scrolling
+                    ? scrolling
+                    : last_rendering_y - insert_y);
+        }
+        else
+        {
+            MoveCursor(Direction::Right);
+        }
     }
 
     void Scene::CursorInit(Cursor *c)
