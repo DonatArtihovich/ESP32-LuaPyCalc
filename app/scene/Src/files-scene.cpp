@@ -344,7 +344,7 @@ namespace Scene
                 ToggleUpButton(true);
             }
 
-            if (rerender)
+            if (rerender && count)
             {
                 RenderContent(content_ui_start);
             }
@@ -361,7 +361,7 @@ namespace Scene
                 ToggleUpButton(false);
             }
 
-            if (rerender)
+            if (rerender && count)
             {
                 RenderContent(content_ui_start);
             }
