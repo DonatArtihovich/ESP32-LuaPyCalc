@@ -13,9 +13,9 @@ namespace Scene
         ui.push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
         ui.push_back(UiStringItem{"", Color::White, display.fx24M, false});
 
-        if (ReadDirectory(content_ui_start + 1))
+        if (ReadDirectory())
         {
-            ChangeItemFocus(&ui[content_ui_start + 1], true);
+            ChangeItemFocus(&(*GetContentUiStart()), true);
         }
         else
         {
@@ -29,30 +29,30 @@ namespace Scene
     {
         RenderHeader();
         RenderContent(content_ui_start);
-        if (isCursorControlling)
+        if (IsCursorControlling())
         {
             RenderCursor();
         }
     }
 
-    void FilesScene::RenderContent(int ui_start, bool file)
+    void FilesScene::RenderContent(uint8_t ui_start_index)
     {
         display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
-        display.DrawStringItems(ui.begin() + ui_start,
+        display.DrawStringItems(ui.begin() + ui_start_index,
                                 ui.end(),
                                 10,
                                 display.GetHeight() - 60,
-                                file ? file_lines_per_page : directory_lines_per_page);
+                                GetLinesPerPageCount());
         if (!(ui.end() - 1)->displayable)
         {
-            RenderUiListEnding(ui_start, file ? "more lines" : "more items");
+            RenderUiListEnding(isFileOpened ? "more lines" : "more items");
         }
     }
 
-    size_t FilesScene::ReadDirectory(int ui_start)
+    size_t FilesScene::ReadDirectory()
     {
         std::vector<std::string> files{sdcard.ReadDirectory(curr_directory.c_str())};
-        ui.erase(ui.begin() + ui_start, ui.end());
+        ui.erase(GetContentUiStart(), ui.end());
 
         if (!curr_directory.ends_with("sdcard"))
         {
@@ -76,9 +76,9 @@ namespace Scene
     void FilesScene::Arrow(Direction direction)
     {
         Scene::Arrow(direction);
-        if (isFileOpened && !isCursorControlling && direction == Direction::Bottom)
+        if (isFileOpened && !IsCursorControlling() && direction == Direction::Bottom)
         {
-            isCursorControlling = true;
+            SetCursorControlling(true);
             auto focused = std::find_if(ui.begin(), ui.end(), [this](auto &item)
                                         { return item.focused; });
             if (focused != ui.end())
@@ -86,13 +86,13 @@ namespace Scene
                 ChangeItemFocus(&(*focused), false, true);
             }
 
-            SpawnCursor(cursor.x, cursor.y, false);
+            SpawnCursor(-1, -1, false);
             return;
         }
 
-        if (isCursorControlling)
+        if (IsCursorControlling())
         {
-            MoveCursor(direction);
+            MoveCursor(direction, true, file_lines_scroll);
             return;
         }
 
@@ -101,9 +101,9 @@ namespace Scene
 
     SceneId FilesScene::Enter()
     {
-        if (isCursorControlling)
+        if (IsCursorControlling())
         {
-            InsertChars("\n");
+            CursorInsertChars("\n");
             return SceneId::CurrentScene;
         }
         size_t index = -1;
@@ -156,10 +156,10 @@ namespace Scene
     {
         if (isFileOpened)
         {
-            if (isCursorControlling)
+            if (IsCursorControlling())
             {
                 ChangeItemFocus(&ui[1], true, true);
-                isCursorControlling = false;
+                SetCursorControlling(false);
             }
             else
             {
@@ -173,9 +173,9 @@ namespace Scene
 
     void FilesScene::Delete()
     {
-        if (isCursorControlling)
+        if (IsCursorControlling())
         {
-            DeleteChars(3);
+            CursorDeleteChars(3, file_lines_scroll);
         }
     }
 
@@ -188,189 +188,9 @@ namespace Scene
             {
                 ScrollContent(direction, true, directory_lines_scroll);
             }
-            // else if (direction == Direction::Up)
-            // {
-            //     ScrollContent(direction, true, 5);
-            // }
         }
 
         return true;
-    }
-
-    uint8_t FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
-    {
-        size_t lines_per_page{isFileOpened ? file_lines_per_page : directory_lines_per_page};
-
-        if (count > lines_per_page - 1 - !isFileOpened)
-            count = lines_per_page - 1 - !isFileOpened;
-        size_t content_ui_gap{content_ui_start + !isFileOpened};
-
-        if (direction == Direction::Bottom)
-        {
-            auto first_displayable = std::find_if(
-                ui.begin() + content_ui_gap,
-                ui.end(),
-                [](auto &item)
-                { return item.displayable; });
-
-            auto last_displayable = std::find_if(
-                                        ui.rbegin(),
-                                        ui.rend() - content_ui_gap,
-                                        [](auto &item)
-                                        { return item.displayable; })
-                                        .base() -
-                                    1;
-
-            if (last_displayable >= ui.end() - 1 || first_displayable == ui.end())
-                return 0;
-
-            ESP_LOGI(TAG, "LAST DISPLAYABLE \"%s\"", last_displayable->label.c_str());
-            ESP_LOGI(TAG, "FIRST DISPLAYABLE \"%s\"", first_displayable->label.c_str());
-            ESP_LOGI(TAG, "COUNT \"%d\"", count);
-
-            if (count > ui.end() - last_displayable - 1)
-            {
-                count = ui.end() - last_displayable - 1;
-                ESP_LOGI(TAG, "COUNT \"%d\"", count);
-            }
-
-            std::vector<UiStringItem>::iterator it{};
-            for (it = ui.begin() + content_ui_gap;
-                 it < last_displayable &&
-                 it < first_displayable + count;
-                 it++)
-            {
-                it->displayable = false;
-            }
-
-            for (it = last_displayable + 1;
-                 it < ui.end() && it < last_displayable + count + 1;
-                 it++)
-            {
-                it->displayable = true;
-            }
-
-            size_t displayable_count = std::count_if(
-                ui.begin() + content_ui_gap,
-                ui.end(),
-                [](auto &item)
-                { return item.displayable; });
-
-            if (displayable_count < lines_per_page - 1)
-            {
-                auto end{it + lines_per_page - displayable_count - 1};
-
-                for (; it < ui.end() && it < end; it++)
-                {
-                    it->displayable = true;
-                    displayable_count++;
-                }
-
-                for (it = ui.end() - displayable_count - 1;
-                     displayable_count < lines_per_page - 1 &&
-                     it > ui.begin() + content_ui_gap;
-                     it--)
-                {
-                    it->displayable = true;
-                    displayable_count++;
-                }
-            }
-
-            if (!ui[content_ui_start].focusable &&
-                !isFileOpened)
-            {
-                ToggleUpButton(true);
-            }
-
-            if (rerender)
-            {
-                RenderContent(content_ui_start, isFileOpened);
-            }
-
-            return count;
-        }
-
-        if (direction == Direction::Up)
-        {
-            auto first_displayable = std::find_if(
-                ui.rbegin(),
-                ui.rend() - content_ui_gap,
-                [](auto &item)
-                { return item.displayable; });
-
-            auto last_displayable = std::reverse_iterator(std::find_if(
-                                        ui.begin() + content_ui_gap,
-                                        ui.end(),
-                                        [](auto &item)
-                                        { return item.displayable; })) -
-                                    1;
-
-            if (last_displayable >= ui.rend() - 1 || first_displayable == ui.rend())
-                return 0;
-
-            if (count > ui.rend() - content_ui_gap - last_displayable - 1)
-            {
-                count = ui.rend() - content_ui_gap - last_displayable - 1;
-                ESP_LOGI(TAG, "COUNT \"%d\"", count);
-            }
-
-            std::vector<UiStringItem>::reverse_iterator it{};
-            for (it = ui.rbegin();
-                 it < last_displayable &&
-                 it < first_displayable + count;
-                 it++)
-            {
-                it->displayable = false;
-            }
-
-            for (it = last_displayable + 1;
-                 it < ui.rend() && it < last_displayable + count + 1;
-                 it++)
-            {
-                it->displayable = true;
-            }
-
-            size_t displayable_count = std::count_if(
-                ui.begin() + content_ui_gap,
-                ui.end(),
-                [](auto &item)
-                { return item.displayable; });
-
-            if (displayable_count < lines_per_page - 1)
-            {
-                auto end{it + lines_per_page - displayable_count - 1};
-
-                for (; it < ui.rend() - content_ui_gap && it < end; it++)
-                {
-                    it->displayable = true;
-                    displayable_count++;
-                }
-
-                for (it = ui.rend() - content_ui_gap - displayable_count - 1;
-                     displayable_count < lines_per_page - 1 &&
-                     it > ui.rbegin();
-                     it--)
-                {
-                    it->displayable = true;
-                    displayable_count++;
-                }
-            }
-
-            if (ui[content_ui_start + 1].displayable &&
-                !isFileOpened)
-            {
-                ToggleUpButton(false);
-            }
-
-            if (rerender)
-            {
-                RenderContent(content_ui_start, isFileOpened);
-            }
-
-            return count;
-        }
-
-        return 0;
     }
 
     void FilesScene::OpenDirectory(const char *relative_path)
@@ -390,7 +210,7 @@ namespace Scene
         }
 
         ESP_LOGI(TAG, "Opening directory %s", curr_directory.c_str());
-        ReadDirectory(content_ui_start + 1);
+        ReadDirectory();
         ToggleUpButton(false);
         RenderContent(content_ui_start);
     }
@@ -417,7 +237,7 @@ namespace Scene
         ChangeHeader(relative_path, true);
         ChangeItemFocus(&ui[1], true, true);
         isFileOpened = true;
-        ui.erase(ui.begin() + content_ui_start, ui.end());
+        ui.erase(GetContentUiStart(), ui.end());
 
         char buff[file_line_length + 1] = {0};
         uint32_t seek_pos{0};
@@ -440,14 +260,19 @@ namespace Scene
         uint8_t fw, fh;
         Font::GetFontx(display.fx16G, 0, &fw, &fh);
 
-        RenderContent(content_ui_start, true);
+        RenderContent(GetContentUiStartIndex());
 
-        cursor.height = fh;
-        cursor.width = fw;
+        size_t lines_count = ui.size() - GetContentUiStartIndex();
 
-        size_t lines_count = ui.size() - content_ui_start;
-        cursor.y = lines_count > file_lines_per_page ? file_lines_per_page - 1 : lines_count - 1;
-        cursor.x = file_line_length - 1;
+        Cursor cursor{
+            .x = static_cast<uint8_t>(file_line_length - 1),
+            .y = static_cast<uint8_t>(lines_count > file_lines_per_page
+                                          ? file_lines_per_page - 1
+                                          : lines_count - 1),
+            .width = fw,
+            .height = fh,
+        };
+        CursorInit(&cursor);
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)
@@ -469,13 +294,12 @@ namespace Scene
 
     void FilesScene::CloseFile()
     {
-        ui.erase(ui.begin() + content_ui_start, ui.end());
+        ui.erase(GetContentUiStart(), ui.end());
         std::for_each(ui.begin(), ui.end(), [this](auto &item)
                       { if (item.focused) ChangeItemFocus(&item, false); });
 
         ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
         isFileOpened = false;
-        isCursorControlling = false;
         ChangeHeader("Files");
         RenderAll();
         directory_backup.clear();
@@ -489,548 +313,62 @@ namespace Scene
             ui.cend());
     }
 
-    void FilesScene::RenderCursor()
+    size_t FilesScene::GetContentUiStartIndex()
     {
-        if (!isCursorControlling)
-            return;
-
-        uint16_t cursor_x{}, cursor_y{};
-        GetCursorXY(&cursor_x, &cursor_y);
-
-        display.DrawCursor(
-            cursor_x,
-            cursor_y,
-            cursor.width,
-            cursor.height);
+        return content_ui_start + !isFileOpened;
     }
 
-    void FilesScene::SpawnCursor(int16_t cursor_x, int16_t cursor_y, bool clearing)
+    uint8_t FilesScene::GetLinesPerPageCount()
     {
-        if (cursor_x < 0)
-        {
-            cursor_x = cursor.x;
-        }
-
-        if (cursor_y < 0)
-        {
-            cursor_y = cursor.y;
-        }
-
-        size_t displayable_count{static_cast<size_t>(std::count_if(
-            ui.begin() + content_ui_start + !isCursorControlling,
-            ui.end(),
-            [](auto &item)
-            { return item.displayable; }))};
-
-        if (cursor_y > displayable_count - 1)
-        {
-            cursor_y = displayable_count - 1;
-            cursor_x = file_line_length;
-        }
-
-        auto line{std::find_if(
-            ui.begin() + content_ui_start + !isFileOpened,
-            ui.end(),
-            [](auto &item)
-            { return item.displayable; })};
-
-        if (line != ui.end() && line + cursor_y < ui.end())
-        {
-            line += cursor_y;
-        }
-        else
-            return;
-
-        uint8_t max_cursor_x = (line == ui.end() - 1 &&
-                                line->label.size() < file_line_length)
-                                   ? line->label.size()
-                                   : line->label.size() - 1;
-
-        if (cursor_x > max_cursor_x)
-        {
-            cursor_x = max_cursor_x;
-        }
-
-        if (clearing)
-        {
-            ClearCursor(line - cursor_y + cursor.y);
-        }
-        cursor.x = cursor_x;
-        cursor.y = cursor_y;
-
-        ESP_LOGI(TAG, "Spawn cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
-        RenderCursor();
+        return isFileOpened ? file_lines_per_page : directory_lines_per_page;
     }
 
-    void FilesScene::MoveCursor(Direction direction, bool rerender, bool with_scrolling)
+    size_t FilesScene::GetLineLength()
     {
-        if (!isCursorControlling || !isFileOpened)
-            return;
-
-        auto line = std::find_if(ui.begin() + content_ui_start, ui.end(), [](auto &item)
-                                 { return item.displayable; });
-
-        if (line == ui.end())
-            return;
-
-        line += cursor.y;
-        ESP_LOGI(TAG, "Current line: %s", line->label.c_str());
-
-        uint16_t cursor_x{cursor.x}, cursor_y{cursor.y};
-
-        uint8_t scrolled_count{};
-        uint8_t scrolled_line_y{};
-        bool cursor_changed = true;
-
-        switch (direction)
-        {
-        case Direction::Up:
-            if (cursor_y > 0 || line > ui.begin() + content_ui_start)
-            {
-                if (cursor_y)
-                {
-                    cursor_y--;
-                }
-                else if (with_scrolling)
-                {
-                    scrolled_count = ScrollContent(Direction::Up, rerender, file_lines_scroll);
-                    if (scrolled_count)
-                        cursor_y = scrolled_count - 1;
-                }
-            }
-            else
-                cursor_changed = false;
-            break;
-        case Direction::Right:
-            if ((cursor_x < (line->label.size() < file_line_length + 1
-                                 ? line->label.size() - 1
-                                 : file_line_length)) ||
-                line == ui.cend() - 1)
-            {
-                cursor_x++;
-            }
-            else if ((line + 1) != ui.end())
-            {
-                if (cursor_y < file_lines_per_page - 1)
-                {
-                    cursor_y++;
-                }
-                else if (with_scrolling)
-                {
-                    scrolled_count = ScrollContent(Direction::Bottom, rerender, file_lines_scroll);
-                    if (scrolled_count)
-                        cursor_y = std::count_if(
-                                       ui.begin() + content_ui_start + !isFileOpened,
-                                       ui.end(),
-                                       [](auto &item)
-                                       { return item.displayable; }) -
-                                   scrolled_count;
-                }
-                cursor_x = 0;
-            }
-            else
-                cursor_changed = false;
-            break;
-        case Direction::Bottom:
-            if ((line + 1) != ui.end())
-            {
-                if (cursor_y < file_lines_per_page - 1)
-                {
-                    cursor_y++;
-                }
-                else if (with_scrolling)
-                {
-                    scrolled_count = ScrollContent(Direction::Bottom, rerender, file_lines_scroll);
-                    if (scrolled_count)
-                        cursor_y = std::count_if(
-                                       ui.begin() + content_ui_start + !isFileOpened,
-                                       ui.end(),
-                                       [](auto &item)
-                                       { return item.displayable; }) -
-                                   scrolled_count;
-                }
-                else
-                    cursor_changed = false;
-            }
-            break;
-        case Direction::Left:
-            if (cursor_x > 0)
-            {
-                cursor_x--;
-            }
-            else if (cursor_y > 0 || line > ui.begin() + content_ui_start)
-            {
-                if (cursor_y > 0)
-                {
-                    cursor_y--;
-                }
-                else if (with_scrolling)
-                {
-                    scrolled_count = ScrollContent(Direction::Up, rerender, file_lines_scroll);
-
-                    if (scrolled_count)
-                        cursor_y = scrolled_count - 1;
-                }
-
-                cursor_x = file_line_length;
-            }
-            else
-                cursor_changed = false;
-            break;
-        }
-
-        if (cursor_changed)
-        {
-            SpawnCursor(cursor_x, cursor_y, scrolled_count == 0);
-        }
+        return isFileOpened ? file_line_length : default_line_length;
     }
 
-    void FilesScene::ClearCursor(std::vector<UiStringItem>::iterator line,
-                                 int16_t cursor_x,
-                                 int16_t cursor_y)
+    uint8_t FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
     {
-        if (cursor_x < 0)
+        size_t lines_per_page{GetLinesPerPageCount()};
+
+        if (count > lines_per_page - 1 - !isFileOpened)
+            count = lines_per_page - 1 - !isFileOpened;
+
+        if (direction == Direction::Bottom)
         {
-            cursor_x = cursor.x;
-        }
-        if (cursor_y < 0)
-        {
-            cursor_y = cursor.y;
-        }
-
-        ESP_LOGI(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
-
-        uint16_t x, y;
-        GetCursorXY(&x, &y, cursor_x, cursor_y);
-
-        display.Clear(Color::Black, x, y, x + cursor.width, y + cursor.height);
-        y -= 2;
-
-        UiStringItem previous_cursor_pos{
-            std::string(1, line->label[cursor_x]).c_str(),
-            line->color,
-            line->font,
-            false,
-            Color::None,
-            x, y};
-
-        display.DrawStringItem(&previous_cursor_pos);
-    }
-
-    void FilesScene::GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x, int16_t y)
-    {
-        if (x < 0)
-        {
-            x = cursor.x;
-        }
-
-        if (y < 0)
-        {
-            y = cursor.y;
-        }
-
-        *ret_x = static_cast<uint16_t>(x * cursor.width + 10);
-        *ret_y = static_cast<uint16_t>(display.GetHeight() - 60 - y * cursor.height + 2);
-    }
-
-    void FilesScene::InsertChars(std::string chars)
-    {
-        if (!chars.size())
-            return;
-
-        uint8_t insert_x{cursor.x}, insert_y{cursor.y};
-        auto first_displaying = std::find_if(ui.begin() + content_ui_start, ui.end(), [](auto &item)
-                                             { return item.displayable; });
-        auto start_line{first_displaying + insert_y};
-        uint8_t last_rendering_y{insert_y};
-
-        for (auto line{start_line}; line < ui.end(); line++)
-        {
-            if (!chars.size())
-                break;
-
-            if (last_rendering_y < file_lines_per_page - 1 && line > start_line)
+            count = Scene::ScrollContent(direction, rerender, count);
+            if (!ui[content_ui_start].focusable &&
+                !isFileOpened)
             {
-                last_rendering_y++;
+                ToggleUpButton(true);
             }
 
-            std::for_each(
-                chars.begin(),
-                chars.end(),
-                [&chars, &line, &insert_x](auto &curr_char)
-                {
-                    line->label.insert(line->label.cbegin() + insert_x, chars[0]);
-                    chars.erase(chars.begin());
-                    insert_x++;
-                });
-
-            size_t start_index = 0;
-            if (line->label.size() > file_line_length)
+            if (rerender)
             {
-                start_index = file_line_length;
-                ESP_LOGI(TAG, "Start_index: %d", start_index);
-
-                std::for_each(
-                    line->label.begin() + start_index,
-                    line->label.end(),
-                    [&chars](auto &item)
-                    { chars.push_back(item); });
-
-                line->label.erase(
-                    line->label.end() - (line->label.size() - start_index),
-                    line->label.end());
-
-                insert_x = 0;
+                RenderContent(content_ui_start);
             }
 
-            size_t find_index = std::string::npos;
-            if ((find_index = line->label.find('\n')) != std::string::npos)
+            return count;
+        }
+
+        if (direction == Direction::Up)
+        {
+            count = Scene::ScrollContent(direction, rerender, count);
+            if (ui[content_ui_start + 1].displayable &&
+                !isFileOpened)
             {
-                ESP_LOGI(TAG, "\\n Find_index: %d", find_index);
-                std::for_each(
-                    line->label.rbegin(),
-                    line->label.rend() - find_index - 1,
-                    [&chars](auto &item)
-                    { chars.insert(chars.begin(), item); });
-
-                std::for_each(line, line + 4 > ui.end() ? ui.end() : line + 4, [](auto &item)
-                              { printf("Line: \"%s\"\n", item.label.c_str()); });
-
-                line->label.erase(
-                    line->label.begin() + find_index + 1,
-                    line->label.end());
-
-                ESP_LOGI(TAG, "Line after erasing: \"%s\"", line->label.c_str());
-
-                insert_x = 0;
+                ToggleUpButton(false);
             }
 
-            if (line == ui.end() - 1 && chars.size())
+            if (rerender)
             {
-                ui.push_back(UiStringItem{std::string(""), line->color, line->font, false});
-                if (ui.end() - 1 - start_line > file_lines_per_page)
-                {
-                    (ui.end() - 1)->displayable = false;
-                }
-            }
-        }
-
-        ESP_LOGI(TAG, "Insert y: %d, last rendering y: %d", insert_y, last_rendering_y);
-        RenderLines(insert_y, last_rendering_y, true);
-        MoveCursor(Direction::Right);
-    }
-
-    void FilesScene::DeleteChars(size_t initial_count, int16_t initial_x, int16_t initial_y)
-    {
-        if (initial_x < 0)
-        {
-            initial_x = cursor.x;
-        }
-
-        if (initial_y < 0)
-        {
-            initial_y = cursor.y;
-        }
-
-        if (!initial_count)
-            return;
-
-        size_t count{initial_count};
-
-        auto first_displaying = std::find_if(
-            ui.begin() + content_ui_start,
-            ui.end(),
-            [](auto &item)
-            { return item.displayable; });
-        auto start_line{first_displaying + initial_y};
-
-        bool is_line_end{initial_x >
-                         start_line->label.size() - 1 -
-                             (start_line->label[start_line->label.size() - 1] == '\n')};
-
-        if (count > file_line_length)
-        {
-            return;
-        }
-        else if (initial_x < initial_count)
-        {
-            int8_t count{static_cast<int8_t>(initial_count)};
-
-            while (count > 0)
-            {
-                if (initial_x > count)
-                {
-                    initial_x -= count;
-                    break;
-                }
-                else
-                {
-                    count -= initial_x;
-                    initial_x -= count;
-                }
-
-                ESP_LOGI(TAG, "Count -= initial X: %d - %d = %d", count + initial_x, initial_x, count);
-                if (count > 0 && start_line != ui.begin() + content_ui_start)
-                {
-                    initial_x = (--start_line)->label.size() - 1;
-                    count--;
-                    initial_y--;
-                    ESP_LOGI(TAG, "Count, initial X, initial Y: %d, %d, %d", count, initial_x, initial_y);
-                }
-            }
-        }
-        else
-        {
-            initial_x -= count;
-        }
-
-        ESP_LOGI(TAG, "Initial X: %d, Initial Y: %d", initial_x, initial_y);
-
-        size_t delete_x{static_cast<size_t>(initial_x)};
-
-        auto line{start_line};
-        while (count > 0)
-        {
-            auto begin{line->label.begin() + delete_x};
-            auto end{begin + count > line->label.end() ? line->label.end() : begin + count};
-            size_t curr_line_count{static_cast<size_t>(end - begin)};
-
-            std::string deleting{};
-            std::for_each(begin, end, [&deleting](auto &item)
-                          { deleting.push_back(item); });
-            ESP_LOGI(TAG, "Deleting %d chars: \"%s\"", curr_line_count, deleting.c_str());
-
-            line->label.erase(begin, end);
-            count -= curr_line_count;
-
-            if (count)
-            {
-                delete_x = 0;
-                line++;
-            }
-        }
-
-        auto last_changed{start_line};
-        for (auto it{start_line}; it < ui.end() - 1 &&
-                                  (it->label.size() < file_line_length &&
-                                   (!it->label.size() ||
-                                    it->label[it->label.size() - 1] != '\n'));
-             it++)
-        {
-            auto next_line{it + 1};
-            while (it->label.size() < file_line_length)
-            {
-                while (next_line->label.size() == 0 &&
-                       it->label.size() < file_line_length &&
-                       next_line < ui.end() - 1)
-                {
-                    next_line++;
-                }
-
-                if (next_line->label.size() == 0)
-                    break;
-
-                char curr = next_line->label[0];
-                it->label.push_back(curr);
-                next_line->label.erase(next_line->label.begin());
-
-                if (curr == '\n')
-                    break;
+                RenderContent(content_ui_start);
             }
 
-            if (next_line->label.size())
-            {
-                last_changed = next_line;
-            }
-            else if (it->label.size())
-            {
-                last_changed = it;
-            }
+            return count;
         }
 
-        int erased_count{};
-        for (auto it{ui.rbegin()};
-             it < ui.rend() - content_ui_start - !isCursorControlling &&
-             !it->label.size();
-             it++)
-        {
-            if (it->label.size() == 0)
-            {
-                erased_count++;
-                ui.erase(it.base() - 1);
-            }
-        }
-
-        size_t displayable_diff = file_lines_per_page -
-                                  std::count_if(
-                                      ui.begin() + content_ui_start + !isCursorControlling,
-                                      ui.end(),
-                                      [](auto &item)
-                                      { return item.displayable; });
-
-        std::vector<UiStringItem>::iterator last_displayable{
-            std::find_if(
-                ui.rbegin(),
-                ui.rend() - content_ui_start - !isCursorControlling,
-                [](auto &item)
-                { return item.displayable; })
-                .base() -
-            1};
-
-        if (displayable_diff > 0)
-        {
-            for (; last_displayable < ui.end() && displayable_diff > 0;
-                 last_displayable++, displayable_diff--)
-            {
-                last_displayable->displayable = true;
-            }
-        }
-
-        size_t last_changed_index{static_cast<size_t>(last_changed - (last_displayable - file_lines_per_page) - 1)};
-
-        size_t scrolled{};
-        while (initial_y < 0)
-        {
-            ESP_LOGI(TAG, "Initial Y < 0: %d", initial_y);
-            scrolled = ScrollContent(Direction::Up, false, file_lines_scroll);
-            initial_y += scrolled;
-        }
-
-        RenderLines(
-            scrolled > 0 ? 0 : initial_y,
-            erased_count
-                ? file_lines_per_page - 1
-            : (last_changed_index > file_lines_per_page - 1)
-                ? file_lines_per_page - 1
-                : last_changed_index,
-            true);
-
-        SpawnCursor(initial_x, initial_y);
-    }
-
-    void FilesScene::RenderLines(uint8_t first_line, uint8_t last_line, bool file)
-    {
-        uint8_t fw, fh;
-        uint8_t lines_per_page = isCursorControlling ? file_lines_per_page : directory_lines_per_page;
-        auto first_displaying = std::find_if(ui.begin() + content_ui_start, ui.end(), [](auto &item)
-                                             { return item.displayable; });
-        Font::GetFontx(first_displaying->font, 0, &fw, &fh);
-
-        uint16_t lines_start_x{10},
-            lines_start_y(display.GetHeight() - 60 - first_line * fh),
-            clear_start_y(display.GetHeight() - 60 - (first_line * fh) - (last_line - first_line) * fh),
-            clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
-
-        display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
-        display.DrawStringItems(first_displaying + first_line,
-                                first_displaying + last_line + 1,
-                                lines_start_x,
-                                lines_start_y,
-                                lines_per_page - first_line - !isCursorControlling);
-
-        if (!(ui.end() - 1)->displayable)
-        {
-            RenderUiListEnding(content_ui_start + !isCursorControlling, "more lines");
-        }
+        return 0;
     }
 }

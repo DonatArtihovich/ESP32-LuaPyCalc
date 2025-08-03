@@ -6,12 +6,6 @@ using SD::SDCard;
 
 namespace Scene
 {
-    struct Cursor
-    {
-        uint8_t x{0}, y{0},
-            width{10}, height{15};
-    };
-
     class FilesScene : public Scene
     {
         SDCard &sdcard;
@@ -26,29 +20,23 @@ namespace Scene
         std::vector<UiStringItem> directory_backup{};
 
         bool isFileOpened{};
-        bool isCursorControlling{};
-        Cursor cursor{};
 
-        void RenderContent(int ui_start, bool file = false);
-        void RenderCursor();
+        void RenderContent(uint8_t ui_start_index);
         void RenderHeader();
-        void RenderLines(uint8_t first_line = 0, uint8_t last_line = 10, bool file = false);
 
-        void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
-        void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
-        void MoveCursor(Direction direction, bool rerender = true, bool with_scrolling = true);
-        uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
+        uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
         void ToggleUpButton(bool mode, bool rerender = false);
-        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
 
         void OpenDirectory(const char *relative_path);
-        size_t ReadDirectory(int ui_start);
+        size_t ReadDirectory();
         void SaveDirectory();
 
         void OpenFile(const char *relative_path);
-        void InsertChars(std::string chars);
-        void DeleteChars(size_t count, int16_t initial_x = -1, int16_t initial_y = -1);
         void CloseFile();
+
+        size_t GetContentUiStartIndex() override;
+        uint8_t GetLinesPerPageCount() override;
+        size_t GetLineLength() override;
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
