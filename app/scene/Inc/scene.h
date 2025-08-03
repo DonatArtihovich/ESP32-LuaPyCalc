@@ -58,17 +58,8 @@ namespace Scene
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars);
 
-    public:
-        Scene(DisplayController &display);
-        virtual void Init() = 0;
-        virtual void Arrow(Direction direction);
-        virtual SceneId Enter() = 0;
-        virtual SceneId Escape() = 0;
-        virtual void Delete();
-        virtual void RenderAll() = 0;
         virtual uint8_t GetLinesPerPageCount() = 0;
         virtual size_t GetLineLength();
-
         virtual std::vector<UiStringItem>::iterator GetContentUiStart();
         virtual size_t GetContentUiStartIndex() = 0;
 
@@ -76,6 +67,15 @@ namespace Scene
         virtual void ChangeHeader(const char *header, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
         void RenderUiListEnding(const char *end_label = "more items");
+        virtual void RenderAll() = 0;
+
+    public:
+        Scene(DisplayController &display);
+        virtual void Init() = 0;
+        virtual void Arrow(Direction direction);
+        virtual SceneId Enter() = 0;
+        virtual SceneId Escape() = 0;
+        virtual void Delete();
 
         virtual ~Scene() = default;
     };

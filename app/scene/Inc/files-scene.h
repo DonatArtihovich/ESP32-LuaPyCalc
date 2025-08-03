@@ -21,16 +21,9 @@ namespace Scene
 
         bool isFileOpened{};
 
-        void RenderContent(uint8_t ui_start_index);
-        void RenderHeader();
-
-        uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
-        void ToggleUpButton(bool mode, bool rerender = false);
-
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory();
         void SaveDirectory();
-
         void OpenFile(const char *relative_path);
         void CloseFile();
 
@@ -38,15 +31,22 @@ namespace Scene
         uint8_t GetLinesPerPageCount() override;
         size_t GetLineLength() override;
 
+        uint8_t Focus(Direction direction) override;
+        uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
+
+        void RenderAll() override;
+        void RenderContent(uint8_t ui_start_index);
+        void RenderHeader();
+
+        void ToggleUpButton(bool mode, bool rerender = false);
+        void ChangeHeader(const char *header, bool rerender = false) override;
+
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;
         void Arrow(Direction direction) override;
-        void RenderAll() override;
         SceneId Enter() override;
         SceneId Escape() override;
         void Delete() override;
-        uint8_t Focus(Direction direction) override;
-        void ChangeHeader(const char *header, bool rerender = false) override;
     };
 }
