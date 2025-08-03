@@ -106,19 +106,19 @@ namespace Scene
             CursorInsertChars("\n", file_lines_scroll);
             return SceneId::CurrentScene;
         }
-        size_t index = -1;
+
         auto focused = std::find_if(
             ui.begin(),
             ui.end(),
-            [&index](auto &item) mutable
-            { index++; return item.focused; });
+            [](auto &item) mutable
+            { return item.focused; });
 
         if (focused == ui.end())
         {
             return SceneId::CurrentScene;
         }
 
-        if (index > content_ui_start)
+        if (focused > GetContentUiStart())
         {
             if (focused->label == "..")
             {
@@ -126,18 +126,16 @@ namespace Scene
                 return SceneId::CurrentScene;
             }
 
-            char filename[30] = {0};
-            snprintf(filename, 29, "/%s", focused->label.c_str());
-
+            std::string filename{std::string(1, '/') + focused->label};
             if (sdcard.IsDirectory((curr_directory + filename).c_str()))
             {
-                ESP_LOGI(TAG, "%s is directory", filename);
-                OpenDirectory(filename);
+                ESP_LOGI(TAG, "%s is directory", filename.c_str());
+                OpenDirectory(filename.c_str());
             }
             else
             {
-                ESP_LOGI(TAG, "%s isn't directory", filename);
-                OpenFile(filename);
+                ESP_LOGI(TAG, "%s isn't directory", filename.c_str());
+                OpenFile(filename.c_str());
             }
         }
         else if (focused->label.contains("^ Up"))
@@ -273,6 +271,10 @@ namespace Scene
             .height = fh,
         };
         CursorInit(&cursor);
+        for (auto it{ui.begin()}; it < ui.end(); it++)
+        {
+            ESP_LOGI(TAG, "Open File: \"%s\"", it->label.c_str());
+        }
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)

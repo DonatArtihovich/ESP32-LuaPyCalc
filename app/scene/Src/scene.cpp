@@ -199,11 +199,20 @@ namespace Scene
             clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
 
         display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
-        display.DrawStringItems(first_displaying + first_line,
-                                first_displaying + last_line + 1,
-                                lines_start_x,
-                                lines_start_y,
+
+        auto first_render_line{first_displaying + first_line};
+        auto render_end{first_displaying + last_line + 1};
+        if (render_end > ui.end())
+        {
+            render_end = ui.end();
+        }
+
+        display.DrawStringItems(first_render_line, render_end,
+                                lines_start_x, lines_start_y,
                                 lines_per_page - first_line);
+
+        std::for_each(first_render_line, render_end, [](auto &item)
+                      { printf("Render line:%s\n", item.label.c_str()); });
 
         if (!(ui.end() - 1)->displayable)
         {
@@ -624,7 +633,7 @@ namespace Scene
             initial_y = cursor.y;
         }
 
-        if (!initial_count)
+        if (!initial_count || (initial_x < initial_count && initial_y == 0))
             return;
 
         size_t count{initial_count};
@@ -740,22 +749,23 @@ namespace Scene
         int erased_count{};
         for (auto it{ui.rbegin()};
              it < ui.rend() - GetContentUiStartIndex() &&
-             !it->label.size();
+             it->label.size() == 0;
              it++)
         {
-            if (it->label.size() == 0)
-            {
-                erased_count++;
-                ui.erase(it.base() - 1);
-            }
+            erased_count++;
+            ui.erase(it.base() - 1);
         }
 
-        size_t displayable_diff = lines_per_page -
-                                  std::count_if(
-                                      GetContentUiStart(),
-                                      ui.end(),
-                                      [](auto &item)
-                                      { return item.displayable; });
+        for (auto it{ui.rbegin()}; it < ui.rbegin() + 5 && it < ui.rend() - GetContentUiStartIndex(); it++)
+        {
+            ESP_LOGE(TAG, "AFTER ERASING LINES: \"%s\"", it->label.c_str());
+        }
+
+        size_t displayable_count = std::count_if(
+            GetContentUiStart(),
+            ui.end(),
+            [](auto &item)
+            { return item.displayable; });
 
         std::vector<UiStringItem>::iterator last_displayable{
             std::find_if(
@@ -766,13 +776,10 @@ namespace Scene
                 .base() -
             1};
 
-        if (displayable_diff > 0)
+        for (; last_displayable < ui.end() && displayable_count < lines_per_page;
+             last_displayable++, displayable_count++)
         {
-            for (; last_displayable < ui.end() && displayable_diff > 0;
-                 last_displayable++, displayable_diff--)
-            {
-                last_displayable->displayable = true;
-            }
+            last_displayable->displayable = true;
         }
 
         size_t last_changed_index{static_cast<size_t>(last_changed - (last_displayable - lines_per_page) - 1)};
@@ -792,6 +799,17 @@ namespace Scene
             : (last_changed_index > lines_per_page - 1)
                 ? lines_per_page - 1
                 : last_changed_index);
+
+        if (initial_y > displayable_count - 1 && initial_y < lines_per_page)
+        {
+            UiStringItem last_line{"", Color::White, (ui.end() - 1)->font, false};
+            uint8_t fw, fh;
+            Font::GetFontx((ui.end() - 1)->font, 0, &fw, &fh);
+
+            last_line.x = 10;
+            last_line.y = (ui.end() - 1)->y - fh;
+            ui.push_back(last_line);
+        }
 
         SpawnCursor(initial_x, initial_y);
     }
