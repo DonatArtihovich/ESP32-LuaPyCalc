@@ -39,7 +39,7 @@ namespace Scene
         void MoveCursor(Direction direction, bool rerender = true, bool with_scrolling = true);
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
         void ToggleUpButton(bool mode, bool rerender = false);
-        void SpawnCursor(uint8_t cursor_x, uint8_t cursor_y, bool clearing = true);
+        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory(int ui_start);

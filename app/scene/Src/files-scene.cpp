@@ -504,11 +504,28 @@ namespace Scene
             cursor.height);
     }
 
-    void FilesScene::SpawnCursor(uint8_t cursor_x, uint8_t cursor_y, bool clearing)
+    void FilesScene::SpawnCursor(int16_t cursor_x, int16_t cursor_y, bool clearing)
     {
-        if (cursor_y > file_lines_per_page - 1)
+        if (cursor_x < 0)
         {
-            cursor_y = file_lines_per_page - 1;
+            cursor_x = cursor.x;
+        }
+
+        if (cursor_y < 0)
+        {
+            cursor_y = cursor.y;
+        }
+
+        size_t displayable_count{static_cast<size_t>(std::count_if(
+            ui.begin() + content_ui_start + !isCursorControlling,
+            ui.end(),
+            [](auto &item)
+            { return item.displayable; }))};
+
+        if (cursor_y > displayable_count - 1)
+        {
+            cursor_y = displayable_count - 1;
+            cursor_x = file_line_length;
         }
 
         auto line{std::find_if(
@@ -587,8 +604,7 @@ namespace Scene
         case Direction::Right:
             if ((cursor_x < (line->label.size() < file_line_length + 1
                                  ? line->label.size() - 1
-                                 : file_line_length) &&
-                 line->label[cursor_x + 1] != '\n') ||
+                                 : file_line_length)) ||
                 line == ui.cend() - 1)
             {
                 cursor_x++;
@@ -816,7 +832,7 @@ namespace Scene
             initial_y = cursor.y;
         }
 
-        if (!initial_count || (initial_x < initial_count && initial_y == 0))
+        if (!initial_count)
             return;
 
         size_t count{initial_count};
@@ -828,21 +844,49 @@ namespace Scene
             { return item.displayable; });
         auto start_line{first_displaying + initial_y};
 
+        bool is_line_end{initial_x >
+                         start_line->label.size() - 1 -
+                             (start_line->label[start_line->label.size() - 1] == '\n')};
+
         if (count > file_line_length)
         {
             return;
         }
         else if (initial_x < initial_count)
         {
-            initial_x = (--start_line)->label.size() - 1;
-            initial_y--;
+            int8_t count{static_cast<int8_t>(initial_count)};
+
+            while (count > 0)
+            {
+                if (initial_x > count)
+                {
+                    initial_x -= count;
+                    break;
+                }
+                else
+                {
+                    count -= initial_x;
+                    initial_x -= count;
+                }
+
+                ESP_LOGI(TAG, "Count -= initial X: %d - %d = %d", count + initial_x, initial_x, count);
+                if (count > 0 && start_line != ui.begin() + content_ui_start)
+                {
+                    initial_x = (--start_line)->label.size() - 1;
+                    count--;
+                    initial_y--;
+                    ESP_LOGI(TAG, "Count, initial X, initial Y: %d, %d, %d", count, initial_x, initial_y);
+                }
+            }
         }
         else
         {
             initial_x -= count;
         }
 
-        size_t delete_x{static_cast<size_t>(initial_x)}, delete_y{static_cast<size_t>(initial_y)};
+        ESP_LOGI(TAG, "Initial X: %d, Initial Y: %d", initial_x, initial_y);
+
+        size_t delete_x{static_cast<size_t>(initial_x)};
 
         auto line{start_line};
         while (count > 0)
@@ -862,7 +906,6 @@ namespace Scene
             if (count)
             {
                 delete_x = 0;
-                delete_y++;
                 line++;
             }
         }
@@ -945,8 +988,16 @@ namespace Scene
 
         size_t last_changed_index{static_cast<size_t>(last_changed - (last_displayable - file_lines_per_page) - 1)};
 
+        size_t scrolled{};
+        while (initial_y < 0)
+        {
+            ESP_LOGI(TAG, "Initial Y < 0: %d", initial_y);
+            scrolled = ScrollContent(Direction::Up, false, file_lines_scroll);
+            initial_y += scrolled;
+        }
+
         RenderLines(
-            initial_y,
+            scrolled > 0 ? 0 : initial_y,
             erased_count
                 ? file_lines_per_page - 1
             : (last_changed_index > file_lines_per_page - 1)
@@ -954,10 +1005,7 @@ namespace Scene
                 : last_changed_index,
             true);
 
-        for (size_t i = 0; i < initial_count; i++)
-        {
-            MoveCursor(Direction::Left, i == initial_count - 1);
-        }
+        SpawnCursor(initial_x, initial_y);
     }
 
     void FilesScene::RenderLines(uint8_t first_line, uint8_t last_line, bool file)
