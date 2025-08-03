@@ -335,30 +335,22 @@ namespace Scene
         if (count > lines_per_page - 1 - !isFileOpened)
             count = lines_per_page - 1 - !isFileOpened;
 
-        if (direction == Direction::Bottom)
+        if (direction == Direction::Bottom || direction == Direction::Up)
         {
             count = Scene::ScrollContent(direction, rerender, count);
-            if (!ui[content_ui_start].focusable &&
-                !isFileOpened)
-            {
-                ToggleUpButton(true);
-            }
 
-            if (rerender && count)
+            if (!isFileOpened)
             {
-                RenderContent(content_ui_start);
-            }
-
-            return count;
-        }
-
-        if (direction == Direction::Up)
-        {
-            count = Scene::ScrollContent(direction, rerender, count);
-            if (ui[content_ui_start + 1].displayable &&
-                !isFileOpened)
-            {
-                ToggleUpButton(false);
+                if (direction == Direction::Bottom &&
+                    !ui[content_ui_start].focusable)
+                {
+                    ToggleUpButton(true);
+                }
+                else if (direction == Direction::Up &&
+                         ui[content_ui_start + 1].displayable)
+                {
+                    ToggleUpButton(false);
+                }
             }
 
             if (rerender && count)
