@@ -173,7 +173,7 @@ namespace Scene
     {
         if (IsCursorControlling())
         {
-            CursorDeleteChars(3, file_lines_scroll);
+            CursorDeleteChars(1, file_lines_scroll);
         }
     }
 

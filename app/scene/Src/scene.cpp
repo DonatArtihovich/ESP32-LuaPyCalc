@@ -185,7 +185,7 @@ namespace Scene
         return ui.begin() + GetContentUiStartIndex();
     }
 
-    void Scene::RenderLines(uint8_t first_line, uint8_t last_line)
+    void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after)
     {
         uint8_t fw, fh;
         uint8_t lines_per_page{GetLinesPerPageCount()};
@@ -197,6 +197,11 @@ namespace Scene
             lines_start_y(display.GetHeight() - 60 - first_line * fh),
             clear_start_y(display.GetHeight() - 60 - (first_line * fh) - (last_line - first_line) * fh),
             clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
+
+        if (clear_line_after && clear_start_y - fh >= 0)
+        {
+            clear_start_y -= fh;
+        }
 
         display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
 
@@ -666,13 +671,11 @@ namespace Scene
                     initial_x -= count;
                 }
 
-                ESP_LOGI(TAG, "Count -= initial X: %d - %d = %d", count + initial_x, initial_x, count);
                 if (count > 0 && start_line != GetContentUiStart())
                 {
                     initial_x = (--start_line)->label.size() - 1;
                     count--;
                     initial_y--;
-                    ESP_LOGI(TAG, "Count, initial X, initial Y: %d, %d, %d", count, initial_x, initial_y);
                 }
             }
         }
@@ -680,8 +683,6 @@ namespace Scene
         {
             initial_x -= count;
         }
-
-        ESP_LOGI(TAG, "Initial X: %d, Initial Y: %d", initial_x, initial_y);
 
         size_t delete_x{static_cast<size_t>(initial_x)};
         uint8_t lines_per_page = GetLinesPerPageCount();
@@ -756,11 +757,6 @@ namespace Scene
             ui.erase(it.base() - 1);
         }
 
-        for (auto it{ui.rbegin()}; it < ui.rbegin() + 5 && it < ui.rend() - GetContentUiStartIndex(); it++)
-        {
-            ESP_LOGE(TAG, "AFTER ERASING LINES: \"%s\"", it->label.c_str());
-        }
-
         size_t displayable_count = std::count_if(
             GetContentUiStart(),
             ui.end(),
@@ -776,29 +772,22 @@ namespace Scene
                 .base() -
             1};
 
-        for (; last_displayable < ui.end() && displayable_count < lines_per_page;
-             last_displayable++, displayable_count++)
+        for (auto it{last_displayable + 1};
+             it < ui.end() &&
+             displayable_count < lines_per_page;
+             it++, displayable_count++)
         {
-            last_displayable->displayable = true;
+            it->displayable = true;
         }
 
-        size_t last_changed_index{static_cast<size_t>(last_changed - (last_displayable - lines_per_page) - 1)};
+        size_t last_changed_index{static_cast<size_t>(last_changed - first_displaying)};
 
         size_t scrolled{};
         while (initial_y < 0 && scrolling > 0)
         {
-            ESP_LOGI(TAG, "Initial Y < 0: %d", initial_y);
             scrolled = ScrollContent(Direction::Up, false, scrolling);
             initial_y += scrolled;
         }
-
-        RenderLines(
-            scrolled > 0 ? 0 : initial_y,
-            erased_count
-                ? lines_per_page - 1
-            : (last_changed_index > lines_per_page - 1)
-                ? lines_per_page - 1
-                : last_changed_index);
 
         if (initial_y > displayable_count - 1 && initial_y < lines_per_page)
         {
@@ -811,7 +800,31 @@ namespace Scene
             ui.push_back(last_line);
         }
 
-        SpawnCursor(initial_x, initial_y);
+        auto first_rerender_line_index{scrolled > 0 ? 0 : initial_y};
+        auto last_rerender_line_index{erased_count
+                                          ? lines_per_page - 1
+                                      : (last_changed_index > lines_per_page - 1)
+                                          ? lines_per_page - 1
+                                          : last_changed_index};
+
+        if (first_displaying + last_rerender_line_index > ui.end() - 1)
+        {
+            last_rerender_line_index = ui.end() - 1 - first_displaying;
+        }
+
+        for (auto it{last_changed - 1}; it < ui.end(); it++)
+        {
+            ESP_LOGI(TAG, "LINE: \"%s\"", it->label.c_str());
+        }
+
+        ESP_LOGI(TAG, "Last changed: \"%s\", \"%s\"", last_changed->label.c_str(), (first_displaying + last_changed_index)->label.c_str());
+        RenderLines(
+            first_rerender_line_index,
+            last_rerender_line_index,
+            first_displaying + last_rerender_line_index == ui.end() - 1);
+
+        ESP_LOGI(TAG, "Last rerender line: \"%s\"", (first_displaying + last_rerender_line_index)->label.c_str());
+        SpawnCursor(initial_x, initial_y, first_displaying + cursor.y < ui.end());
     }
 
     void Scene::CursorInsertChars(std::string chars, size_t scrolling)

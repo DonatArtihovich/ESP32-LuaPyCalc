@@ -45,7 +45,7 @@ namespace Scene
         const size_t default_line_length{37};
 
         void SetCursorControlling(bool cursor);
-        void RenderLines(uint8_t first_line, uint8_t last_line);
+        void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
         void RenderCursor();
