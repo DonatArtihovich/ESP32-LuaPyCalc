@@ -262,8 +262,14 @@ namespace Scene
         display.Clear(Color::Black, x, y, x + cursor.width, y + cursor.height);
         y -= 2;
 
+        char sym = ' ';
+        if (cursor_x < line->label.size())
+        {
+            sym = line->label[cursor_x];
+        }
+
         UiStringItem previous_cursor_pos{
-            std::string(1, line->label[cursor_x]).c_str(),
+            std::string(1, sym).c_str(),
             line->color,
             line->font,
             false,
@@ -312,11 +318,13 @@ namespace Scene
             cursor_x = GetLineLength();
         }
 
-        auto line{std::find_if(
+        auto first_displayable{std::find_if(
             GetContentUiStart(),
             ui.end(),
             [](auto &item)
             { return item.displayable; })};
+
+        auto line{first_displayable};
 
         if (line != ui.end() && line + cursor_y < ui.end())
         {
@@ -335,9 +343,20 @@ namespace Scene
             cursor_x = max_cursor_x;
         }
 
+        if (line == ui.end() - 1 && cursor_x == line->label.size() &&
+            line->label[line->label.size() - 1] == '\n')
+        {
+            CursorAppendLine();
+            cursor_x = 0;
+            cursor_y++;
+        }
+
         if (clearing)
         {
-            ClearCursor(line - cursor_y + cursor.y);
+            ESP_LOGI(TAG, "line(\"%s\") - cursor_y(%d) + cursor.y(%d): \"%s\"",
+                     line->label.c_str(), cursor_y, cursor.y, (line - cursor_y + cursor.y)->label.c_str());
+
+            ClearCursor(first_displayable + cursor.y);
         }
         cursor.x = cursor_x;
         cursor.y = cursor_y;
@@ -792,13 +811,7 @@ namespace Scene
 
         if (initial_y > displayable_count - 1 && initial_y < lines_per_page)
         {
-            UiStringItem last_line{"", Color::White, (ui.end() - 1)->font, false};
-            uint8_t fw, fh;
-            Font::GetFontx((ui.end() - 1)->font, 0, &fw, &fh);
-
-            last_line.x = 10;
-            last_line.y = (ui.end() - 1)->y - fh;
-            ui.push_back(last_line);
+            CursorAppendLine();
         }
 
         auto first_rerender_line_index{scrolled > 0 ? 0 : initial_y};
@@ -819,6 +832,17 @@ namespace Scene
             first_displaying + last_rerender_line_index == ui.end() - 1);
 
         SpawnCursor(initial_x, initial_y, first_displaying + cursor.y < ui.end());
+    }
+
+    void Scene::CursorAppendLine(const char *label, Color color)
+    {
+        UiStringItem last_line{label, color, (ui.end() - 1)->font, false};
+        uint8_t fw, fh;
+        Font::GetFontx((ui.end() - 1)->font, 0, &fw, &fh);
+
+        last_line.x = 10;
+        last_line.y = (ui.end() - 1)->y - fh;
+        ui.push_back(last_line);
     }
 
     void Scene::CursorInsertChars(std::string chars, size_t scrolling)
@@ -895,7 +919,7 @@ namespace Scene
 
             if (line == ui.end() - 1 && chars.size())
             {
-                ui.push_back(UiStringItem{std::string(""), line->color, line->font, false});
+                CursorAppendLine();
                 if (ui.end() - 1 - start_line > GetLinesPerPageCount())
                 {
                     (ui.end() - 1)->displayable = false;
