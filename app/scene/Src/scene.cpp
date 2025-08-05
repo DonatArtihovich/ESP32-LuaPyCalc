@@ -638,16 +638,22 @@ namespace Scene
             initial_y = cursor.y;
         }
 
-        if (!initial_count || (initial_x < initial_count && initial_y == 0))
+        if (!initial_count)
             return;
-
-        size_t count{initial_count};
 
         auto first_displaying = std::find_if(
             GetContentUiStart(),
             ui.end(),
             [](auto &item)
             { return item.displayable; });
+
+        if (initial_x < initial_count &&
+            first_displaying + initial_y == GetContentUiStart())
+        {
+            return;
+        }
+
+        size_t count{initial_count};
         auto start_line{first_displaying + initial_y};
 
         if (count > GetLineLength())
@@ -693,11 +699,6 @@ namespace Scene
             auto begin{line->label.begin() + delete_x};
             auto end{begin + count > line->label.end() ? line->label.end() : begin + count};
             size_t curr_line_count{static_cast<size_t>(end - begin)};
-
-            std::string deleting{};
-            std::for_each(begin, end, [&deleting](auto &item)
-                          { deleting.push_back(item); });
-            ESP_LOGI(TAG, "Deleting %d chars: \"%s\"", curr_line_count, deleting.c_str());
 
             line->label.erase(begin, end);
             count -= curr_line_count;
@@ -812,18 +813,11 @@ namespace Scene
             last_rerender_line_index = ui.end() - 1 - first_displaying;
         }
 
-        for (auto it{last_changed - 1}; it < ui.end(); it++)
-        {
-            ESP_LOGI(TAG, "LINE: \"%s\"", it->label.c_str());
-        }
-
-        ESP_LOGI(TAG, "Last changed: \"%s\", \"%s\"", last_changed->label.c_str(), (first_displaying + last_changed_index)->label.c_str());
         RenderLines(
             first_rerender_line_index,
             last_rerender_line_index,
             first_displaying + last_rerender_line_index == ui.end() - 1);
 
-        ESP_LOGI(TAG, "Last rerender line: \"%s\"", (first_displaying + last_rerender_line_index)->label.c_str());
         SpawnCursor(initial_x, initial_y, first_displaying + cursor.y < ui.end());
     }
 
