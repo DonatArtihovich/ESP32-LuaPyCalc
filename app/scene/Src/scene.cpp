@@ -312,7 +312,6 @@ namespace Scene
             [](auto &item)
             { return item.displayable; }))};
 
-        ESP_LOGI(TAG, "SPWNCURSOR cursor_y(%d) > displayable_count - 1(%d)", cursor_y, displayable_count - 1);
         if (cursor_y > displayable_count - 1)
         {
             cursor_y = displayable_count - 1;
@@ -833,10 +832,17 @@ namespace Scene
             last_rerender_line_index = ui.end() - 1 - first_displaying;
         }
 
-        RenderLines(
-            first_rerender_line_index,
-            last_rerender_line_index,
-            first_displaying + last_rerender_line_index == ui.end() - 1);
+        if (scrolled > 0)
+        {
+            RenderContent();
+        }
+        else
+        {
+            RenderLines(
+                first_rerender_line_index,
+                last_rerender_line_index,
+                first_displaying + last_rerender_line_index == ui.end() - 1);
+        }
 
         SpawnCursor(initial_x, initial_y, first_displaying + cursor.y < ui.end());
     }
