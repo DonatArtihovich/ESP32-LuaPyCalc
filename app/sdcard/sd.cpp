@@ -73,10 +73,12 @@ namespace SD
         return result;
     }
 
-    esp_err_t SDCard::WriteFile(const char *path, char *buff)
+    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, uint8_t seek_point)
     {
         esp_err_t ret = ESP_FAIL;
         FILE *file = fopen(path, "w");
+        fseek(file, pos, seek_point);
+
         if (file != NULL)
         {
             fputs(buff, file);

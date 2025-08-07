@@ -32,7 +32,7 @@ namespace SD
         esp_err_t Unmount();
 
         size_t ReadFile(const char *path, char *buff, size_t len, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
-        esp_err_t WriteFile(const char *path, char *buff);
+        esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
         std::vector<std::string> ReadDirectory(const char *path);
         bool IsDirectory(const char *path);
     };

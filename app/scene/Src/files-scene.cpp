@@ -396,6 +396,15 @@ namespace Scene
         }
 
         std::string file_path{curr_directory + ui[0].label};
+        uint64_t pos{0};
+        auto line{GetContentUiStart()};
+
+        while (line != ui.end() && sdcard.WriteFile(file_path.c_str(), line->label.c_str(), pos) == ESP_OK)
+        {
+            pos += line->label.size();
+            ESP_LOGI(TAG, "Writing \"%s\", pos %lld", line->label.c_str(), pos);
+            line++;
+        }
 
         ESP_LOGI(TAG, "File %s saved.", file_path.c_str());
     }
