@@ -776,7 +776,7 @@ namespace Scene
         int erased_count{};
         for (auto it{ui.rbegin()};
              it < ui.rend() - GetContentUiStartIndex() &&
-             it->label.size() == 0;
+             it->label.size() == 0 && !((it + 1)->label.ends_with('\n'));
              it++)
         {
             erased_count++;
