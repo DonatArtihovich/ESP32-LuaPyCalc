@@ -10,6 +10,7 @@ namespace Scene
 
         size_t GetContentUiStartIndex() override;
         void RenderAll() override;
+        void RenderContent() override;
         uint8_t GetLinesPerPageCount() override;
 
     public:

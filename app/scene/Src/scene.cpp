@@ -312,6 +312,7 @@ namespace Scene
             [](auto &item)
             { return item.displayable; }))};
 
+        ESP_LOGI(TAG, "SPWNCURSOR cursor_y(%d) > displayable_count - 1(%d)", cursor_y, displayable_count - 1);
         if (cursor_y > displayable_count - 1)
         {
             cursor_y = displayable_count - 1;
@@ -370,16 +371,16 @@ namespace Scene
         return default_line_length;
     }
 
-    void Scene::MoveCursor(Direction direction, bool rerender, size_t scrolling)
+    size_t Scene::MoveCursor(Direction direction, bool rerender, size_t scrolling)
     {
         if (!IsCursorControlling())
-            return;
+            return 0;
 
         auto line = std::find_if(GetContentUiStart(), ui.end(), [](auto &item)
                                  { return item.displayable; });
 
         if (line == ui.end())
-            return;
+            return 0;
 
         line += cursor.y;
         ESP_LOGI(TAG, "Current line: %s", line->label.c_str());
@@ -424,6 +425,7 @@ namespace Scene
                 }
                 else if (scrolling > 0)
                 {
+                    ESP_LOGI(TAG, "Move cursor right scrolling %d", scrolling);
                     scrolled_count = ScrollContent(Direction::Bottom, rerender, scrolling);
                     if (scrolled_count)
                         cursor_y = std::count_if(
@@ -447,6 +449,7 @@ namespace Scene
                 }
                 else if (scrolling > 0)
                 {
+                    ESP_LOGI(TAG, "Move cursor bottom scrolling %d", scrolling);
                     scrolled_count = ScrollContent(Direction::Bottom, rerender, scrolling);
                     if (scrolled_count)
                         cursor_y = std::count_if(
@@ -486,10 +489,14 @@ namespace Scene
             break;
         }
 
+        ESP_LOGI(TAG, "Move cursor scrolled count: %d", scrolled_count);
+
         if (cursor_changed)
         {
             SpawnCursor(cursor_x, cursor_y, scrolled_count == 0);
         }
+
+        return scrolled_count;
     }
 
     uint8_t Scene::ScrollContent(Direction direction, bool rerender, uint8_t count)
@@ -836,6 +843,8 @@ namespace Scene
 
     void Scene::CursorAppendLine(const char *label, Color color)
     {
+        ESP_LOGI(TAG, "Append line");
+
         UiStringItem last_line{label, color, (ui.end() - 1)->font, false};
         uint8_t fw, fh;
         Font::GetFontx((ui.end() - 1)->font, 0, &fw, &fh);
@@ -850,9 +859,13 @@ namespace Scene
         if (!chars.size())
             return;
 
+        size_t inserting_len = chars.size();
         uint8_t insert_x{cursor.x}, insert_y{cursor.y};
-        auto first_displaying = std::find_if(GetContentUiStart(), ui.end(), [](auto &item)
-                                             { return item.displayable; });
+        auto first_displaying = std::find_if(
+            GetContentUiStart(),
+            ui.end(),
+            [](auto &item)
+            { return item.displayable; });
         auto start_line{first_displaying + insert_y};
         uint8_t last_rendering_y{insert_y};
 
@@ -861,7 +874,8 @@ namespace Scene
             if (!chars.size())
                 break;
 
-            if (last_rendering_y < GetLinesPerPageCount() - 1 && line > start_line)
+            if (last_rendering_y < GetLinesPerPageCount() - 1 &&
+                line > start_line)
             {
                 last_rendering_y++;
             }
@@ -880,7 +894,6 @@ namespace Scene
             if (line->label.size() > GetLineLength())
             {
                 start_index = GetLineLength();
-                ESP_LOGI(TAG, "Start_index: %d", start_index);
 
                 std::for_each(
                     line->label.begin() + start_index,
@@ -898,50 +911,55 @@ namespace Scene
             size_t find_index = std::string::npos;
             if ((find_index = line->label.find('\n')) != std::string::npos)
             {
-                ESP_LOGI(TAG, "\\n Find_index: %d", find_index);
                 std::for_each(
                     line->label.rbegin(),
                     line->label.rend() - find_index - 1,
                     [&chars](auto &item)
                     { chars.insert(chars.begin(), item); });
 
-                std::for_each(line, line + 4 > ui.end() ? ui.end() : line + 4, [](auto &item)
-                              { printf("Line: \"%s\"\n", item.label.c_str()); });
-
                 line->label.erase(
                     line->label.begin() + find_index + 1,
                     line->label.end());
 
-                ESP_LOGI(TAG, "Line after erasing: \"%s\"", line->label.c_str());
-
                 insert_x = 0;
             }
 
-            if (line == ui.end() - 1 && chars.size())
+            if (line == ui.end() - 1 &&
+                (chars.size() ||
+                 line->label[line->label.size() - 1] == '\n'))
             {
                 CursorAppendLine();
-                if (ui.end() - 1 - start_line > GetLinesPerPageCount())
+                if (ui.end() - first_displaying > GetLinesPerPageCount())
                 {
                     (ui.end() - 1)->displayable = false;
                 }
             }
         }
 
-        ESP_LOGI(TAG, "Insert y: %d, last rendering y: %d", insert_y, last_rendering_y);
-        RenderLines(insert_y, last_rendering_y);
+        size_t cursor_scrolling_count{0};
         if (scrolling > 0)
         {
-            MoveCursor(
-                Direction::Right,
-                true,
-                last_rendering_y - insert_y <= scrolling
-                    ? scrolling
-                    : last_rendering_y - insert_y);
+            cursor_scrolling_count = last_rendering_y - insert_y <= scrolling
+                                         ? scrolling
+                                         : last_rendering_y - insert_y;
+        }
+
+        size_t scrolled_count{0};
+        for (int i{}; i < inserting_len; i++)
+        {
+            scrolled_count += MoveCursor(Direction::Right, false, cursor_scrolling_count);
+        }
+
+        if (scrolled_count > 0)
+        {
+            RenderContent();
         }
         else
         {
-            MoveCursor(Direction::Right);
+            RenderLines(insert_y, last_rendering_y);
         }
+
+        SpawnCursor(-1, -1, false);
     }
 
     void Scene::CursorInit(Cursor *c)

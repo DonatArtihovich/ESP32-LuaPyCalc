@@ -35,7 +35,7 @@ namespace Scene
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
         void RenderAll() override;
-        void RenderContent(uint8_t ui_start_index);
+        void RenderContent() override;
         void RenderHeader();
 
         void ToggleUpButton(bool mode, bool rerender = false);

@@ -28,17 +28,17 @@ namespace Scene
     void FilesScene::RenderAll()
     {
         RenderHeader();
-        RenderContent(content_ui_start);
+        RenderContent();
         if (IsCursorControlling())
         {
             RenderCursor();
         }
     }
 
-    void FilesScene::RenderContent(uint8_t ui_start_index)
+    void FilesScene::RenderContent()
     {
         display.Clear(Color::Black, 10, 0, 0, display.GetHeight() - 35);
-        display.DrawStringItems(ui.begin() + ui_start_index,
+        display.DrawStringItems(ui.begin() + content_ui_start,
                                 ui.end(),
                                 10,
                                 display.GetHeight() - 60,
@@ -210,7 +210,7 @@ namespace Scene
         ESP_LOGI(TAG, "Opening directory %s", curr_directory.c_str());
         ReadDirectory();
         ToggleUpButton(false);
-        RenderContent(content_ui_start);
+        RenderContent();
     }
 
     void FilesScene::ToggleUpButton(bool mode, bool rerender)
@@ -258,7 +258,7 @@ namespace Scene
         uint8_t fw, fh;
         Font::GetFontx(display.fx16G, 0, &fw, &fh);
 
-        RenderContent(GetContentUiStartIndex());
+        RenderContent();
 
         size_t lines_count = ui.size() - GetContentUiStartIndex();
 
@@ -357,7 +357,7 @@ namespace Scene
 
             if (rerender && count)
             {
-                RenderContent(content_ui_start);
+                RenderContent();
             }
 
             return count;

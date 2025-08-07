@@ -50,7 +50,7 @@ namespace Scene
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
         void RenderCursor();
         void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
-        void MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
+        size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
         virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
 
         bool IsCursorControlling();
@@ -69,6 +69,7 @@ namespace Scene
         virtual uint8_t Focus(Direction direction);
         void RenderUiListEnding(const char *end_label = "more items");
         virtual void RenderAll() = 0;
+        virtual void RenderContent() = 0;
 
     public:
         Scene(DisplayController &display);

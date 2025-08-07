@@ -33,6 +33,11 @@ namespace Scene
     {
         display.Clear(Color::Black);
         display.DrawStringItem(&ui[0], Display::Position::Center, Display::Position::End);
+        RenderContent();
+    }
+
+    void StartScene::RenderContent()
+    {
         display.DrawStringItems(GetContentUiStart(), ui.end(), 0, display.GetHeight() - 80, 3);
     }
 
