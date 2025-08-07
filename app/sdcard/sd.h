@@ -1,12 +1,18 @@
 #pragma once
 
-#include <stdio.h>
-#include <string.h>
+#include <cstdio>
+#include <dirent.h>
+#include <cstring>
+#include <vector>
+#include <string>
+#include <cerrno>
+
 #include "esp_log.h"
 #include "driver/spi_master.h"
+#include "sdkconfig.h"
+
 #include "sdmmc_cmd.h"
 #include "esp_vfs_fat.h"
-#include "sdkconfig.h"
 
 #define SD(path) CONFIG_MOUNT_POINT path
 
@@ -25,7 +31,9 @@ namespace SD
         esp_err_t Mount(const char path[]);
         esp_err_t Unmount();
 
-        esp_err_t ReadFile(const char *path, char *buff, size_t len);
-        esp_err_t WriteFile(const char *path, char *buff);
+        size_t ReadFile(const char *path, char *buff, size_t len, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
+        esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
+        std::vector<std::string> ReadDirectory(const char *path);
+        bool IsDirectory(const char *path);
     };
 }

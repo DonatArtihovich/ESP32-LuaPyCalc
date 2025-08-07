@@ -55,24 +55,30 @@ namespace SD
         return ret;
     }
 
-    esp_err_t SDCard::ReadFile(const char *path, char *buff, size_t len)
+    size_t SDCard::ReadFile(const char *path, char *buff, size_t len, uint32_t pos, uint8_t seek_point)
     {
-        esp_err_t ret = ESP_FAIL;
         FILE *file = fopen(path, "r");
         if (file != NULL)
         {
+            fseek(file, pos, seek_point);
             fgets(buff, len, file);
-            ret = ESP_OK;
         }
 
+        uint32_t current_pos = ftell(file);
+        fseek(file, pos, seek_point);
+        size_t result = current_pos - ftell(file);
         fclose(file);
-        return ret;
+
+        ESP_LOGI(TAG, "Read %d from %s: %s", result, path, buff);
+        return result;
     }
 
-    esp_err_t SDCard::WriteFile(const char *path, char *buff)
+    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, uint8_t seek_point)
     {
         esp_err_t ret = ESP_FAIL;
         FILE *file = fopen(path, "w");
+        fseek(file, pos, seek_point);
+
         if (file != NULL)
         {
             fputs(buff, file);
@@ -83,9 +89,51 @@ namespace SD
         return ret;
     }
 
+    std::vector<std::string> SDCard::ReadDirectory(const char *path)
+    {
+        std::vector<std::string> files{};
+        DIR *dir = opendir(path);
+
+        if (!dir)
+        {
+            ESP_LOGE(TAG, "Failed to read directory \"%s\"", path);
+            closedir(dir);
+            return files;
+        }
+
+        dirent *curr = nullptr;
+        while ((curr = readdir(dir)) != nullptr)
+        {
+            ESP_LOGD(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
+            std::string filename(curr->d_name);
+            if (curr->d_type == 2)
+            {
+                filename.push_back('/');
+            }
+
+            files.push_back(filename);
+        }
+
+        closedir(dir);
+        return files;
+    }
+
     esp_err_t SDCard::Unmount()
     {
         ESP_ERROR_CHECK_WITHOUT_ABORT(esp_vfs_fat_sdcard_unmount(_mount_path, card));
         return spi_bus_free((spi_host_device_t)sd_spi_host.slot);
+    }
+
+    bool SDCard::IsDirectory(const char *path)
+    {
+        DIR *directory = opendir(path);
+
+        if (directory != nullptr)
+        {
+            closedir(directory);
+            return true;
+        }
+
+        return false;
     }
 }

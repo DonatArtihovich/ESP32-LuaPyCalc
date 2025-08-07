@@ -27,7 +27,7 @@ namespace Main
     void Main::Tick()
     {
         using Keyboard::Key, Scene::Direction;
-        Key controllers[]{Key::Enter, Key::Escape, Key::Top, Key::Right, Key::Bottom, Key::Left};
+        Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left};
         Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
 
         for (auto key : controllers)
@@ -42,8 +42,12 @@ namespace Main
                     sceneId = scene->Enter();
                     break;
                 case Key::Escape:
-                    ESP_LOGI(TAG, "Escape pressed.");
+                    ESP_LOGD(TAG, "Escape pressed.");
                     sceneId = scene->Escape();
+                    break;
+                case Key::Delete:
+                    ESP_LOGD(TAG, "Delete pressed.");
+                    scene->Delete();
                     break;
                 case Key::Top:
                     ESP_LOGD(TAG, "Top pressed.");
@@ -70,7 +74,7 @@ namespace Main
             SwitchScene(sceneId);
         }
 
-        vTaskDelay(pdMS_TO_TICKS(300));
+        vTaskDelay(pdMS_TO_TICKS(150));
     }
 
     void Main::SwitchScene(Scene::SceneId id)

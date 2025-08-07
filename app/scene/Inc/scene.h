@@ -28,11 +28,56 @@ namespace Scene
         Bottom,
     };
 
+    struct Cursor
+    {
+        uint8_t x{0}, y{0},
+            width{10}, height{15};
+    };
+
+    struct FocusColors
+    {
+        Color focused_text = Color::White,
+              focused_background = Color::Blue,
+              unfocused_text = Color::White,
+              unfocused_background = Color::Black;
+    };
+
     class Scene
     {
+        bool is_cursor_controlling{};
+        Cursor cursor{};
+
     protected:
         DisplayController &display;
         std::vector<UiStringItem> ui;
+        const size_t default_line_length{37};
+
+        void SetCursorControlling(bool cursor);
+        void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
+        void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
+        void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
+        void RenderCursor();
+        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
+        size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
+        virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
+
+        bool IsCursorControlling();
+        void CursorInit(Cursor *cursor);
+        void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
+        void CursorInsertChars(std::string chars, size_t scrolling = 0);
+        void CursorAppendLine(const char *label = "", Color color = Color::White);
+
+        virtual uint8_t GetLinesPerPageCount() = 0;
+        virtual size_t GetLineLength();
+        virtual std::vector<UiStringItem>::iterator GetContentUiStart();
+        virtual size_t GetContentUiStartIndex() = 0;
+
+        void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
+        virtual void ChangeHeader(const char *header, bool rerender = false);
+        virtual uint8_t Focus(Direction direction);
+        void RenderUiListEnding(const char *end_label = "more items");
+        virtual void RenderAll() = 0;
+        virtual void RenderContent() = 0;
 
     public:
         Scene(DisplayController &display);
@@ -40,10 +85,7 @@ namespace Scene
         virtual void Arrow(Direction direction);
         virtual SceneId Enter() = 0;
         virtual SceneId Escape() = 0;
-        virtual void RenderAll() = 0;
-
-        void ChangeItemFocus(UiStringItem *item, bool focus);
-        void Focus(Direction direction);
+        virtual void Delete();
 
         virtual ~Scene() = default;
     };
