@@ -129,11 +129,6 @@ namespace Display
 
     void DisplayController::DrawStringItem(UiStringItem *item, Position hp, Position vp)
     {
-        if (!item->displayable)
-        {
-            return;
-        }
-
         uint8_t fw, fh;
         Font::GetFontx(item->font, 0, &fw, &fh);
         uint16_t label_width = fw * item->label.size();
@@ -147,7 +142,7 @@ namespace Display
             item->x = (GetWidth() - label_width) / 2;
             break;
         case Position::End:
-            item->x = GetWidth() - label_width;
+            item->x = GetWidth() - label_width - 10;
             break;
         case Position::NotSpecified:
             break;
@@ -166,6 +161,11 @@ namespace Display
             break;
         case Position::NotSpecified:
             break;
+        }
+
+        if (!item->displayable)
+        {
+            return;
         }
 
         if (item->backgroundColor != Color::None)

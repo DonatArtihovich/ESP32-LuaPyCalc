@@ -11,7 +11,11 @@ namespace Scene
     {
         ui.push_back(UiStringItem{"  Files   ", Color::White, display.fx32L, false});
         ui.push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
-        ui.push_back(UiStringItem{"", Color::White, display.fx24M, false});
+
+        ui.push_back(UiStringItem{"Save", Color::White, display.fx24G}); // [Save] button
+        (ui.end() - 1)->displayable = false;
+
+        ui.push_back(UiStringItem{"", Color::White, display.fx24M, false}); // [^ Up] button
 
         if (ReadDirectory())
         {
@@ -118,7 +122,7 @@ namespace Scene
             return SceneId::CurrentScene;
         }
 
-        if (focused > GetContentUiStart())
+        if (focused >= GetContentUiStart())
         {
             if (focused->label == "..")
             {
@@ -141,6 +145,10 @@ namespace Scene
         else if (focused->label.contains("^ Up"))
         {
             ScrollContent(Direction::Up, true, directory_lines_scroll);
+        }
+        else if (focused->label.contains("Save"))
+        {
+            SaveFile();
         }
         else if (focused->label.contains("< Esc"))
         {
@@ -215,17 +223,31 @@ namespace Scene
 
     void FilesScene::ToggleUpButton(bool mode, bool rerender)
     {
+        size_t up_index{3};
         if (mode)
         {
-            ui[content_ui_start].label = "^ Up";
-            ui[content_ui_start].focusable = true;
+            ui[up_index].label = "^ Up";
+            ui[up_index].focusable = true;
         }
         else
         {
-            ChangeItemFocus(&ui[content_ui_start], false, rerender);
-            ui[content_ui_start].label.clear();
-            ui[content_ui_start].focusable = false;
-            ChangeItemFocus(&ui[content_ui_start + 1], true, rerender);
+            ChangeItemFocus(&ui[up_index], false);
+            ui[up_index].label.clear();
+            ui[up_index].focusable = false;
+            ChangeItemFocus(&(*GetContentUiStart()), true);
+        }
+
+        display.DrawStringItem(&*(ui.begin() + up_index));
+    }
+
+    void FilesScene::ToggleSaveButton(bool mode, bool rerender)
+    {
+        size_t save_index{2};
+        ui[save_index].displayable = mode;
+
+        if (rerender)
+        {
+            display.DrawStringItem(&*(ui.begin() + save_index));
         }
     }
 
@@ -235,6 +257,7 @@ namespace Scene
         ChangeHeader(relative_path, true);
         ChangeItemFocus(&ui[1], true, true);
         isFileOpened = true;
+        ToggleSaveButton(true, true);
         ui.erase(GetContentUiStart(), ui.end());
 
         char buff[file_line_length + 1] = {0};
@@ -271,10 +294,6 @@ namespace Scene
             .height = fh,
         };
         CursorInit(&cursor);
-        for (auto it{ui.begin()}; it < ui.end(); it++)
-        {
-            ESP_LOGI(TAG, "Open File: \"%s\"", it->label.c_str());
-        }
     }
 
     void FilesScene::ChangeHeader(const char *header, bool rerender)
@@ -292,6 +311,7 @@ namespace Scene
         display.Clear(Color::Black, 0, display.GetHeight() - 60, display.GetWidth(), display.GetHeight());
         display.DrawStringItem(&ui[0], Position::Center, Position::End);
         display.DrawStringItem(&ui[1], Position::Start, Position::End);
+        display.DrawStringItem(&ui[2], Position::End, Position::End);
     }
 
     void FilesScene::CloseFile()
@@ -303,6 +323,7 @@ namespace Scene
         ui.insert(ui.end(), directory_backup.begin(), directory_backup.end());
         isFileOpened = false;
         ChangeHeader("Files");
+        ToggleSaveButton(false);
         RenderAll();
         directory_backup.clear();
     }
@@ -344,7 +365,8 @@ namespace Scene
             if (!isFileOpened)
             {
                 if (direction == Direction::Bottom &&
-                    !ui[content_ui_start].focusable)
+                    !ui[content_ui_start].focusable &&
+                    count > 0)
                 {
                     ToggleUpButton(true);
                 }
@@ -364,5 +386,17 @@ namespace Scene
         }
 
         return 0;
+    }
+
+    void FilesScene::SaveFile()
+    {
+        if (!isFileOpened)
+        {
+            return;
+        }
+
+        std::string file_path{curr_directory + ui[0].label};
+
+        ESP_LOGI(TAG, "File %s saved.", file_path.c_str());
     }
 }

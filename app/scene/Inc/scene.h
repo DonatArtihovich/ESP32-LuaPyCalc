@@ -34,6 +34,14 @@ namespace Scene
             width{10}, height{15};
     };
 
+    struct FocusColors
+    {
+        Color focused_text = Color::White,
+              focused_background = Color::Blue,
+              unfocused_text = Color::White,
+              unfocused_background = Color::Black;
+    };
+
     class Scene
     {
         bool is_cursor_controlling{};

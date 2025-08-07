@@ -849,8 +849,6 @@ namespace Scene
 
     void Scene::CursorAppendLine(const char *label, Color color)
     {
-        ESP_LOGI(TAG, "Append line");
-
         UiStringItem last_line{label, color, (ui.end() - 1)->font, false};
         uint8_t fw, fh;
         Font::GetFontx((ui.end() - 1)->font, 0, &fw, &fh);
