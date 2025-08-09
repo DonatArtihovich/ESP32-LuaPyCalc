@@ -40,8 +40,10 @@ namespace Scene
     struct Modal
     {
         std::vector<UiStringItem> ui{};
-        std::function<void()> Ok{};
-        std::function<void()> Cancel{};
+        std::function<void()> Ok{},
+            Cancel{},
+            PreEnter{},
+            PreLeave{};
     };
 
     struct FocusColors
@@ -110,7 +112,24 @@ namespace Scene
             return GetStage<StageType>() == stage;
         }
 
-        virtual bool IsModalStage();
+        template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
+        void AddStageModal(StageType stage, Modal modal)
+        {
+            modals[(uint8_t)stage] = modal;
+        }
+
+        template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
+        Modal &GetStageModal(StageType stage)
+        {
+            return modals[(uint8_t)stage];
+        }
+
+        Modal &GetStageModal()
+        {
+            return modals[stage];
+        }
+
+        bool IsModalStage();
 
         virtual uint8_t GetLinesPerPageCount() = 0;
         virtual size_t GetLineLength();

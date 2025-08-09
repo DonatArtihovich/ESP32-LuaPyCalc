@@ -512,7 +512,23 @@ namespace Scene
         modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
 
-        modals[(uint8_t)FilesSceneStage::DeleteModalStage] = modal;
+        modal.PreEnter = [this]()
+        {
+            SetupDeleteModal();
+        };
+
+        modal.PreLeave = [this]()
+        {
+            ui->erase(ui->begin(), ui->end() - 2);
+            auto focused{std::find_if(ui->begin(), ui->end(),
+                                      [](auto &item)
+                                      { return item.focused; })};
+
+            if (focused != ui->begin())
+                ChangeItemFocus(&(*focused), false);
+        };
+
+        AddStageModal(FilesSceneStage::DeleteModalStage, modal);
     }
 
     void FilesScene::InitCreateChooseModal()
@@ -534,59 +550,28 @@ namespace Scene
         modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
 
-        modals[(uint8_t)FilesSceneStage::CreateChooseModalStage] = modal;
-    }
-
-    bool FilesScene::IsModalStage()
-    {
-        FilesSceneStage stage{GetStage<FilesSceneStage>()};
-        return stage == FilesSceneStage::CreateModalStage ||
-               stage == FilesSceneStage::CreateChooseModalStage ||
-               stage == FilesSceneStage::DeleteModalStage;
-    }
-
-    void FilesScene::EnterModalControlling()
-    {
-        uint8_t stage{(uint8_t)GetStage<FilesSceneStage>()};
-        if (modals.count(stage) == 0)
-            return;
-
-        switch ((FilesSceneStage)stage)
+        modal.PreEnter = [this]()
         {
-        case FilesSceneStage::DeleteModalStage:
-            SetupDeleteModal();
-            break;
-        case FilesSceneStage::CreateChooseModalStage:
             SetupCreateChooseModal();
-            break;
-        default:
-            break;
-        }
+        };
 
-        Scene::EnterModalControlling();
+        modal.PreLeave = [this]()
+        {
+            auto focused{std::find_if(ui->begin(), ui->end(),
+                                      [](auto &item)
+                                      { return item.focused; })};
+
+            if (focused != ui->begin() + 1)
+                ChangeItemFocus(&(*focused), false);
+        };
+
+        AddStageModal(FilesSceneStage::CreateChooseModalStage, modal);
     }
 
     void FilesScene::LeaveModalControlling()
     {
-        ESP_LOGI(TAG, "Leave Modal Controlling %d", (int)GetStage<FilesSceneStage>());
         if (!IsModalStage())
             return;
-
-        switch (GetStage<FilesSceneStage>())
-        {
-        case FilesSceneStage::DeleteModalStage:
-            ui->erase(ui->begin(), ui->end() - 2);
-            break;
-        case FilesSceneStage::CreateChooseModalStage:
-            ChangeItemFocus(&(*std::find_if(
-                                ui->begin(), ui->end(),
-                                [](auto &item)
-                                { return item.focused; })),
-                            false);
-            break;
-        default:
-            break;
-        }
 
         Scene::LeaveModalControlling();
         SetStage(FilesSceneStage::DirectoryStage);
@@ -600,7 +585,7 @@ namespace Scene
             [](auto &item)
             { return item.focused; })};
 
-        auto &modal = modals[(uint8_t)FilesSceneStage::DeleteModalStage];
+        auto &modal = GetStageModal(FilesSceneStage::DeleteModalStage);
 
         std::string filename{focused->label};
         modal.Ok = [this, filename]()
@@ -623,6 +608,7 @@ namespace Scene
                                   : ("directory " + filename + "?"))
                            : ("file " + filename + "?");
 
+        ChangeItemFocus(&(*modal.ui.begin()), true);
         AddModalLabel(modal_label, modal);
     }
 
@@ -631,7 +617,7 @@ namespace Scene
         if (modals.count((uint8_t)FilesSceneStage::CreateChooseModalStage) == 0)
             return;
 
-        auto &modal = modals[(uint8_t)FilesSceneStage::CreateChooseModalStage];
+        auto &modal = GetStageModal(FilesSceneStage::CreateChooseModalStage);
         ChangeItemFocus(&(*(modal.ui.begin() + 1)), true);
     }
 

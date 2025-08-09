@@ -978,17 +978,19 @@ namespace Scene
     void Scene::RenderModal()
     {
         display.Clear(Color::Black);
-        std::for_each(ui->begin(), ui->end(), [this](auto &item)
-                      { 
-                        printf("Render Modal line: \"%s\", x %d, y %d\n", item.label.c_str(), item.x, item.y);
-                        display.DrawStringItem(&item); });
+        std::for_each(
+            ui->begin(),
+            ui->end(),
+            [this](auto &item)
+            { display.DrawStringItem(&item); });
     }
 
     void Scene::EnterModalControlling()
     {
-        if (modals.count(stage) == 0)
+        if (!IsModalStage())
             return;
 
+        GetStageModal().PreEnter();
         ui = &modals[stage].ui;
         RenderModal();
     }
@@ -998,6 +1000,7 @@ namespace Scene
         if (!IsModalStage())
             return;
 
+        GetStageModal().PreLeave();
         ui = &main_ui;
         RenderAll();
     }
@@ -1006,7 +1009,7 @@ namespace Scene
 
     bool Scene::IsModalStage()
     {
-        return false;
+        return modals.count(stage) != 0;
     }
 
     void Scene::AddModalLabel(std::string modal_label, Modal &modal)

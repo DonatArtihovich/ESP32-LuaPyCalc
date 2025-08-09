@@ -47,8 +47,6 @@ namespace Scene
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
         void LeaveModalControlling() override;
-        void EnterModalControlling() override;
-        bool IsModalStage() override;
         void InitModals() override;
 
         void InitDeleteModal();
