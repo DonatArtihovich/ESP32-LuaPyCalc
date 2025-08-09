@@ -993,19 +993,15 @@ namespace Scene
 
     void Scene::LeaveModalControlling()
     {
-        ESP_LOGI(TAG, "Is Modal Stage: %d", IsModalStage());
         if (!IsModalStage())
             return;
 
         ui = &main_ui;
-        std::for_each(ui->begin(), ui->end(), [](auto &item)
-                      { printf("ui item: \"%s\"\n", item.label.c_str()); });
-        std::for_each(main_ui.begin(), main_ui.end(), [](auto &item)
-                      { printf("main ui item: \"%s\"\n", item.label.c_str()); });
         RenderAll();
     }
 
     void Scene::InitModals() {}
+
     bool Scene::IsModalStage()
     {
         return false;
