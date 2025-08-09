@@ -198,6 +198,10 @@ namespace Scene
         {
             SaveFile();
         }
+        else if (focused->label.contains("Create"))
+        {
+            OpenStageModal(FilesSceneStage::CreateChooseModalStage);
+        }
         else if (focused->label.contains("< Esc"))
         {
             return Escape();
@@ -485,26 +489,59 @@ namespace Scene
 
     void FilesScene::InitModals()
     {
-        Modal delete_modal{};
-        delete_modal.Cancel = [this]()
+        InitDeleteModal();
+        InitCreateChooseModal();
+
+        for (auto &[key, modal] : modals)
         {
-            Escape();
-        };
+            modal.Cancel = [this]()
+            {
+                Escape();
+            };
+        }
+    }
 
-        delete_modal.ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
-        display.SetPosition(&*(delete_modal.ui.end() - 1), Position::Start, Position::Start);
-        ChangeItemFocus(&*(delete_modal.ui.end() - 1), true);
+    void FilesScene::InitDeleteModal()
+    {
+        Modal modal{};
 
-        delete_modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
-        display.SetPosition(&*(delete_modal.ui.end() - 1), Position::End, Position::Start);
+        modal.ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Start, Position::Start);
+        ChangeItemFocus(&*(modal.ui.end() - 1), true);
 
-        modals[(uint8_t)FilesSceneStage::DeleteModalStage] = delete_modal;
+        modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
+
+        modals[(uint8_t)FilesSceneStage::DeleteModalStage] = modal;
+    }
+
+    void FilesScene::InitCreateChooseModal()
+    {
+        Modal modal{};
+        modal.ui.push_back(UiStringItem{"Create", Color::White, display.fx24G, false});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::End);
+
+        modal.ui.push_back(UiStringItem{"File", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::Center);
+
+        uint8_t fw, fh;
+        Font::GetFontx(display.fx24G, 0, &fw, &fh);
+
+        modal.ui.push_back(UiStringItem{"Directory", Color::White, display.fx24G});
+        (modal.ui.end() - 1)->y = (modal.ui.end() - 2)->y - fh;
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Center);
+
+        modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
+
+        modals[(uint8_t)FilesSceneStage::CreateChooseModalStage] = modal;
     }
 
     bool FilesScene::IsModalStage()
     {
         FilesSceneStage stage{GetStage<FilesSceneStage>()};
         return stage == FilesSceneStage::CreateModalStage ||
+               stage == FilesSceneStage::CreateChooseModalStage ||
                stage == FilesSceneStage::DeleteModalStage;
     }
 
@@ -514,9 +551,16 @@ namespace Scene
         if (modals.count(stage) == 0)
             return;
 
-        if (IsStage(FilesSceneStage::DeleteModalStage))
+        switch ((FilesSceneStage)stage)
         {
+        case FilesSceneStage::DeleteModalStage:
             SetupDeleteModal();
+            break;
+        case FilesSceneStage::CreateChooseModalStage:
+            SetupCreateChooseModal();
+            break;
+        default:
+            break;
         }
 
         Scene::EnterModalControlling();
@@ -524,12 +568,24 @@ namespace Scene
 
     void FilesScene::LeaveModalControlling()
     {
+        ESP_LOGI(TAG, "Leave Modal Controlling %d", (int)GetStage<FilesSceneStage>());
         if (!IsModalStage())
             return;
 
-        if (IsStage(FilesSceneStage::DeleteModalStage))
+        switch (GetStage<FilesSceneStage>())
         {
+        case FilesSceneStage::DeleteModalStage:
             ui->erase(ui->begin(), ui->end() - 2);
+            break;
+        case FilesSceneStage::CreateChooseModalStage:
+            ChangeItemFocus(&(*std::find_if(
+                                ui->begin(), ui->end(),
+                                [](auto &item)
+                                { return item.focused; })),
+                            false);
+            break;
+        default:
+            break;
         }
 
         Scene::LeaveModalControlling();
@@ -568,6 +624,15 @@ namespace Scene
                            : ("file " + filename + "?");
 
         AddModalLabel(modal_label, modal);
+    }
+
+    void FilesScene::SetupCreateChooseModal()
+    {
+        if (modals.count((uint8_t)FilesSceneStage::CreateChooseModalStage) == 0)
+            return;
+
+        auto &modal = modals[(uint8_t)FilesSceneStage::CreateChooseModalStage];
+        ChangeItemFocus(&(*(modal.ui.begin() + 1)), true);
     }
 
     void FilesScene::DeleteFile(std::string filename)

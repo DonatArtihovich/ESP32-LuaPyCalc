@@ -51,7 +51,11 @@ namespace Scene
         bool IsModalStage() override;
         void InitModals() override;
 
+        void InitDeleteModal();
+        void InitCreateChooseModal();
+
         void SetupDeleteModal();
+        void SetupCreateChooseModal();
 
         void RenderAll() override;
         void RenderContent() override;
