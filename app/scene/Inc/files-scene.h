@@ -30,6 +30,7 @@ namespace Scene
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory();
+        void ReadFile(std::string path);
         void SaveDirectory();
 
         void OpenFile(const char *relative_path);

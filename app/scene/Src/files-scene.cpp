@@ -82,6 +82,27 @@ namespace Scene
         return files.size();
     }
 
+    void FilesScene::ReadFile(std::string path)
+    {
+        char buff[file_line_length + 1] = {0};
+        uint32_t seek_pos{0};
+        int read = 0;
+        while ((read = sdcard.ReadFile(
+                    path.c_str(),
+                    buff,
+                    file_line_length + 1,
+                    seek_pos)) != 0)
+        {
+            ui->push_back(UiStringItem{
+                buff,
+                Color::White,
+                display.fx16G,
+                false,
+            });
+            seek_pos += read;
+        }
+    }
+
     void FilesScene::Arrow(Direction direction)
     {
         Scene::Arrow(direction);
@@ -219,7 +240,18 @@ namespace Scene
         }
         else if (!IsModalStage())
         {
-            OpenStageModal(FilesSceneStage::DeleteModalStage);
+            auto focused = std::find_if(
+                ui->begin(),
+                ui->end(),
+                [](auto &item)
+                { return item.focused; });
+
+            if (focused != ui->end() &&
+                focused >= GetContentUiStart() &&
+                focused->label != "..")
+            {
+                OpenStageModal(FilesSceneStage::DeleteModalStage);
+            }
         }
     }
 
@@ -284,7 +316,6 @@ namespace Scene
         size_t save_index{3};
         auto item{ui->begin() + save_index};
         item->displayable = mode;
-        ESP_LOGI(TAG, "Toggle %s %d", item->label.c_str(), mode);
 
         if (rerender)
         {
@@ -297,8 +328,6 @@ namespace Scene
         size_t create_index{2};
         auto item{ui->begin() + create_index};
         item->displayable = mode;
-
-        ESP_LOGI(TAG, "Toggle %s %d", item->label.c_str(), mode);
 
         if (rerender)
         {
@@ -316,29 +345,11 @@ namespace Scene
         ToggleSaveButton(true);
         ui->erase(GetContentUiStart(), ui->end());
 
-        char buff[file_line_length + 1] = {0};
-        uint32_t seek_pos{0};
-        int read = 0;
-        while ((read = sdcard.ReadFile(
-                    (curr_directory + relative_path).c_str(),
-                    buff,
-                    file_line_length + 1,
-                    seek_pos)) != 0)
-        {
-            ui->push_back(UiStringItem{
-                buff,
-                Color::White,
-                display.fx16G,
-                false,
-            });
-            seek_pos += read;
-        }
+        ReadFile(curr_directory + relative_path);
+        RenderAll();
 
         uint8_t fw, fh;
         Font::GetFontx(display.fx16G, 0, &fw, &fh);
-
-        RenderAll();
-
         size_t lines_count = ui->size() - GetContentUiStartIndex();
 
         Cursor cursor{
