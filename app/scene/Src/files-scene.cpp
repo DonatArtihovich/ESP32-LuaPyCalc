@@ -128,6 +128,26 @@ namespace Scene
             return SceneId::CurrentScene;
         }
 
+        if (IsModalStage())
+        {
+            uint8_t stage = (uint8_t)GetStage<FilesSceneStage>();
+            if (modals.count(stage) == 0)
+                return SceneId::CurrentScene;
+
+            auto &modal = modals[stage];
+
+            if (focused->label.contains("Cancel"))
+            {
+                modal.Cancel();
+            }
+            else if (focused->label.contains("Ok"))
+            {
+                modal.Ok();
+            }
+
+            return SceneId::CurrentScene;
+        }
+
         if (focused >= GetContentUiStart())
         {
             if (focused->label == "..")
@@ -433,19 +453,20 @@ namespace Scene
 
     void FilesScene::InitModals()
     {
-        std::vector<UiStringItem> delete_modal_ui{};
+        Modal delete_modal{};
+        delete_modal.Cancel = [this]()
+        {
+            Escape();
+        };
 
-        delete_modal_ui.push_back(UiStringItem{"Do you want to delete?", Color::White, display.fx24G, false});
-        display.SetPosition(&*(delete_modal_ui.end() - 1), Position::Center, Position::End);
+        delete_modal.ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
+        display.SetPosition(&*(delete_modal.ui.end() - 1), Position::Start, Position::Start);
+        ChangeItemFocus(&*(delete_modal.ui.end() - 1), true);
 
-        delete_modal_ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
-        display.SetPosition(&*(delete_modal_ui.end() - 1), Position::Start, Position::Start);
-        ChangeItemFocus(&*(delete_modal_ui.end() - 1), true);
+        delete_modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        display.SetPosition(&*(delete_modal.ui.end() - 1), Position::End, Position::Start);
 
-        delete_modal_ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
-        display.SetPosition(&*(delete_modal_ui.end() - 1), Position::End, Position::Start);
-
-        modals_ui[(uint8_t)FilesSceneStage::DeleteModalStage] = delete_modal_ui;
+        modals[(uint8_t)FilesSceneStage::DeleteModalStage] = delete_modal;
     }
 
     bool FilesScene::IsModalStage()
@@ -457,12 +478,119 @@ namespace Scene
 
     void FilesScene::EnterModalControlling()
     {
+        uint8_t stage{(uint8_t)GetStage<FilesSceneStage>()};
+        if (modals.count(stage) == 0)
+            return;
+
+        if (IsStage(FilesSceneStage::DeleteModalStage))
+        {
+            SetupDeleteModal();
+        }
+
         Scene::EnterModalControlling();
     }
 
     void FilesScene::LeaveModalControlling()
     {
+        if (!IsModalStage())
+            return;
+
+        if (IsStage(FilesSceneStage::DeleteModalStage))
+        {
+            ui->erase(ui->begin(), ui->end() - 2);
+        }
+
         Scene::LeaveModalControlling();
         SetStage(FilesSceneStage::DirectoryStage);
+    }
+
+    void FilesScene::SetupDeleteModal()
+    {
+        auto focused{std::find_if(
+            ui->begin(),
+            ui->end(),
+            [](auto &item)
+            { return item.focused; })};
+
+        auto &modal = modals[(uint8_t)FilesSceneStage::DeleteModalStage];
+
+        std::string filename{focused->label};
+        modal.Ok = [this, filename]()
+        {
+            DeleteFile(filename);
+            Escape();
+        };
+
+        if (filename.ends_with('/'))
+        {
+            filename.erase(filename.end() - 1);
+        }
+
+        std::string focused_file{curr_directory + "/" + filename};
+
+        std::string modal_label{"Do you want to delete "};
+        modal_label += sdcard.IsDirectory(focused_file.c_str())
+                           ? (sdcard.ReadDirectory(focused_file.c_str()).size()
+                                  ? ("directory " + filename + " and it's contents?")
+                                  : ("directory " + filename + "?"))
+                           : ("file " + filename + "?");
+
+        AddModalLabel(modal_label, modal);
+    }
+
+    void FilesScene::DeleteFile(std::string filename)
+    {
+        std::string path{curr_directory + "/" + filename};
+        if (path.ends_with('/'))
+        {
+            path.erase(path.end() - 1);
+        }
+
+        esp_err_t ret{};
+        if (sdcard.IsDirectory(path.c_str()))
+        {
+            ret = sdcard.RemoveDirectory(path.c_str());
+        }
+        else
+        {
+            ret = sdcard.RemoveFile(path.c_str());
+        }
+
+        if (ESP_OK != ret)
+            return;
+
+        auto file_item = std::find_if(
+            main_ui.begin() + GetContentUiStartIndex(),
+            main_ui.end(),
+            [&filename](auto &item)
+            {
+                return item.label == filename;
+            });
+
+        if (file_item == main_ui.end())
+            return;
+
+        if (file_item != main_ui.end() - 1)
+        {
+            ChangeItemFocus(&(*(file_item + 1)), true);
+        }
+        else
+        {
+            ChangeItemFocus(&(*(file_item - 1)), true);
+        }
+
+        auto next_displaying = std::find_if(
+            file_item,
+            main_ui.end(),
+            [](auto &item)
+            { return !item.displayable; });
+
+        if (next_displaying != main_ui.end())
+        {
+            next_displaying->displayable = true;
+            ESP_LOGI(TAG, "Make %s displayable", next_displaying->label.c_str());
+        }
+        ESP_LOGI(TAG, "Erasing file item %s", file_item->label.c_str());
+        main_ui.erase(file_item);
     }
 }

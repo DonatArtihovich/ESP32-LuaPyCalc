@@ -37,6 +37,13 @@ namespace Scene
             width{10}, height{15};
     };
 
+    struct Modal
+    {
+        std::vector<UiStringItem> ui{};
+        std::function<void()> Ok{};
+        std::function<void()> Cancel{};
+    };
+
     struct FocusColors
     {
         Color focused_text = Color::White,
@@ -55,7 +62,7 @@ namespace Scene
         DisplayController &display;
         std::vector<UiStringItem> main_ui{};
         std::vector<UiStringItem> *ui{&main_ui};
-        std::map<uint8_t, std::vector<UiStringItem>> modals_ui{};
+        std::map<uint8_t, Modal> modals{};
         const size_t default_line_length{37};
 
         void SetCursorControlling(bool cursor);
@@ -76,6 +83,7 @@ namespace Scene
         void CursorAppendLine(const char *label = "", Color color = Color::White);
 
         virtual void InitModals();
+        void AddModalLabel(std::string modal_label, Modal &modal);
 
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
         void OpenStageModal(StageType stage)

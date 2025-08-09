@@ -979,15 +979,17 @@ namespace Scene
     {
         display.Clear(Color::Black);
         std::for_each(ui->begin(), ui->end(), [this](auto &item)
-                      { display.DrawStringItem(&item); });
+                      { 
+                        printf("Render Modal line: \"%s\", x %d, y %d\n", item.label.c_str(), item.x, item.y);
+                        display.DrawStringItem(&item); });
     }
 
     void Scene::EnterModalControlling()
     {
-        if (modals_ui.count(stage) == 0)
+        if (modals.count(stage) == 0)
             return;
 
-        ui = &modals_ui[stage];
+        ui = &modals[stage].ui;
         RenderModal();
     }
 
@@ -1005,5 +1007,52 @@ namespace Scene
     bool Scene::IsModalStage()
     {
         return false;
+    }
+
+    void Scene::AddModalLabel(std::string modal_label, Modal &modal)
+    {
+        UiStringItem label_item{"", Color::White, display.fx24G, false};
+        display.SetPosition(&label_item, Position::NotSpecified, Position::End);
+
+        uint8_t fw{}, fh{};
+        Font::GetFontx(label_item.font, 0, &fw, &fh);
+
+        std::vector<std::string> label_words{};
+
+        std::string word{};
+        for (int i{}; i < modal_label.size(); i++)
+        {
+            if (modal_label[i] != ' ')
+            {
+                word += modal_label[i];
+            }
+
+            if (modal_label[i] == ' ' || i == modal_label.size() - 1)
+            {
+                label_words.push_back(word);
+                word.clear();
+            }
+        }
+
+        size_t line_num{0};
+        for (int i{}; i < label_words.size(); i++)
+        {
+            label_item.label += label_words[i] + ' ';
+
+            if (i == label_words.size() - 1 || (label_item.label + label_words[i + 1]).size() > 22)
+            {
+                if (line_num > 0)
+                {
+                    label_item.y -= fh;
+                }
+
+                display.SetPosition(&label_item, Position::Center);
+
+                modal.ui.insert(modal.ui.begin() + line_num, label_item);
+
+                label_item.label = "";
+                line_num++;
+            }
+        }
     }
 }

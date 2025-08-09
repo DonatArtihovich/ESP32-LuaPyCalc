@@ -1,4 +1,6 @@
 #include "sd.h"
+#include <system_error>
+#include <filesystem>
 
 static const char *TAG = "SD";
 
@@ -135,5 +137,38 @@ namespace SD
         }
 
         return false;
+    }
+
+    esp_err_t SDCard::RemoveDirectory(const char *path)
+    {
+        namespace fs = std::filesystem;
+        std::error_code ec{};
+
+        if (fs::exists(path, ec))
+        {
+            if (ec)
+                return ESP_FAIL;
+
+            bool removed = fs::remove_all(path, ec);
+
+            if (ec || !removed)
+                return ESP_FAIL;
+        }
+        else
+        {
+            return ESP_FAIL;
+        }
+
+        return ESP_OK;
+    }
+
+    esp_err_t SDCard::RemoveFile(const char *path)
+    {
+        if (unlink(path) == 0)
+        {
+            return ESP_OK;
+        }
+
+        return ESP_FAIL;
     }
 }

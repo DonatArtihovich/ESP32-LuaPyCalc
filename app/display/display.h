@@ -67,7 +67,9 @@ namespace Display
                             Position hp = Position::NotSpecified,
                             Position vp = Position::NotSpecified);
 
-        void SetPosition(UiStringItem *item, Position hp, Position vp);
+        void SetPosition(UiStringItem *item,
+                         Position hp = Position::NotSpecified,
+                         Position vp = Position::NotSpecified);
         void DrawStringItems(
             std::vector<UiStringItem>::iterator start,
             std::vector<UiStringItem>::iterator end,

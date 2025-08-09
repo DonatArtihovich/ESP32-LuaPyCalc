@@ -35,6 +35,8 @@ namespace Scene
         void SaveFile();
         void CloseFile();
 
+        void DeleteFile(std::string filename);
+
         size_t GetContentUiStartIndex() override;
         uint8_t GetLinesPerPageCount() override;
         size_t GetLineLength() override;
@@ -42,10 +44,12 @@ namespace Scene
         uint8_t Focus(Direction direction) override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
-        void LeaveModalControlling();
-        void EnterModalControlling();
+        void LeaveModalControlling() override;
+        void EnterModalControlling() override;
         bool IsModalStage() override;
         void InitModals() override;
+
+        void SetupDeleteModal();
 
         void RenderAll() override;
         void RenderContent() override;

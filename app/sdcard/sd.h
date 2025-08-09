@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <dirent.h>
+#include <unistd.h>
 #include <cstring>
 #include <vector>
 #include <string>
@@ -34,6 +35,9 @@ namespace SD
         size_t ReadFile(const char *path, char *buff, size_t len, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
         esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
         std::vector<std::string> ReadDirectory(const char *path);
+
+        esp_err_t RemoveDirectory(const char *path);
+        esp_err_t RemoveFile(const char *path);
         bool IsDirectory(const char *path);
     };
 }
