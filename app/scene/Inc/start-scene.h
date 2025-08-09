@@ -19,5 +19,6 @@ namespace Scene
         void Arrow(Direction direction) override;
         SceneId Enter() override;
         SceneId Escape() override;
+        ~StartScene() = default;
     };
 }

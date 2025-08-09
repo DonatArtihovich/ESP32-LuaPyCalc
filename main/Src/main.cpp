@@ -87,13 +87,11 @@ namespace Main
             return;
         case SceneId::StartScene:
             ESP_LOGI(TAG, "Switch to Start Scene");
-            delete scene;
-            scene = new Scene::StartScene{display};
+            scene = std::make_unique<Scene::StartScene>(display);
             break;
         case SceneId::FilesScene:
             ESP_LOGI(TAG, "Switch to Files Scene");
-            delete scene;
-            scene = new Scene::FilesScene{display, sdcard};
+            scene = std::make_unique<Scene::FilesScene>(display, sdcard);
             break;
         case SceneId::CodeScene:
             ESP_LOGI(TAG, "Switch to Code Scene");

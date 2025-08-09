@@ -6,6 +6,14 @@ using SD::SDCard;
 
 namespace Scene
 {
+    enum class FilesSceneStage
+    {
+        DirectoryStage,
+        FileOpenStage,
+        DeleteModalStage,
+        CreateModalStage,
+    };
+
     class FilesScene : public Scene
     {
         SDCard &sdcard;
@@ -18,8 +26,6 @@ namespace Scene
         const size_t file_lines_scroll{file_lines_per_page};
         const size_t file_line_length{37}; // without \0
         std::vector<UiStringItem> directory_backup{};
-
-        bool isFileOpened{};
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory();
@@ -36,6 +42,11 @@ namespace Scene
         uint8_t Focus(Direction direction) override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
+        void LeaveModalControlling();
+        void EnterModalControlling();
+        bool IsModalStage() override;
+        void InitModals() override;
+
         void RenderAll() override;
         void RenderContent() override;
         void RenderHeader();
@@ -51,5 +62,6 @@ namespace Scene
         SceneId Enter() override;
         SceneId Escape() override;
         void Delete() override;
+        ~FilesScene() = default;
     };
 }
