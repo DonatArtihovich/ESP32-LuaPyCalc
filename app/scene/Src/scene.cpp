@@ -28,9 +28,11 @@ namespace Scene
         case Direction::Up:
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
-                if (
-                    (!new_focused && item.y > last_focused->y && item.focusable && item.displayable) ||
-                    (item.y > last_focused->y && item.focusable && item.displayable && item.y < new_focused->y))
+                bool main_cond{item.y > last_focused->y &&
+                               item.focusable &&
+                               item.displayable};
+
+                if ((!new_focused && main_cond) || (main_cond && item.y < new_focused->y))
                 {
                     new_focused = &item;
                 }
@@ -39,9 +41,13 @@ namespace Scene
         case Direction::Right:
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
-                if (
-                    (!new_focused && item.x > last_focused->x && item.focusable && item.displayable) ||
-                    (item.x > last_focused->x && item.focusable && item.displayable && item.x < new_focused->x))
+                uint8_t fw;
+                Font::GetFontx(last_focused->font, 0, &fw, 0);
+                bool main_cond{item.x > (last_focused->x + last_focused->label.size() * fw) &&
+                               item.focusable &&
+                               item.displayable};
+
+                if ((!new_focused && main_cond) || (main_cond && item.x < new_focused->x))
                 {
                     new_focused = &item;
                 }
@@ -50,9 +56,11 @@ namespace Scene
         case Direction::Bottom:
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
-                if (
-                    (!new_focused && item.y < last_focused->y && item.focusable && item.displayable) ||
-                    (item.y < last_focused->y && item.focusable && item.displayable && item.y > new_focused->y))
+                bool main_cond{item.y < last_focused->y &&
+                               item.focusable &&
+                               item.displayable};
+
+                if ((!new_focused && main_cond) || (main_cond && item.y > new_focused->y))
                 {
                     new_focused = &item;
                 }
@@ -61,9 +69,11 @@ namespace Scene
         case Direction::Left:
             fe_cb = [&new_focused, &last_focused](auto &item)
             {
-                if (
-                    (!new_focused && item.x < last_focused->x && item.focusable && item.displayable) ||
-                    (item.x < last_focused->x && item.focusable && item.displayable && item.x > new_focused->x))
+                bool main_cond{item.x < last_focused->x &&
+                               item.focusable &&
+                               item.displayable};
+
+                if ((!new_focused && main_cond) || (main_cond && item.x > new_focused->x))
                 {
                     new_focused = &item;
                 }
