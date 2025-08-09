@@ -13,7 +13,8 @@ namespace Scene
         ui->push_back(UiStringItem{"  Files   ", Color::White, display.fx32L, false});
         ui->push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
 
-        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G}); // [Save] button
+        ui->push_back(UiStringItem{"Create", Color::White, display.fx24G}); // [Create] button
+        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G});   // [Save] button
         (ui->end() - 1)->displayable = false;
 
         ui->push_back(UiStringItem{"", Color::White, display.fx24M, false}); // [^ Up] button
@@ -260,7 +261,7 @@ namespace Scene
 
     void FilesScene::ToggleUpButton(bool mode, bool rerender)
     {
-        size_t up_index{3};
+        size_t up_index{4};
         if (mode)
         {
             (*ui)[up_index].label = "^ Up";
@@ -279,22 +280,40 @@ namespace Scene
 
     void FilesScene::ToggleSaveButton(bool mode, bool rerender)
     {
-        size_t save_index{2};
-        (*ui)[save_index].displayable = mode;
+
+        size_t save_index{3};
+        auto item{ui->begin() + save_index};
+        item->displayable = mode;
+        ESP_LOGI(TAG, "Toggle %s %d", item->label.c_str(), mode);
 
         if (rerender)
         {
-            display.DrawStringItem(&*(ui->begin() + save_index));
+            display.DrawStringItem(&(*item));
+        }
+    }
+
+    void FilesScene::ToggleCreateButton(bool mode, bool rerender)
+    {
+        size_t create_index{2};
+        auto item{ui->begin() + create_index};
+        item->displayable = mode;
+
+        ESP_LOGI(TAG, "Toggle %s %d", item->label.c_str(), mode);
+
+        if (rerender)
+        {
+            display.DrawStringItem(&(*item));
         }
     }
 
     void FilesScene::OpenFile(const char *relative_path)
     {
         SaveDirectory();
-        ChangeHeader(relative_path, true);
-        ChangeItemFocus(&(*ui)[1], true, true);
+        ChangeHeader(relative_path);
+        ChangeItemFocus(&(*ui)[1], true);
         SetStage(FilesSceneStage::FileOpenStage);
-        ToggleSaveButton(true, true);
+        ToggleCreateButton(false);
+        ToggleSaveButton(true);
         ui->erase(GetContentUiStart(), ui->end());
 
         char buff[file_line_length + 1] = {0};
@@ -318,7 +337,7 @@ namespace Scene
         uint8_t fw, fh;
         Font::GetFontx(display.fx16G, 0, &fw, &fh);
 
-        RenderContent();
+        RenderAll();
 
         size_t lines_count = ui->size() - GetContentUiStartIndex();
 
@@ -349,6 +368,7 @@ namespace Scene
         display.DrawStringItem(&(*ui)[0], Position::Center, Position::End);
         display.DrawStringItem(&(*ui)[1], Position::Start, Position::End);
         display.DrawStringItem(&(*ui)[2], Position::End, Position::End);
+        display.DrawStringItem(&(*ui)[3], Position::End, Position::End);
     }
 
     void FilesScene::CloseFile()
@@ -361,6 +381,7 @@ namespace Scene
         SetStage(FilesSceneStage::DirectoryStage);
         ChangeHeader("Files");
         ToggleSaveButton(false);
+        ToggleCreateButton(true);
         RenderAll();
         directory_backup.clear();
     }

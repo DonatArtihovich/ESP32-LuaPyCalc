@@ -11,6 +11,7 @@ namespace Scene
         DirectoryStage,
         FileOpenStage,
         DeleteModalStage,
+        CreateChooseModalStage,
         CreateModalStage,
     };
 
@@ -19,7 +20,7 @@ namespace Scene
         SDCard &sdcard;
 
         std::string curr_directory{SD("")};
-        const size_t content_ui_start{3};
+        const size_t content_ui_start{4};
         const size_t directory_lines_per_page{9}; // including "more"
         const size_t file_lines_per_page{9};      // not including "more"
         const size_t directory_lines_scroll{directory_lines_per_page};
@@ -57,6 +58,8 @@ namespace Scene
 
         void ToggleUpButton(bool mode, bool rerender = false);
         void ToggleSaveButton(bool mode, bool rerender = false);
+        void ToggleCreateButton(bool mode, bool rerender = false);
+
         void ChangeHeader(const char *header, bool rerender = false) override;
 
     public:
