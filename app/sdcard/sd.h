@@ -36,6 +36,8 @@ namespace SD
         esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
         std::vector<std::string> ReadDirectory(const char *path);
 
+        esp_err_t CreateDirectory(const char *path);
+        esp_err_t CreateFile(const char *path);
         esp_err_t RemoveDirectory(const char *path);
         esp_err_t RemoveFile(const char *path);
         bool IsDirectory(const char *path);

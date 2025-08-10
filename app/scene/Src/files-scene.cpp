@@ -49,7 +49,7 @@ namespace Scene
                                 ui->end(),
                                 10,
                                 display.GetHeight() - 60,
-                                GetLinesPerPageCount());
+                                Scene::GetLinesPerPageCount());
 
         if (!(ui->end() - 1)->displayable)
         {
@@ -139,6 +139,16 @@ namespace Scene
                 false,
             });
             seek_pos += read;
+        }
+
+        if (GetContentUiStart() == ui->end())
+        {
+            ui->push_back(UiStringItem{
+                buff,
+                Color::White,
+                display.fx16G,
+                false,
+            });
         }
     }
 
@@ -430,7 +440,7 @@ namespace Scene
 
         uint8_t fw, fh;
         Font::GetFontx(display.fx16G, 0, &fw, &fh);
-        size_t lines_count = ui->size() - GetContentUiStartIndex();
+        size_t lines_count = ui->size() - Scene::GetContentUiStartIndex();
 
         Cursor cursor{
             .x = static_cast<uint8_t>(file_line_length - 1),
@@ -485,21 +495,20 @@ namespace Scene
             ui->cend());
     }
 
-    size_t FilesScene::GetContentUiStartIndex()
+    size_t FilesScene::GetContentUiStartIndex(uint8_t stg)
     {
-        if (IsStage(FilesSceneStage::CreateModalStage))
+        FilesSceneStage stage{stg};
+        if (stage == FilesSceneStage::CreateModalStage)
         {
             return ui->end() - 1 - ui->begin();
         }
 
-        return content_ui_start + !IsStage(FilesSceneStage::FileOpenStage);
+        return content_ui_start + (stage != FilesSceneStage::FileOpenStage);
     }
 
-    size_t FilesScene::GetLinesPerPageCount()
+    size_t FilesScene::GetLinesPerPageCount(uint8_t stage)
     {
-        FilesSceneStage stage{GetStage<FilesSceneStage>()};
-
-        switch (stage)
+        switch ((FilesSceneStage)stage)
         {
         case FilesSceneStage::FileOpenStage:
             return file_lines_per_page;
@@ -521,7 +530,7 @@ namespace Scene
 
     uint8_t FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
     {
-        size_t lines_per_page{GetLinesPerPageCount()};
+        size_t lines_per_page{Scene::GetLinesPerPageCount()};
         bool is_file_open_stage{IsStage(FilesSceneStage::FileOpenStage)};
 
         if (count > lines_per_page - 1 - !is_file_open_stage)
@@ -744,8 +753,10 @@ namespace Scene
         modal.Ok = [this]()
         {
             Modal &modal = GetStageModal();
-            CreateFile((modal.ui.end() - 1)->label, modal.data == "directory");
-            Escape();
+            if (CreateFile((modal.ui.end() - 1)->label, modal.data == "directory"))
+            {
+                LeaveModalControlling();
+            }
         };
 
         AddStageModal(FilesSceneStage::CreateModalStage, modal);
@@ -848,7 +859,7 @@ namespace Scene
             return;
 
         auto file_item = std::find_if(
-            main_ui.begin() + GetContentUiStartIndex(),
+            main_ui.begin() + Scene::GetContentUiStartIndex(),
             main_ui.end(),
             [&filename](auto &item)
             {
@@ -882,21 +893,47 @@ namespace Scene
         main_ui.erase(file_item);
     }
 
-    void FilesScene::CreateFile(std::string filename, bool is_directory)
+    bool FilesScene::CreateFile(std::string filename, bool is_directory)
     {
-        if (!isalnum(filename[filename.size() - 1]))
+        if (filename.size() == 0 || !isalnum(filename[filename.size() - 1]))
         {
-            return;
+            return false;
         }
+
+        std::string path{curr_directory + "/" + filename};
+        esp_err_t ret{ESP_FAIL};
 
         if (is_directory)
         {
-            ESP_LOGI(TAG, "Creating directory %s...", filename.c_str());
+            ret = sdcard.CreateDirectory(path.c_str());
+            filename.push_back('/');
         }
         else
         {
-            ESP_LOGI(TAG, "Creating file %s...", filename.c_str());
+            ret = sdcard.CreateFile(path.c_str());
         }
+
+        if (ESP_OK != ret)
+        {
+            return false;
+        }
+
+        UiStringItem new_line{filename, Color::White, display.fx16G};
+
+        size_t displayable_count{static_cast<size_t>(
+            std::count_if(
+                main_ui.begin() + GetContentUiStartIndex((uint8_t)FilesSceneStage::DirectoryStage),
+                main_ui.end(),
+                [](auto &item)
+                { return item.displayable; }))};
+
+        if (displayable_count == GetLinesPerPageCount((uint8_t)FilesSceneStage::DirectoryStage) - 1)
+        {
+            new_line.displayable = false;
+        }
+
+        main_ui.push_back(new_line);
+        return true;
     }
 
     size_t FilesScene::GetLinesScroll()

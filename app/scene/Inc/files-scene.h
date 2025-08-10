@@ -40,13 +40,13 @@ namespace Scene
         void CloseFile();
 
         void DeleteFile(std::string filename);
-        void CreateFile(std::string filename, bool is_directory);
+        bool CreateFile(std::string filename, bool is_directory);
 
         bool IsHomeStage(uint8_t stage) override;
 
         size_t GetLinesScroll() override;
-        size_t GetLinesPerPageCount() override;
-        size_t GetContentUiStartIndex() override;
+        size_t GetLinesPerPageCount(uint8_t stage);
+        size_t GetContentUiStartIndex(uint8_t stage) override;
         size_t GetLineLength() override;
 
         uint8_t Focus(Direction direction) override;

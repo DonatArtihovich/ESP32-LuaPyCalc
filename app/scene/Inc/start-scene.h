@@ -8,8 +8,8 @@ namespace Scene
     {
         const size_t lines_per_page{max_lines_per_page};
 
-        size_t GetContentUiStartIndex() override;
-        size_t GetLinesPerPageCount() override;
+        size_t GetContentUiStartIndex(uint8_t stage) override;
+        size_t GetLinesPerPageCount(uint8_t stage) override;
 
         void RenderAll() override;
         void RenderContent() override;

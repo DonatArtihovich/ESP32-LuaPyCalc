@@ -66,12 +66,12 @@ namespace Scene
         return SceneId::CurrentScene;
     }
     // StartScene::
-    size_t StartScene::GetContentUiStartIndex()
+    size_t StartScene::GetContentUiStartIndex(uint8_t stage)
     {
         return 1;
     }
 
-    size_t StartScene::GetLinesPerPageCount()
+    size_t StartScene::GetLinesPerPageCount(uint8_t stage)
     {
         return lines_per_page;
     }

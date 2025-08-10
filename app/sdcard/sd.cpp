@@ -1,6 +1,7 @@
 #include "sd.h"
 #include <system_error>
 #include <filesystem>
+#include <fstream>
 
 static const char *TAG = "SD";
 
@@ -169,6 +170,40 @@ namespace SD
             return ESP_OK;
         }
 
+        return ESP_FAIL;
+    }
+
+    esp_err_t SDCard::CreateDirectory(const char *path)
+    {
+        ESP_LOGI(TAG, "Creating directory at path %s", path);
+        if (std::filesystem::exists(path) ||
+            std::filesystem::create_directory(path))
+        {
+            return ESP_OK;
+        }
+
+        ESP_LOGE(TAG, "Error creating directory %s", path);
+        return ESP_FAIL;
+    }
+
+    esp_err_t SDCard::CreateFile(const char *path)
+    {
+        ESP_LOGI(TAG, "Creating file at path %s", path);
+        if (std::filesystem::exists(path))
+        {
+            return ESP_OK;
+        }
+
+        std::fstream file{};
+        file.open(path, std::ios::app);
+        file.close();
+
+        if (std::filesystem::exists(path))
+        {
+            return ESP_OK;
+        }
+
+        ESP_LOGE(TAG, "Error creating file %s", path);
         return ESP_FAIL;
     }
 }

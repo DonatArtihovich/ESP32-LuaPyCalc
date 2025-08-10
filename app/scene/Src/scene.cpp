@@ -205,6 +205,16 @@ namespace Scene
         return ui->begin() + GetContentUiStartIndex();
     }
 
+    size_t Scene::GetContentUiStartIndex()
+    {
+        return GetContentUiStartIndex(stage);
+    }
+
+    size_t Scene::GetLinesPerPageCount()
+    {
+        return GetLinesPerPageCount(stage);
+    }
+
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after)
     {
         uint8_t fw, fh;
