@@ -161,7 +161,7 @@ namespace Scene
         Scene(DisplayController &display);
         virtual void Init() = 0;
         virtual void Arrow(Direction direction);
-        virtual SceneId Enter() = 0;
+        virtual SceneId Enter();
         virtual SceneId Escape() = 0;
         virtual void Delete();
         virtual void Value(char value);

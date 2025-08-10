@@ -188,8 +188,7 @@ namespace Scene
     {
         if (IsCursorControlling())
         {
-            Value('\n');
-            return SceneId::CurrentScene;
+            return Scene::Enter();
         }
 
         auto focused = std::find_if(
@@ -322,11 +321,9 @@ namespace Scene
 
     void FilesScene::Delete()
     {
-        if (IsCursorControlling())
-        {
-            CursorDeleteChars(1, GetLinesScroll());
-        }
-        else if (!IsModalStage())
+        Scene::Delete();
+
+        if (!IsModalStage())
         {
             auto focused = std::find_if(
                 ui->begin(),

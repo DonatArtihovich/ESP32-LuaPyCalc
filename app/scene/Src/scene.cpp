@@ -185,9 +185,23 @@ namespace Scene
         }
     }
 
+    SceneId Scene::Enter()
+    {
+        if (IsCursorControlling())
+        {
+            Value('\n');
+        }
+
+        return SceneId::CurrentScene;
+    }
+
     void Scene::Delete()
     {
         ESP_LOGI(TAG, "Delete pressed.");
+        if (IsCursorControlling())
+        {
+            CursorDeleteChars(1, GetLinesScroll());
+        }
     }
 
     bool Scene::IsCursorControlling()
