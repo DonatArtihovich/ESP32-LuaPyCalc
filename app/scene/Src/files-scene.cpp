@@ -919,6 +919,7 @@ namespace Scene
             return false;
         }
 
+        std::transform(filename.begin(), filename.end(), filename.begin(), toupper);
         UiStringItem new_line{filename, Color::White, display.fx16G};
 
         size_t displayable_count{static_cast<size_t>(
