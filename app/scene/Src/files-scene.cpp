@@ -468,9 +468,19 @@ namespace Scene
 
     uint8_t FilesScene::GetLinesPerPageCount()
     {
-        return IsStage(FilesSceneStage::FileOpenStage)
-                   ? file_lines_per_page
-                   : directory_lines_per_page;
+        FilesSceneStage stage{GetStage<FilesSceneStage>()};
+
+        switch (stage)
+        {
+        case FilesSceneStage::FileOpenStage:
+            return file_lines_per_page;
+        case FilesSceneStage::DirectoryStage:
+            return directory_lines_per_page;
+        case FilesSceneStage::CreateModalStage:
+            return 1;
+        default:
+            return 0;
+        }
     }
 
     size_t FilesScene::GetLineLength()
@@ -774,7 +784,7 @@ namespace Scene
         }
 
         uint8_t fw, fh;
-        Font::GetFontx(display.fx16G, 0, &fw, &fh);
+        Font::GetFontx(display.fx24G, 0, &fw, &fh);
         Cursor cursor{
             .x = 0,
             .y = 0,

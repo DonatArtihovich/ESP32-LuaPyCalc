@@ -205,13 +205,16 @@ namespace Scene
     {
         uint8_t fw, fh;
         uint8_t lines_per_page{GetLinesPerPageCount()};
-        auto first_displaying = std::find_if(GetContentUiStart(), ui->end(), [](auto &item)
-                                             { return item.displayable; });
+        auto first_displaying = std::find_if(
+            GetContentUiStart(),
+            ui->end(),
+            [](auto &item)
+            { return item.displayable; });
         Font::GetFontx(first_displaying->font, 0, &fw, &fh);
 
-        uint16_t lines_start_x{10},
-            lines_start_y(display.GetHeight() - 60 - first_line * fh),
-            clear_start_y(display.GetHeight() - 60 - (first_line * fh) - (last_line - first_line) * fh),
+        uint16_t lines_start_x{first_displaying->x},
+            lines_start_y(first_displaying->y - first_line * fh),
+            clear_start_y(first_displaying->y - (first_line * fh) - (last_line - first_line) * fh),
             clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
 
         if (clear_line_after && clear_start_y - fh >= 0)
@@ -792,7 +795,7 @@ namespace Scene
 
         int erased_count{};
         for (auto it{ui->rbegin()};
-             it < ui->rend() - GetContentUiStartIndex() &&
+             it < ui->rend() - GetContentUiStartIndex() - 1 &&
              it->label.size() == 0 && !((it + 1)->label.ends_with('\n'));
              it++)
         {
