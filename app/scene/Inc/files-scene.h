@@ -21,11 +21,11 @@ namespace Scene
 
         std::string curr_directory{SD("")};
         const size_t content_ui_start{4};
-        const size_t directory_lines_per_page{9}; // including "more"
-        const size_t file_lines_per_page{9};      // not including "more"
+        const size_t directory_lines_per_page{max_lines_per_page}; // including "more"
+        const size_t file_lines_per_page{max_lines_per_page};      // not including "more"
         const size_t directory_lines_scroll{directory_lines_per_page};
         const size_t file_lines_scroll{file_lines_per_page};
-        const size_t file_line_length{37}; // without \0
+        const size_t file_line_length{default_line_length}; // without \0
         std::vector<UiStringItem> directory_backup{};
 
         void OpenDirectory(const char *relative_path);
@@ -41,8 +41,10 @@ namespace Scene
         void CreateFile(std::string filename, bool is_directory);
 
         bool IsHomeStage(uint8_t stage) override;
-        size_t GetContentUiStartIndex() override;
+
+        uint8_t GetLinesScroll();
         uint8_t GetLinesPerPageCount() override;
+        size_t GetContentUiStartIndex() override;
         size_t GetLineLength() override;
 
         uint8_t Focus(Direction direction) override;

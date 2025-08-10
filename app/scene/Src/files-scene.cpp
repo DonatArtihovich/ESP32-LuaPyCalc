@@ -51,15 +51,6 @@ namespace Scene
                                 display.GetHeight() - 60,
                                 GetLinesPerPageCount());
 
-        std::for_each(ui->begin(),
-                      ui->end(),
-                      [](auto &item)
-                      {
-                          item.displayable
-                              ? printf("\"%s\" Displayable\n", item.label.c_str())
-                              : printf("\"%s\" Not Displayable\n", item.label.c_str());
-                      });
-
         if (!(ui->end() - 1)->displayable)
         {
             RenderUiListEnding(IsStage(FilesSceneStage::FileOpenStage)
@@ -73,7 +64,7 @@ namespace Scene
         Scene::Value(value);
         if (IsCursorControlling())
         {
-            CursorInsertChars(std::string(1, value), file_lines_scroll);
+            CursorInsertChars(std::string(1, value), GetLinesScroll());
         }
     }
 
@@ -148,7 +139,7 @@ namespace Scene
         }
         else if (IsCursorControlling())
         {
-            MoveCursor(direction, true, file_lines_scroll);
+            MoveCursor(direction, true, GetLinesScroll());
             return;
         }
 
@@ -295,7 +286,7 @@ namespace Scene
     {
         if (IsCursorControlling())
         {
-            CursorDeleteChars(1, file_lines_scroll);
+            CursorDeleteChars(1, GetLinesScroll());
         }
         else if (!IsModalStage())
         {
@@ -859,6 +850,23 @@ namespace Scene
         else
         {
             ESP_LOGI(TAG, "Creating file %s...", filename.c_str());
+        }
+    }
+
+    uint8_t FilesScene::GetLinesScroll()
+    {
+        FilesSceneStage stage{GetStage<FilesSceneStage>()};
+
+        switch (stage)
+        {
+        case FilesSceneStage::FileOpenStage:
+            return file_lines_scroll;
+        case FilesSceneStage::DirectoryStage:
+            return directory_lines_scroll;
+        case FilesSceneStage::CreateModalStage:
+            return 0;
+        default:
+            return 0;
         }
     }
 }
