@@ -934,6 +934,11 @@ namespace Scene
             new_line.displayable = false;
         }
 
+        if ((main_ui.end() - 1)->displayable && !(main_ui.end() - 1)->focusable)
+        {
+            main_ui.erase(main_ui.end() - 1, main_ui.end());
+        }
+
         main_ui.push_back(new_line);
         return true;
     }
