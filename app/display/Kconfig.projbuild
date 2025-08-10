@@ -1,0 +1,23 @@
+config GPIO_DISPLAY_MOSI
+    int "Display SPI MOSI number"
+    default 18
+
+config GPIO_DISPLAY_CS
+    int "Display SPI CS number"
+    default 33
+
+config GPIO_DISPLAY_SCK
+    int "Display SPI SCK number"
+    default 19
+
+config GPIO_DISPLAY_RST
+    int "Display RST number"
+    default 32
+
+config GPIO_DISPLAY_DC
+    int "Display DC number"
+    default 5
+
+config GPIO_DISPLAY_BL
+    int "Display BL number"
+    default -1
