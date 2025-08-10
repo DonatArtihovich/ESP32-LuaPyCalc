@@ -7,6 +7,7 @@ namespace Scene
 
     void CodeScene::Init()
     {
+        content_ui_start = 3;
         InitModals();
 
         ui->push_back(UiStringItem{"Code", Color::White, display.fx32L, false});
@@ -90,32 +91,9 @@ namespace Scene
         Scene::Value(value);
     }
 
-    size_t CodeScene::GetLinesPerPageCount(uint8_t stg)
-    {
-        return lines_per_page;
-    }
-
-    size_t CodeScene::GetContentUiStartIndex(uint8_t stage)
-    {
-        return content_ui_start;
-    }
-
-    void CodeScene::RenderHeader()
-    {
-        ClearHeader(Color::Black);
-        std::for_each(ui->begin(), ui->begin() + 3,
-                      [this](auto &item)
-                      { display.DrawStringItem(&item); });
-    }
-
     void CodeScene::RenderContent()
     {
-        ClearContent(Color::Black);
-        display.DrawStringItems(ui->begin() + content_ui_start,
-                                ui->end(),
-                                10,
-                                display.GetHeight() - 60,
-                                Scene::GetLinesPerPageCount());
+        Scene::RenderContent();
 
         if (!(ui->end() - 1)->displayable)
         {

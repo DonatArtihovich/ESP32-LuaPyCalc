@@ -25,18 +25,6 @@ namespace Scene
         Scene::Focus(direction);
     }
 
-    void StartScene::RenderHeader()
-    {
-        ClearHeader();
-        display.DrawStringItem(&(*ui)[0], Display::Position::Center, Display::Position::End);
-    }
-
-    void StartScene::RenderContent()
-    {
-        display.Clear(Color::Black, 0, 0, 0, display.GetHeight() - 35);
-        display.DrawStringItems(GetContentUiStart(), ui->end(), 0, display.GetHeight() - 80, 3);
-    }
-
     SceneId StartScene::Enter()
     {
         auto focused = std::find_if(
@@ -63,20 +51,5 @@ namespace Scene
         }
 
         return SceneId::CurrentScene;
-    }
-
-    SceneId StartScene::Escape()
-    {
-        return SceneId::CurrentScene;
-    }
-
-    size_t StartScene::GetContentUiStartIndex(uint8_t stage)
-    {
-        return 1;
-    }
-
-    size_t StartScene::GetLinesPerPageCount(uint8_t stage)
-    {
-        return lines_per_page;
     }
 }

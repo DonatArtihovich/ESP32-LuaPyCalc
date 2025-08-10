@@ -9,12 +9,20 @@ namespace Scene
 
     void FilesScene::Init()
     {
+        content_ui_start = 4;
         InitModals();
+
         ui->push_back(UiStringItem{"  Files   ", Color::White, display.fx32L, false});
+        display.SetPosition(&*(ui->end() - 1), Position::Center, Position::End);
+
         ui->push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
+        display.SetPosition(&*(ui->end() - 1), Position::Start, Position::End);
 
         ui->push_back(UiStringItem{"Create", Color::White, display.fx24G}); // [Create] button
-        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G});   // [Save] button
+        display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
+
+        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G}); // [Save] button
+        display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
         (ui->end() - 1)->displayable = false;
 
         ui->push_back(UiStringItem{"", Color::White, display.fx24M, false}); // [^ Up] button
@@ -32,23 +40,9 @@ namespace Scene
         RenderAll();
     }
 
-    void FilesScene::RenderHeader()
-    {
-        ClearHeader();
-        display.DrawStringItem(&(*ui)[0], Position::Center, Position::End);
-        display.DrawStringItem(&(*ui)[1], Position::Start, Position::End);
-        display.DrawStringItem(&(*ui)[2], Position::End, Position::End);
-        display.DrawStringItem(&(*ui)[3], Position::End, Position::End);
-    }
-
     void FilesScene::RenderContent()
     {
-        ClearContent();
-        display.DrawStringItems(ui->begin() + content_ui_start,
-                                ui->end(),
-                                10,
-                                display.GetHeight() - 60,
-                                Scene::GetLinesPerPageCount());
+        Scene::RenderContent();
 
         if (!(ui->end() - 1)->displayable)
         {

@@ -61,6 +61,7 @@ namespace Scene
         std::map<uint8_t, Modal> modals{};
         const size_t default_line_length{37};
         const size_t max_lines_per_page{9};
+        size_t content_ui_start{0};
 
         void SetCursorControlling(bool cursor);
         virtual void EnterModalControlling();
@@ -137,12 +138,12 @@ namespace Scene
         virtual bool IsHomeStage(uint8_t stage);
 
         virtual size_t GetLinesPerPageCount();
-        virtual size_t GetLinesPerPageCount(uint8_t stage) = 0;
+        virtual size_t GetLinesPerPageCount(uint8_t stage);
         virtual size_t GetLinesScroll();
         virtual size_t GetLineLength();
         virtual std::vector<UiStringItem>::iterator GetContentUiStart();
         size_t GetContentUiStartIndex();
-        virtual size_t GetContentUiStartIndex(uint8_t stage) = 0;
+        virtual size_t GetContentUiStartIndex(uint8_t stage);
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
         virtual void ChangeHeader(const char *header, bool rerender = false);
@@ -150,8 +151,8 @@ namespace Scene
         void RenderUiListEnding(const char *end_label = "more items");
 
         virtual void RenderAll();
-        virtual void RenderContent() = 0;
-        virtual void RenderHeader() = 0;
+        virtual void RenderContent();
+        virtual void RenderHeader();
         virtual void RenderModal();
 
         virtual void ClearHeader(Color color = Color::Black);
@@ -162,7 +163,7 @@ namespace Scene
         virtual void Init() = 0;
         virtual void Arrow(Direction direction);
         virtual SceneId Enter();
-        virtual SceneId Escape() = 0;
+        virtual SceneId Escape();
         virtual void Delete();
         virtual void Value(char value);
 

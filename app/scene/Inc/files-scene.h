@@ -20,7 +20,6 @@ namespace Scene
         SDCard &sdcard;
 
         std::string curr_directory{SD("")};
-        const size_t content_ui_start{4};
         const size_t directory_lines_per_page{max_lines_per_page}; // including "more"
         const size_t file_lines_per_page{max_lines_per_page};      // not including "more"
         const size_t directory_lines_scroll{directory_lines_per_page};
@@ -68,7 +67,6 @@ namespace Scene
         void SetupCreateModal();
 
         void RenderContent() override;
-        void RenderHeader();
 
         void ToggleUpButton(bool mode, bool rerender = false);
         void ToggleSaveButton(bool mode, bool rerender = false);

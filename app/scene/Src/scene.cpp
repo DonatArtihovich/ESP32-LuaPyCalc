@@ -240,6 +240,25 @@ namespace Scene
         }
     }
 
+    void Scene::RenderHeader()
+    {
+        ClearHeader();
+        std::for_each(ui->begin(),
+                      ui->begin() + content_ui_start,
+                      [this](auto item)
+                      { display.DrawStringItem(&item); });
+    }
+
+    void Scene::RenderContent()
+    {
+        ClearContent(Color::Black);
+        display.DrawStringItems(ui->begin() + content_ui_start,
+                                ui->end(),
+                                10,
+                                display.GetHeight() - 60,
+                                GetLinesPerPageCount());
+    }
+
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after)
     {
         uint8_t fw, fh;
@@ -1191,5 +1210,20 @@ namespace Scene
     void Scene::ClearContent(Color color)
     {
         display.Clear(color, 0, 0, 0, display.GetHeight() - 35);
+    }
+
+    size_t Scene::GetContentUiStartIndex(uint8_t stage)
+    {
+        return content_ui_start;
+    }
+
+    size_t Scene::GetLinesPerPageCount(uint8_t stage)
+    {
+        return max_lines_per_page;
+    }
+
+    SceneId Scene::Escape()
+    {
+        return SceneId::CurrentScene;
     }
 }
