@@ -40,10 +40,12 @@ namespace Scene
     struct Modal
     {
         std::vector<UiStringItem> ui{};
+        std::string data{};
         std::function<void()> Ok{},
             Cancel{},
             PreEnter{},
             PreLeave{};
+        std::function<void(Direction)> Arrow{};
     };
 
     struct FocusColors
@@ -69,7 +71,7 @@ namespace Scene
 
         void SetCursorControlling(bool cursor);
         virtual void EnterModalControlling();
-        virtual void LeaveModalControlling();
+        virtual void LeaveModalControlling(uint8_t stage, bool rerender = true);
         void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
@@ -100,17 +102,23 @@ namespace Scene
             this->stage = static_cast<uint8_t>(stage);
         }
 
+        void SetStage(uint8_t stage);
+
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
         StageType GetStage()
         {
             return static_cast<StageType>(stage);
         }
 
+        uint8_t GetStage();
+
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
         bool IsStage(StageType stage)
         {
             return GetStage<StageType>() == stage;
         }
+
+        bool IsStage(uint8_t stage);
 
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
         void AddStageModal(StageType stage, Modal modal)
@@ -124,12 +132,16 @@ namespace Scene
             return modals[(uint8_t)stage];
         }
 
+        Modal &GetStageModal(uint8_t stage);
+
         Modal &GetStageModal()
         {
             return modals[stage];
         }
 
         bool IsModalStage();
+        bool IsModalStage(uint8_t stage);
+        virtual bool IsHomeStage(uint8_t stage);
 
         virtual uint8_t GetLinesPerPageCount() = 0;
         virtual size_t GetLineLength();

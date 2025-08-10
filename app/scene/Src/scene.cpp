@@ -248,8 +248,9 @@ namespace Scene
             y = cursor.y;
         }
 
-        *ret_x = static_cast<uint16_t>(x * cursor.width + 10);
-        *ret_y = static_cast<uint16_t>(display.GetHeight() - 60 - y * cursor.height + 2);
+        auto first_line{GetContentUiStart()};
+        *ret_x = static_cast<uint16_t>(x * cursor.width + first_line->x);
+        *ret_y = static_cast<uint16_t>(first_line->y - y * cursor.height + 2);
     }
 
     void Scene::ClearCursor(std::vector<UiStringItem>::iterator line,
@@ -985,6 +986,26 @@ namespace Scene
         cursor.height = c->height;
     }
 
+    void Scene::SetStage(uint8_t stage)
+    {
+        this->stage = stage;
+    }
+
+    uint8_t Scene::GetStage()
+    {
+        return this->stage;
+    }
+
+    bool Scene::IsStage(uint8_t stage)
+    {
+        return this->stage == stage;
+    }
+
+    Modal &Scene::GetStageModal(uint8_t stage)
+    {
+        return modals[stage];
+    }
+
     void Scene::RenderModal()
     {
         display.Clear(Color::Black);
@@ -993,6 +1014,10 @@ namespace Scene
             ui->end(),
             [this](auto &item)
             { display.DrawStringItem(&item); });
+        if (IsCursorControlling())
+        {
+            RenderCursor();
+        }
     }
 
     void Scene::EnterModalControlling()
@@ -1005,19 +1030,45 @@ namespace Scene
         RenderModal();
     }
 
-    void Scene::LeaveModalControlling()
+    void Scene::LeaveModalControlling(uint8_t stage, bool rerender)
     {
         if (!IsModalStage())
             return;
 
         GetStageModal().PreLeave();
-        ui = &main_ui;
-        RenderAll();
+
+        if (IsHomeStage(stage))
+        {
+            ui = &main_ui;
+        }
+        else if (IsModalStage(stage))
+        {
+            ui = &GetStageModal(stage).ui;
+        }
+
+        SetStage(stage);
+
+        if (rerender)
+        {
+            if (IsHomeStage(stage))
+            {
+                RenderAll();
+            }
+            else if (IsModalStage(stage))
+            {
+                RenderModal();
+            }
+        }
     }
 
     void Scene::InitModals() {}
 
     bool Scene::IsModalStage()
+    {
+        return modals.count(stage) != 0;
+    }
+
+    bool Scene::IsModalStage(uint8_t stage)
     {
         return modals.count(stage) != 0;
     }
@@ -1047,6 +1098,12 @@ namespace Scene
             }
         }
 
+        std::for_each(
+            label_words.begin(),
+            label_words.end(),
+            [](auto &word)
+            { printf("%s\n", word.c_str()); });
+
         size_t line_num{0};
         for (int i{}; i < label_words.size(); i++)
         {
@@ -1067,5 +1124,10 @@ namespace Scene
                 line_num++;
             }
         }
+    }
+
+    bool Scene::IsHomeStage(uint8_t stage)
+    {
+        return true;
     }
 }

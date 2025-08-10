@@ -50,6 +50,16 @@ namespace Scene
                                 10,
                                 display.GetHeight() - 60,
                                 GetLinesPerPageCount());
+
+        std::for_each(ui->begin(),
+                      ui->end(),
+                      [](auto &item)
+                      {
+                          item.displayable
+                              ? printf("\"%s\" Displayable\n", item.label.c_str())
+                              : printf("\"%s\" Not Displayable\n", item.label.c_str());
+                      });
+
         if (!(ui->end() - 1)->displayable)
         {
             RenderUiListEnding(IsStage(FilesSceneStage::FileOpenStage)
@@ -122,7 +132,12 @@ namespace Scene
             return;
         }
 
-        if (IsCursorControlling())
+        if (IsModalStage() && GetStageModal().Arrow != nullptr)
+        {
+            GetStageModal().Arrow(direction);
+            return;
+        }
+        else if (IsCursorControlling())
         {
             MoveCursor(direction, true, file_lines_scroll);
             return;
@@ -165,6 +180,19 @@ namespace Scene
             else if (focused->label.contains("Ok"))
             {
                 modal.Ok();
+            }
+            else if (IsStage(FilesSceneStage::CreateChooseModalStage))
+            {
+                if (focused->label.contains("File") ||
+                    focused->label.contains("Directory"))
+                {
+                    GetStageModal(FilesSceneStage::CreateModalStage).data =
+                        focused->label.contains("File")
+                            ? "file"
+                            : "directory";
+
+                    OpenStageModal(FilesSceneStage::CreateModalStage);
+                }
             }
 
             return SceneId::CurrentScene;
@@ -226,7 +254,25 @@ namespace Scene
         }
         else if (IsModalStage())
         {
-            LeaveModalControlling();
+
+            FilesSceneStage stage{GetStage<FilesSceneStage>()};
+
+            if (stage == FilesSceneStage::CreateModalStage)
+            {
+                if (IsCursorControlling())
+                {
+                    SetCursorControlling(false);
+                    ChangeItemFocus(&*(ui->end() - 3), true, true);
+                }
+                else
+                {
+                    LeaveModalControlling((uint8_t)FilesSceneStage::CreateChooseModalStage);
+                }
+            }
+            else
+            {
+                LeaveModalControlling();
+            }
         }
         else
         {
@@ -254,6 +300,7 @@ namespace Scene
                 focused >= GetContentUiStart() &&
                 focused->label != "..")
             {
+                GetStageModal(FilesSceneStage::DeleteModalStage).data = focused->label;
                 OpenStageModal(FilesSceneStage::DeleteModalStage);
             }
         }
@@ -411,6 +458,11 @@ namespace Scene
 
     size_t FilesScene::GetContentUiStartIndex()
     {
+        if (IsStage(FilesSceneStage::CreateModalStage))
+        {
+            return ui->end() - 1 - ui->begin();
+        }
+
         return content_ui_start + !IsStage(FilesSceneStage::FileOpenStage);
     }
 
@@ -491,6 +543,7 @@ namespace Scene
     {
         InitDeleteModal();
         InitCreateChooseModal();
+        InitCreateModal();
 
         for (auto &[key, modal] : modals)
         {
@@ -526,6 +579,12 @@ namespace Scene
 
             if (focused != ui->begin())
                 ChangeItemFocus(&(*focused), false);
+        };
+
+        modal.Ok = [this]()
+        {
+            DeleteFile(GetStageModal().data);
+            Escape();
         };
 
         AddStageModal(FilesSceneStage::DeleteModalStage, modal);
@@ -568,31 +627,112 @@ namespace Scene
         AddStageModal(FilesSceneStage::CreateChooseModalStage, modal);
     }
 
-    void FilesScene::LeaveModalControlling()
+    void FilesScene::InitCreateModal()
+    {
+        Modal modal{};
+
+        modal.ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Start, Position::Start);
+
+        modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
+
+        modal.ui.push_back(UiStringItem{"", Color::White, display.fx24G, false});
+        (modal.ui.end() - 1)->x = 10;
+        display.SetPosition(&*(modal.ui.end() - 1), Position::NotSpecified, Position::Center);
+
+        modal.PreEnter = [this]()
+        {
+            SetupCreateModal();
+        };
+
+        modal.PreLeave = [this]()
+        {
+            ui->erase(ui->begin(), ui->end() - 3);
+            auto focused{std::find_if(ui->begin(), ui->end(),
+                                      [](auto &item)
+                                      { return item.focused; })};
+
+            if (focused != ui->begin())
+                ChangeItemFocus(&(*focused), false);
+
+            GetStageModal().data.clear();
+        };
+
+        modal.Arrow = [this](Direction direction)
+        {
+            ESP_LOGI(TAG, "CreateModalArrow: direction %d", (int)direction);
+
+            if (!IsCursorControlling() && direction == Direction::Up)
+            {
+                ESP_LOGI(TAG, "CreateModalArrow: !IsCursorControlling() && direction == Direction::Up");
+                SetCursorControlling(true);
+                auto focused{std::find_if(
+                    ui->begin(),
+                    ui->end(),
+                    [](auto &item)
+                    { return item.focused; })};
+
+                if (focused != ui->end())
+                {
+                    ChangeItemFocus(&*focused, false, true);
+                }
+            }
+            else if (IsCursorControlling())
+            {
+
+                if (direction == Direction::Left ||
+                    direction == Direction::Right)
+                {
+                    ESP_LOGI(TAG, "CreateModalArrow: IsCursorControlling(); direction == Direction::Left || direction == Direction::Right");
+                    MoveCursor(direction);
+                }
+                else if (direction == Direction::Bottom)
+                {
+                    ESP_LOGI(TAG, "CreateModalArrow: IsCursorControlling(); direction == Direction::Bottom");
+                    SetCursorControlling(false);
+                    ChangeItemFocus(&*(ui->end() - 3), true, true);
+                }
+            }
+            else
+            {
+                Scene::Focus(direction);
+            }
+        };
+
+        modal.Ok = [this]()
+        {
+            Modal &modal = GetStageModal();
+            CreateFile((modal.ui.end() - 1)->label, modal.data == "directory");
+            Escape();
+        };
+
+        AddStageModal(FilesSceneStage::CreateModalStage, modal);
+    }
+
+    bool FilesScene::IsHomeStage(uint8_t stage)
+    {
+        return FilesSceneStage::DirectoryStage == (FilesSceneStage)stage;
+    }
+
+    void FilesScene::EnterModalControlling()
+    {
+        ESP_LOGI(TAG, "Enter %d Stage", (int)GetStage<FilesSceneStage>());
+        Scene::EnterModalControlling();
+    }
+
+    void FilesScene::LeaveModalControlling(uint8_t stage, bool rerender)
     {
         if (!IsModalStage())
             return;
 
-        Scene::LeaveModalControlling();
-        SetStage(FilesSceneStage::DirectoryStage);
+        Scene::LeaveModalControlling(stage, rerender);
     }
 
     void FilesScene::SetupDeleteModal()
     {
-        auto focused{std::find_if(
-            ui->begin(),
-            ui->end(),
-            [](auto &item)
-            { return item.focused; })};
-
         auto &modal = GetStageModal(FilesSceneStage::DeleteModalStage);
-
-        std::string filename{focused->label};
-        modal.Ok = [this, filename]()
-        {
-            DeleteFile(filename);
-            Escape();
-        };
+        std::string filename{modal.data};
 
         if (filename.ends_with('/'))
         {
@@ -619,6 +759,30 @@ namespace Scene
 
         auto &modal = GetStageModal(FilesSceneStage::CreateChooseModalStage);
         ChangeItemFocus(&(*(modal.ui.begin() + 1)), true);
+    }
+
+    void FilesScene::SetupCreateModal()
+    {
+        auto &modal = GetStageModal(FilesSceneStage::CreateModalStage);
+        if (modal.data == "file")
+        {
+            AddModalLabel("Enter file name:", modal);
+        }
+        else if (modal.data == "directory")
+        {
+            AddModalLabel("Enter directory name:", modal);
+        }
+
+        uint8_t fw, fh;
+        Font::GetFontx(display.fx16G, 0, &fw, &fh);
+        Cursor cursor{
+            .x = 0,
+            .y = 0,
+            .width = fw,
+            .height = fh,
+        };
+        CursorInit(&cursor);
+        SetCursorControlling(true);
     }
 
     void FilesScene::DeleteFile(std::string filename)
@@ -675,5 +839,17 @@ namespace Scene
         }
         ESP_LOGI(TAG, "Erasing file item %s", file_item->label.c_str());
         main_ui.erase(file_item);
+    }
+
+    void FilesScene::CreateFile(std::string filename, bool is_directory)
+    {
+        if (is_directory)
+        {
+            ESP_LOGI(TAG, "Creating directory %s...", filename.c_str());
+        }
+        else
+        {
+            ESP_LOGI(TAG, "Creating file %s...", filename.c_str());
+        }
     }
 }

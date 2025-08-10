@@ -38,7 +38,9 @@ namespace Scene
         void CloseFile();
 
         void DeleteFile(std::string filename);
+        void CreateFile(std::string filename, bool is_directory);
 
+        bool IsHomeStage(uint8_t stage) override;
         size_t GetContentUiStartIndex() override;
         uint8_t GetLinesPerPageCount() override;
         size_t GetLineLength() override;
@@ -46,14 +48,20 @@ namespace Scene
         uint8_t Focus(Direction direction) override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
-        void LeaveModalControlling() override;
+        void EnterModalControlling() override;
+        void LeaveModalControlling(
+            uint8_t stage = (uint8_t)FilesSceneStage::DirectoryStage,
+            bool rerender = true) override;
+
         void InitModals() override;
 
         void InitDeleteModal();
         void InitCreateChooseModal();
+        void InitCreateModal();
 
         void SetupDeleteModal();
         void SetupCreateChooseModal();
+        void SetupCreateModal();
 
         void RenderAll() override;
         void RenderContent() override;
