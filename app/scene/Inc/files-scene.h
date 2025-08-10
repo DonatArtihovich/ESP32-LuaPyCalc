@@ -26,6 +26,8 @@ namespace Scene
         const size_t directory_lines_scroll{directory_lines_per_page};
         const size_t file_lines_scroll{file_lines_per_page};
         const size_t file_line_length{default_line_length}; // without \0
+        const size_t max_filename_size{8};
+        const size_t max_filename_ext_size{3};
         std::vector<UiStringItem> directory_backup{};
 
         void OpenDirectory(const char *relative_path);

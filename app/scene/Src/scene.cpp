@@ -208,7 +208,7 @@ namespace Scene
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after)
     {
         uint8_t fw, fh;
-        uint8_t lines_per_page{GetLinesPerPageCount()};
+        size_t lines_per_page{GetLinesPerPageCount()};
         auto first_displaying = std::find_if(
             GetContentUiStart(),
             ui->end(),

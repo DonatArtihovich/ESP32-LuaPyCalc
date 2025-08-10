@@ -71,7 +71,7 @@ namespace Scene
         return 1;
     }
 
-    uint8_t StartScene::GetLinesPerPageCount()
+    size_t StartScene::GetLinesPerPageCount()
     {
         return lines_per_page;
     }

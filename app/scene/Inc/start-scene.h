@@ -6,12 +6,13 @@ namespace Scene
 {
     class StartScene : public Scene
     {
-        uint8_t lines_per_page{9};
+        const size_t lines_per_page{max_lines_per_page};
 
         size_t GetContentUiStartIndex() override;
+        size_t GetLinesPerPageCount() override;
+
         void RenderAll() override;
         void RenderContent() override;
-        uint8_t GetLinesPerPageCount() override;
 
     public:
         StartScene(DisplayController &display);

@@ -61,7 +61,40 @@ namespace Scene
 
     void FilesScene::Value(char value)
     {
-        Scene::Value(value);
+        FilesSceneStage stage{GetStage<FilesSceneStage>()};
+        bool enter{false};
+
+        if (stage == FilesSceneStage::FileOpenStage)
+        {
+            enter = true;
+        }
+        else if (stage == FilesSceneStage::CreateModalStage)
+        {
+            std::string allowed_digits{"_-"};
+            auto &label{(GetStageModal(stage).ui.end() - 1)->label};
+
+            if (isalnum(value) || allowed_digits.contains(value))
+            {
+                if (label.size() < max_filename_size ||
+                    (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
+                     label.contains('.')))
+                {
+                    enter = true;
+                }
+            }
+            else if (value == '.')
+            {
+                if (label.size() < (max_filename_size + max_filename_ext_size + 1))
+                {
+                    enter = true;
+                }
+            }
+        }
+
+        if (enter)
+        {
+            Scene::Value(value);
+        }
     }
 
     size_t FilesScene::ReadDirectory()
@@ -644,7 +677,7 @@ namespace Scene
         display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
 
         modal.ui.push_back(UiStringItem{"", Color::White, display.fx24G, false});
-        (modal.ui.end() - 1)->x = 10;
+        (modal.ui.end() - 1)->x = 70;
         display.SetPosition(&*(modal.ui.end() - 1), Position::NotSpecified, Position::Center);
 
         modal.PreEnter = [this]()
@@ -662,7 +695,9 @@ namespace Scene
             if (focused != ui->begin())
                 ChangeItemFocus(&(*focused), false);
 
-            GetStageModal().data.clear();
+            Modal &modal{GetStageModal()};
+            modal.data.clear();
+            (modal.ui.end() - 1)->label.clear();
         };
 
         modal.Arrow = [this](Direction direction)
@@ -849,6 +884,11 @@ namespace Scene
 
     void FilesScene::CreateFile(std::string filename, bool is_directory)
     {
+        if (!isalnum(filename[filename.size() - 1]))
+        {
+            return;
+        }
+
         if (is_directory)
         {
             ESP_LOGI(TAG, "Creating directory %s...", filename.c_str());
