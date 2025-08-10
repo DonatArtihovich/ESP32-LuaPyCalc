@@ -701,7 +701,7 @@ namespace Scene
                                       [](auto &item)
                                       { return item.focused; })};
 
-            if (focused != ui->begin())
+            if (focused != ui->end())
                 ChangeItemFocus(&(*focused), false);
 
             Modal &modal{GetStageModal()};
@@ -755,6 +755,7 @@ namespace Scene
             Modal &modal = GetStageModal();
             if (CreateFile((modal.ui.end() - 1)->label, modal.data == "directory"))
             {
+                LeaveModalControlling((uint8_t)FilesSceneStage::CreateChooseModalStage, false);
                 LeaveModalControlling();
             }
         };
