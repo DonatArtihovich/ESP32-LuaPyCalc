@@ -77,6 +77,7 @@ namespace Scene
         FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;
         void Arrow(Direction direction) override;
+        void Value(char value) override;
         SceneId Enter() override;
         SceneId Escape() override;
         void Delete() override;

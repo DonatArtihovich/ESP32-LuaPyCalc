@@ -163,6 +163,7 @@ namespace Scene
         virtual SceneId Enter() = 0;
         virtual SceneId Escape() = 0;
         virtual void Delete();
+        virtual void Value(char value);
 
         virtual ~Scene() = default;
     };

@@ -26,15 +26,14 @@ namespace Main
 
     void Main::Tick()
     {
-        using Keyboard::Key, Scene::Direction;
+        using Keyboard::Key, Scene::Direction, Keyboard::KeyboardController;
         Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left};
         Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
 
         for (auto key : controllers)
         {
-            if (keyboard.IsKeyPressed(key))
+            if (KeyboardController::IsKeyPressed(key))
             {
-
                 switch (key)
                 {
                 case Key::Enter:
@@ -65,6 +64,8 @@ namespace Main
                     ESP_LOGD(TAG, "Left pressed.");
                     scene->Arrow(Direction::Left);
                     break;
+                default:
+                    break;
                 }
             }
         }
@@ -72,6 +73,16 @@ namespace Main
         if (sceneId != Scene::SceneId::CurrentScene)
         {
             SwitchScene(sceneId);
+        }
+
+        for (int i{(int)Key::NumOne}; i <= (int)Key::LetterM; i++)
+        {
+            Key key{static_cast<Key>(i)};
+
+            if (KeyboardController::IsKeyPressed(key))
+            {
+                scene->Value(KeyboardController::GetKeyValue(key));
+            }
         }
 
         vTaskDelay(pdMS_TO_TICKS(150));

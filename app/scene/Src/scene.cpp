@@ -6,6 +6,11 @@ namespace Scene
 {
     Scene::Scene(DisplayController &_display) : display{_display} {}
 
+    void Scene::Value(char value)
+    {
+        ESP_LOGI(TAG, "Entered value: %c", value);
+    }
+
     uint8_t Scene::Focus(Direction direction)
     {
         auto last_focused = std::find_if(

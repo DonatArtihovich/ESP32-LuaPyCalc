@@ -68,6 +68,15 @@ namespace Scene
         }
     }
 
+    void FilesScene::Value(char value)
+    {
+        Scene::Value(value);
+        if (IsCursorControlling())
+        {
+            CursorInsertChars(std::string(1, value), file_lines_scroll);
+        }
+    }
+
     size_t FilesScene::ReadDirectory()
     {
         std::vector<std::string> files{sdcard.ReadDirectory(curr_directory.c_str())};
@@ -150,7 +159,7 @@ namespace Scene
     {
         if (IsCursorControlling())
         {
-            CursorInsertChars("\n", file_lines_scroll);
+            Value('\n');
             return SceneId::CurrentScene;
         }
 
