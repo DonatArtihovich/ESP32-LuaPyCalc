@@ -32,19 +32,18 @@ namespace Scene
         RenderAll();
     }
 
-    void FilesScene::RenderAll()
+    void FilesScene::RenderHeader()
     {
-        RenderHeader();
-        RenderContent();
-        if (IsCursorControlling())
-        {
-            RenderCursor();
-        }
+        ClearHeader();
+        display.DrawStringItem(&(*ui)[0], Position::Center, Position::End);
+        display.DrawStringItem(&(*ui)[1], Position::Start, Position::End);
+        display.DrawStringItem(&(*ui)[2], Position::End, Position::End);
+        display.DrawStringItem(&(*ui)[3], Position::End, Position::End);
     }
 
     void FilesScene::RenderContent()
     {
-        display.Clear(Color::Black, 0, 0, 0, display.GetHeight() - 35);
+        ClearContent();
         display.DrawStringItems(ui->begin() + content_ui_start,
                                 ui->end(),
                                 10,
@@ -461,15 +460,6 @@ namespace Scene
         {
             RenderHeader();
         }
-    }
-
-    void FilesScene::RenderHeader()
-    {
-        display.Clear(Color::Black, 0, display.GetHeight() - 60, display.GetWidth(), display.GetHeight());
-        display.DrawStringItem(&(*ui)[0], Position::Center, Position::End);
-        display.DrawStringItem(&(*ui)[1], Position::Start, Position::End);
-        display.DrawStringItem(&(*ui)[2], Position::End, Position::End);
-        display.DrawStringItem(&(*ui)[3], Position::End, Position::End);
     }
 
     void FilesScene::CloseFile()

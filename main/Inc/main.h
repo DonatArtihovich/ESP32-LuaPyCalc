@@ -11,6 +11,7 @@
 #include "scene.h"
 #include "start-scene.h"
 #include "files-scene.h"
+#include "code-scene.h"
 
 using Keyboard::KeyboardController, SD::SDCard, Display::DisplayController;
 

@@ -67,7 +67,6 @@ namespace Scene
         void SetupCreateChooseModal();
         void SetupCreateModal();
 
-        void RenderAll() override;
         void RenderContent() override;
         void RenderHeader();
 

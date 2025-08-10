@@ -106,6 +106,7 @@ namespace Main
             break;
         case SceneId::CodeScene:
             ESP_LOGI(TAG, "Switch to Code Scene");
+            scene = std::make_unique<Scene::CodeScene>(display);
             break;
         case SceneId::SettingsScene:
             ESP_LOGI(TAG, "Switch to Settings Scene");

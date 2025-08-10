@@ -1,7 +1,4 @@
 #include "sd.h"
-#include <system_error>
-#include <filesystem>
-#include <fstream>
 
 static const char *TAG = "SD";
 
@@ -191,7 +188,6 @@ namespace SD
     {
         ESP_LOGI(TAG, "Creating file at path %s", path);
         std::error_code ec{};
-        esp_err_t ret{ESP_OK};
         if (std::filesystem::exists(path, ec))
         {
             return ESP_OK;

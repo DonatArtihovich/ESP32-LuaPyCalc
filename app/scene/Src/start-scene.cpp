@@ -1,9 +1,5 @@
 #include "start-scene.h"
 
-#include <string>
-
-static const char *TAG = "StartScene";
-
 namespace Scene
 {
     StartScene::StartScene(DisplayController &display) : Scene{display} {}
@@ -29,15 +25,15 @@ namespace Scene
         Scene::Focus(direction);
     }
 
-    void StartScene::RenderAll()
+    void StartScene::RenderHeader()
     {
-        display.Clear(Color::Black);
+        ClearHeader();
         display.DrawStringItem(&(*ui)[0], Display::Position::Center, Display::Position::End);
-        RenderContent();
     }
 
     void StartScene::RenderContent()
     {
+        display.Clear(Color::Black, 0, 0, 0, display.GetHeight() - 35);
         display.DrawStringItems(GetContentUiStart(), ui->end(), 0, display.GetHeight() - 80, 3);
     }
 
@@ -51,10 +47,18 @@ namespace Scene
 
         if (focused != ui->cend())
         {
+            display.Clear(Color::Black);
             if (focused->label.contains("Files"))
             {
-                display.Clear(Color::Black);
                 return SceneId::FilesScene;
+            }
+            else if (focused->label.contains("Code"))
+            {
+                return SceneId::CodeScene;
+            }
+            else if (focused->label.contains("Settings"))
+            {
+                return SceneId::SettingsScene;
             }
         }
 
@@ -65,7 +69,7 @@ namespace Scene
     {
         return SceneId::CurrentScene;
     }
-    // StartScene::
+
     size_t StartScene::GetContentUiStartIndex(uint8_t stage)
     {
         return 1;

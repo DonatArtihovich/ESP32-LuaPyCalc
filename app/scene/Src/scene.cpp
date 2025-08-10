@@ -215,6 +215,17 @@ namespace Scene
         return GetLinesPerPageCount(stage);
     }
 
+    void Scene::RenderAll()
+    {
+        RenderHeader();
+        RenderContent();
+
+        if (IsCursorControlling())
+        {
+            RenderCursor();
+        }
+    }
+
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after)
     {
         uint8_t fw, fh;
@@ -1156,5 +1167,15 @@ namespace Scene
     size_t Scene::GetLinesScroll()
     {
         return max_lines_per_page;
+    }
+
+    void Scene::ClearHeader(Color color)
+    {
+        display.Clear(color, 0, display.GetHeight() - 60, display.GetWidth(), display.GetHeight());
+    }
+
+    void Scene::ClearContent(Color color)
+    {
+        display.Clear(color, 0, 0, 0, display.GetHeight() - 35);
     }
 }

@@ -48,14 +48,6 @@ namespace Scene
         std::function<void(Direction)> Arrow{};
     };
 
-    struct FocusColors
-    {
-        Color focused_text = Color::White,
-              focused_background = Color::Blue,
-              unfocused_text = Color::White,
-              unfocused_background = Color::Black;
-    };
-
     class Scene
     {
         bool is_cursor_controlling{};
@@ -156,9 +148,14 @@ namespace Scene
         virtual void ChangeHeader(const char *header, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
         void RenderUiListEnding(const char *end_label = "more items");
-        virtual void RenderAll() = 0;
+
+        virtual void RenderAll();
         virtual void RenderContent() = 0;
+        virtual void RenderHeader() = 0;
         virtual void RenderModal();
+
+        virtual void ClearHeader(Color color = Color::Black);
+        virtual void ClearContent(Color color = Color::Black);
 
     public:
         Scene(DisplayController &display);
