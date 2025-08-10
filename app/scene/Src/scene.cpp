@@ -9,6 +9,10 @@ namespace Scene
     void Scene::Value(char value)
     {
         ESP_LOGI(TAG, "Entered value: %c", value);
+        if (IsCursorControlling())
+        {
+            CursorInsertChars(std::string(1, value), GetLinesScroll());
+        }
     }
 
     uint8_t Scene::Focus(Direction direction)
@@ -1137,5 +1141,10 @@ namespace Scene
     bool Scene::IsHomeStage(uint8_t stage)
     {
         return true;
+    }
+
+    size_t Scene::GetLinesScroll()
+    {
+        return max_lines_per_page;
     }
 }

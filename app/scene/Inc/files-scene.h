@@ -42,8 +42,8 @@ namespace Scene
 
         bool IsHomeStage(uint8_t stage) override;
 
-        uint8_t GetLinesScroll();
-        uint8_t GetLinesPerPageCount() override;
+        size_t GetLinesScroll() override;
+        size_t GetLinesPerPageCount() override;
         size_t GetContentUiStartIndex() override;
         size_t GetLineLength() override;
 

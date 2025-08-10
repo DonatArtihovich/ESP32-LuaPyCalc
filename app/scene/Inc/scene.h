@@ -144,7 +144,8 @@ namespace Scene
         bool IsModalStage(uint8_t stage);
         virtual bool IsHomeStage(uint8_t stage);
 
-        virtual uint8_t GetLinesPerPageCount() = 0;
+        virtual size_t GetLinesPerPageCount() = 0;
+        virtual size_t GetLinesScroll();
         virtual size_t GetLineLength();
         virtual std::vector<UiStringItem>::iterator GetContentUiStart();
         virtual size_t GetContentUiStartIndex() = 0;

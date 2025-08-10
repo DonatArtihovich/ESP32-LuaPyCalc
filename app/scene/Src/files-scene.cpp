@@ -62,10 +62,6 @@ namespace Scene
     void FilesScene::Value(char value)
     {
         Scene::Value(value);
-        if (IsCursorControlling())
-        {
-            CursorInsertChars(std::string(1, value), GetLinesScroll());
-        }
     }
 
     size_t FilesScene::ReadDirectory()
@@ -466,7 +462,7 @@ namespace Scene
         return content_ui_start + !IsStage(FilesSceneStage::FileOpenStage);
     }
 
-    uint8_t FilesScene::GetLinesPerPageCount()
+    size_t FilesScene::GetLinesPerPageCount()
     {
         FilesSceneStage stage{GetStage<FilesSceneStage>()};
 
@@ -863,7 +859,7 @@ namespace Scene
         }
     }
 
-    uint8_t FilesScene::GetLinesScroll()
+    size_t FilesScene::GetLinesScroll()
     {
         FilesSceneStage stage{GetStage<FilesSceneStage>()};
 
