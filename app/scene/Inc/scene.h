@@ -68,6 +68,7 @@ namespace Scene
         std::vector<UiStringItem> *ui{&main_ui};
         std::map<uint8_t, Modal> modals{};
         const size_t default_line_length{37};
+        const size_t max_lines_per_page{9};
 
         void SetCursorControlling(bool cursor);
         virtual void EnterModalControlling();
