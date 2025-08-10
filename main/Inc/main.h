@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdio.h>
+#include <memory>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
@@ -42,7 +42,7 @@ namespace Main
             (gpio_num_t)CONFIG_GPIO_DISPLAY_BL,
         };
 
-        Scene::Scene *scene;
+        std::unique_ptr<Scene::Scene> scene;
 
         void SwitchScene(Scene::SceneId id);
 

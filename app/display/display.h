@@ -4,7 +4,6 @@
 #include "esp_vfs.h"
 #include "esp_spiffs.h"
 #include "esp_log.h"
-#include <map>
 #include <vector>
 #include <string>
 
@@ -67,6 +66,10 @@ namespace Display
         void DrawStringItem(UiStringItem *item,
                             Position hp = Position::NotSpecified,
                             Position vp = Position::NotSpecified);
+
+        void SetPosition(UiStringItem *item,
+                         Position hp = Position::NotSpecified,
+                         Position vp = Position::NotSpecified);
         void DrawStringItems(
             std::vector<UiStringItem>::iterator start,
             std::vector<UiStringItem>::iterator end,

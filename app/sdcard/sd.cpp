@@ -1,4 +1,7 @@
 #include "sd.h"
+#include <system_error>
+#include <filesystem>
+#include <fstream>
 
 static const char *TAG = "SD";
 
@@ -135,5 +138,82 @@ namespace SD
         }
 
         return false;
+    }
+
+    esp_err_t SDCard::RemoveDirectory(const char *path)
+    {
+        namespace fs = std::filesystem;
+        std::error_code ec{};
+
+        if (fs::exists(path, ec))
+        {
+            if (ec)
+                return ESP_FAIL;
+
+            bool removed = fs::remove_all(path, ec);
+
+            if (ec || !removed)
+                return ESP_FAIL;
+        }
+        else
+        {
+            return ESP_FAIL;
+        }
+
+        return ESP_OK;
+    }
+
+    esp_err_t SDCard::RemoveFile(const char *path)
+    {
+        if (unlink(path) == 0)
+        {
+            return ESP_OK;
+        }
+
+        return ESP_FAIL;
+    }
+
+    esp_err_t SDCard::CreateDirectory(const char *path)
+    {
+        ESP_LOGI(TAG, "Creating directory at path %s", path);
+        std::error_code ec{};
+        if ((std::filesystem::exists(path, ec) ||
+             std::filesystem::create_directory(path)) &&
+            !ec)
+        {
+            return ESP_OK;
+        }
+
+        return ESP_FAIL;
+    }
+
+    esp_err_t SDCard::CreateFile(const char *path)
+    {
+        ESP_LOGI(TAG, "Creating file at path %s", path);
+        std::error_code ec{};
+        esp_err_t ret{ESP_OK};
+        if (std::filesystem::exists(path, ec))
+        {
+            return ESP_OK;
+        }
+        else if (ec)
+        {
+            return ESP_FAIL;
+        }
+
+        std::fstream file{};
+        file.open(path, std::ios::app);
+        file.close();
+
+        if (std::filesystem::exists(path, ec))
+        {
+            return ESP_OK;
+        }
+        else if (ec)
+        {
+            return ESP_FAIL;
+        }
+
+        return ESP_FAIL;
     }
 }

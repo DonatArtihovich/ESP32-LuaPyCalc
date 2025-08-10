@@ -6,12 +6,13 @@ namespace Scene
 {
     class StartScene : public Scene
     {
-        uint8_t lines_per_page{9};
+        const size_t lines_per_page{max_lines_per_page};
 
-        size_t GetContentUiStartIndex() override;
+        size_t GetContentUiStartIndex(uint8_t stage) override;
+        size_t GetLinesPerPageCount(uint8_t stage) override;
+
         void RenderAll() override;
         void RenderContent() override;
-        uint8_t GetLinesPerPageCount() override;
 
     public:
         StartScene(DisplayController &display);
@@ -19,5 +20,6 @@ namespace Scene
         void Arrow(Direction direction) override;
         SceneId Enter() override;
         SceneId Escape() override;
+        ~StartScene() = default;
     };
 }

@@ -133,35 +133,7 @@ namespace Display
         Font::GetFontx(item->font, 0, &fw, &fh);
         uint16_t label_width = fw * item->label.size();
 
-        switch (hp)
-        {
-        case Position::Start:
-            item->x = 0;
-            break;
-        case Position::Center:
-            item->x = (GetWidth() - label_width) / 2;
-            break;
-        case Position::End:
-            item->x = GetWidth() - label_width - 10;
-            break;
-        case Position::NotSpecified:
-            break;
-        }
-
-        switch (vp)
-        {
-        case Position::Start:
-            item->y = 0;
-            break;
-        case Position::Center:
-            item->y = (GetHeight() - fh) / 2;
-            break;
-        case Position::End:
-            item->y = GetHeight() - fh;
-            break;
-        case Position::NotSpecified:
-            break;
-        }
+        SetPosition(item, hp, vp);
 
         if (!item->displayable)
         {
@@ -266,5 +238,42 @@ namespace Display
                          Color::White);
 
         lcd.DrawString(fx16G, item_y, item_x, (uint8_t *)label, Color::Black);
+    }
+
+    void DisplayController::SetPosition(UiStringItem *item, Position hp, Position vp)
+    {
+        uint8_t fw, fh;
+        Font::GetFontx(item->font, 0, &fw, &fh);
+        uint16_t label_width = fw * item->label.size();
+
+        switch (hp)
+        {
+        case Position::Start:
+            item->x = 0;
+            break;
+        case Position::Center:
+            item->x = (GetWidth() - label_width) / 2;
+            break;
+        case Position::End:
+            item->x = GetWidth() - label_width - 10;
+            break;
+        case Position::NotSpecified:
+            break;
+        }
+
+        switch (vp)
+        {
+        case Position::Start:
+            item->y = 0;
+            break;
+        case Position::Center:
+            item->y = (GetHeight() - fh) / 2;
+            break;
+        case Position::End:
+            item->y = GetHeight() - fh;
+            break;
+        case Position::NotSpecified:
+            break;
+        }
     }
 }
