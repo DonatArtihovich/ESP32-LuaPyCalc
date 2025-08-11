@@ -948,6 +948,13 @@ namespace Scene
             ui->end(),
             [](auto &item)
             { return item.displayable; });
+
+        if (first_displaying == ui->end())
+        {
+            ESP_LOGE(TAG, "First displaying not found");
+            return;
+        }
+
         auto start_line{first_displaying + insert_y};
         uint8_t last_rendering_y{insert_y};
 
@@ -1006,12 +1013,14 @@ namespace Scene
                 insert_x = 0;
             }
 
-            if (line == ui->end() - 1 &&
+            if (line == (ui->end() - 1) &&
                 (chars.size() ||
                  line->label[line->label.size() - 1] == '\n'))
             {
+                bool is_new_line_displayable{!(ui->end() - first_displaying + 1 > GetLinesPerPageCount())};
                 CursorAppendLine();
-                if (ui->end() - first_displaying > GetLinesPerPageCount())
+
+                if (!is_new_line_displayable)
                 {
                     (ui->end() - 1)->displayable = false;
                 }
