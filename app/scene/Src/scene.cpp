@@ -596,8 +596,16 @@ namespace Scene
                                         .base() -
                                     1;
 
+            std::for_each(ui->begin(), ui->end(), [](auto &item)
+                          { printf("UI: %s\n", item.label.c_str()); });
             if (last_displayable >= ui->end() - 1 || first_displayable == ui->end())
+            {
+                ESP_LOGI(TAG,
+                         "ScrollContent last_displayable >= ui->end() - 1(%d) || first_displayable == ui->end()(%d)",
+                         last_displayable >= ui->end() - 1,
+                         first_displayable == ui->end());
                 return 0;
+            }
 
             ESP_LOGI(TAG, "LAST DISPLAYABLE \"%s\"", last_displayable->label.c_str());
             ESP_LOGI(TAG, "FIRST DISPLAYABLE \"%s\"", first_displayable->label.c_str());
@@ -943,6 +951,7 @@ namespace Scene
 
         size_t inserting_len = chars.size();
         uint8_t insert_x{cursor.x}, insert_y{cursor.y};
+
         auto first_displaying = std::find_if(
             GetContentUiStart(),
             ui->end(),
@@ -955,67 +964,57 @@ namespace Scene
             return;
         }
 
-        auto start_line{first_displaying + insert_y};
-        uint8_t last_rendering_y{insert_y};
+        size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
+        auto start_line_index{first_displaying_index + insert_y};
 
-        for (auto line{start_line}; line < ui->end(); line++)
+        uint8_t last_rendering_y{insert_y};
+        size_t scrolled_count{0};
+
+        for (size_t line_index{start_line_index}; line_index < ui->size(); line_index++)
         {
             if (!chars.size())
                 break;
 
             if (last_rendering_y < GetLinesPerPageCount() - 1 &&
-                line > start_line)
+                line_index > start_line_index)
             {
                 last_rendering_y++;
             }
 
-            std::for_each(
-                chars.begin(),
-                chars.end(),
-                [&chars, &line, &insert_x](auto &curr_char)
-                {
-                    line->label.insert(line->label.cbegin() + insert_x, chars[0]);
-                    chars.erase(chars.begin());
-                    insert_x++;
-                });
+            int size = chars.size();
+            UiStringItem &line{(*ui)[line_index]};
 
-            size_t start_index = 0;
-            if (line->label.size() > GetLineLength())
+            for (int i = 0; i < size && line.label.size() < GetLineLength(); i++)
             {
-                start_index = GetLineLength();
+                line.label.insert(line.label.begin() + insert_x, chars[0]);
+                chars.erase(chars.begin());
+                insert_x++;
+            }
 
-                std::for_each(
-                    line->label.begin() + start_index,
-                    line->label.end(),
-                    [&chars](auto &item)
-                    { chars.push_back(item); });
-
-                line->label.erase(
-                    line->label.end() - (line->label.size() - start_index),
-                    line->label.end());
-
+            if (chars.size())
+            {
                 insert_x = 0;
             }
 
             size_t find_index = std::string::npos;
-            if ((find_index = line->label.find('\n')) != std::string::npos)
+            if ((find_index = line.label.find('\n')) != std::string::npos)
             {
-                std::for_each(
-                    line->label.rbegin(),
-                    line->label.rend() - find_index - 1,
-                    [&chars](auto &item)
-                    { chars.insert(chars.begin(), item); });
+                for (auto it{line.label.rbegin()};
+                     it < line.label.rend() - find_index - 1; it++)
+                {
+                    chars.insert(chars.begin(), *it);
+                }
 
-                line->label.erase(
-                    line->label.begin() + find_index + 1,
-                    line->label.end());
+                line.label.erase(
+                    line.label.begin() + find_index + 1,
+                    line.label.end());
 
                 insert_x = 0;
             }
 
-            if (line == (ui->end() - 1) &&
+            if (line_index == (ui->size() - 1) &&
                 (chars.size() ||
-                 line->label[line->label.size() - 1] == '\n'))
+                 line.label[line.label.size() - 1] == '\n'))
             {
                 bool is_new_line_displayable{!(ui->end() - first_displaying + 1 > GetLinesPerPageCount())};
                 CursorAppendLine();
@@ -1024,6 +1023,7 @@ namespace Scene
                 {
                     (ui->end() - 1)->displayable = false;
                 }
+                scrolled_count += MoveCursor(Direction::Right, false, scrolling);
             }
         }
 
@@ -1035,7 +1035,6 @@ namespace Scene
                                          : last_rendering_y - insert_y;
         }
 
-        size_t scrolled_count{0};
         for (int i{}; i < inserting_len; i++)
         {
             scrolled_count += MoveCursor(Direction::Right, false, cursor_scrolling_count);
