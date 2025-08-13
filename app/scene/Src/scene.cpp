@@ -157,12 +157,13 @@ namespace Scene
     {
         UiStringItem &header_item{(*ui)[0]};
         header_item.label = header;
+        display.SetPosition(&header_item, Position::Center, Position::End);
         ESP_LOGI(TAG, "Change header to \"%s\"", header_item.label.c_str());
 
         if (rerender)
         {
             header_item.backgroundColor = Color::Black;
-            display.DrawStringItem(&header_item, Position::Center, Position::End);
+            display.DrawStringItem(&header_item);
             header_item.backgroundColor = Color::None;
         }
     }
