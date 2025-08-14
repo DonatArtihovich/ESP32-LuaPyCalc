@@ -597,25 +597,14 @@ namespace Scene
                                         .base() -
                                     1;
 
-            std::for_each(ui->begin(), ui->end(), [](auto &item)
-                          { printf("UI: %s\n", item.label.c_str()); });
             if (last_displayable >= ui->end() - 1 || first_displayable == ui->end())
             {
-                ESP_LOGI(TAG,
-                         "ScrollContent last_displayable >= ui->end() - 1(%d) || first_displayable == ui->end()(%d)",
-                         last_displayable >= ui->end() - 1,
-                         first_displayable == ui->end());
                 return 0;
             }
-
-            ESP_LOGI(TAG, "LAST DISPLAYABLE \"%s\"", last_displayable->label.c_str());
-            ESP_LOGI(TAG, "FIRST DISPLAYABLE \"%s\"", first_displayable->label.c_str());
-            ESP_LOGI(TAG, "COUNT \"%d\"", count);
 
             if (count > ui->end() - last_displayable - 1)
             {
                 count = ui->end() - last_displayable - 1;
-                ESP_LOGI(TAG, "COUNT \"%d\"", count);
             }
 
             std::vector<UiStringItem>::iterator it{};
@@ -678,13 +667,12 @@ namespace Scene
                                         { return item.displayable; })) -
                                     1;
 
-            if (last_displayable >= ui->rend() - 1 || first_displayable == ui->rend())
+            if (last_displayable >= ui->rend() - 1 || first_displayable == ui->rend() - GetContentUiStartIndex())
                 return 0;
 
-            if (count > ui->rend() - GetContentUiStartIndex() - last_displayable - 1)
+            if (count > (last_displayable.base() - 1) - GetContentUiStart())
             {
-                count = ui->rend() - GetContentUiStartIndex() - last_displayable - 1;
-                ESP_LOGI(TAG, "COUNT \"%d\"", count);
+                count = (last_displayable.base() - 1) - GetContentUiStart();
             }
 
             std::vector<UiStringItem>::reverse_iterator it{};
@@ -764,9 +752,10 @@ namespace Scene
         {
             return;
         }
+        size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
 
         size_t count{initial_count};
-        auto start_line{first_displaying + initial_y};
+        size_t start_line_index{first_displaying_index + initial_y};
 
         if (count > GetLineLength())
         {
@@ -789,9 +778,10 @@ namespace Scene
                     initial_x -= count;
                 }
 
-                if (count > 0 && start_line != GetContentUiStart())
+                if (count > 0 && start_line_index != GetContentUiStartIndex())
                 {
-                    initial_x = (--start_line)->label.size() - 1;
+                    initial_x = (*ui)[--start_line_index].label.size() - 1;
+
                     count--;
                     initial_y--;
                 }
@@ -805,45 +795,53 @@ namespace Scene
         size_t delete_x{static_cast<size_t>(initial_x)};
         uint8_t lines_per_page = GetLinesPerPageCount();
 
-        auto line{start_line};
+        size_t line_index{start_line_index};
         while (count > 0)
         {
-            auto begin{line->label.begin() + delete_x};
-            auto end{begin + count > line->label.end() ? line->label.end() : begin + count};
+            UiStringItem &line{(*ui)[line_index]};
+            auto begin{line.label.begin() + delete_x};
+            auto end{begin + count > line.label.end() ? line.label.end() : begin + count};
             size_t curr_line_count{static_cast<size_t>(end - begin)};
 
-            line->label.erase(begin, end);
+            line.label.erase(begin, end);
             count -= curr_line_count;
 
             if (count)
             {
                 delete_x = 0;
-                line++;
+                line_index++;
             }
         }
 
-        auto last_changed{start_line};
-        for (auto it{start_line}; it < ui->end() - 1 &&
-                                  (it->label.size() < GetLineLength() &&
-                                   (!it->label.size() ||
-                                    it->label[it->label.size() - 1] != '\n'));
-             it++)
+        size_t last_changed_index{start_line_index};
+        for (size_t i{start_line_index}; i < ui->size() - 1; i++)
         {
-            auto next_line{it + 1};
-            while (it->label.size() < GetLineLength())
+            UiStringItem &line{(*ui)[i]};
+
+            if (!(line.label.size() < GetLineLength() &&
+                  (!line.label.size() ||
+                   line.label[line.label.size() - 1] != '\n')))
+            {
+                break;
+            }
+
+            size_t next_line_index{i + 1};
+            UiStringItem *next_line{&(*ui)[next_line_index]};
+            while (line.label.size() < GetLineLength())
             {
                 while (next_line->label.size() == 0 &&
-                       it->label.size() < GetLineLength() &&
-                       next_line < ui->end() - 1)
+                       line.label.size() < GetLineLength() &&
+                       next_line_index < ui->size() - 1)
                 {
-                    next_line++;
+                    next_line_index++;
+                    next_line = &(*ui)[next_line_index];
                 }
 
                 if (next_line->label.size() == 0)
                     break;
 
                 char curr = next_line->label[0];
-                it->label.push_back(curr);
+                line.label.push_back(curr);
                 next_line->label.erase(next_line->label.begin());
 
                 if (curr == '\n')
@@ -852,11 +850,11 @@ namespace Scene
 
             if (next_line->label.size())
             {
-                last_changed = next_line;
+                last_changed_index = next_line_index;
             }
-            else if (it->label.size())
+            else if (line.label.size())
             {
-                last_changed = it;
+                last_changed_index = i;
             }
         }
 
@@ -876,24 +874,28 @@ namespace Scene
             [](auto &item)
             { return item.displayable; });
 
+        auto last_displayable_find_end{ui->rend() - GetContentUiStartIndex()};
         std::vector<UiStringItem>::iterator last_displayable{
             std::find_if(
                 ui->rbegin(),
-                ui->rend() - GetContentUiStartIndex(),
+                last_displayable_find_end,
                 [](auto &item)
                 { return item.displayable; })
                 .base() -
             1};
 
-        for (auto it{last_displayable + 1};
-             it < ui->end() &&
-             displayable_count < lines_per_page;
-             it++, displayable_count++)
+        if (last_displayable != last_displayable_find_end.base() - 1)
         {
-            it->displayable = true;
+            for (auto it{last_displayable + 1};
+                 it < ui->end() &&
+                 displayable_count < lines_per_page;
+                 it++, displayable_count++)
+            {
+                it->displayable = true;
+            }
         }
 
-        size_t last_changed_index{static_cast<size_t>(last_changed - first_displaying)};
+        last_changed_index -= first_displaying_index;
 
         size_t scrolled{};
         while (initial_y < 0 && scrolling > 0)
