@@ -74,11 +74,10 @@ namespace Scene
         else if (IsCursorControlling())
         {
             MoveCursor(direction, true, GetLinesScroll());
+            return;
         }
-        else
-        {
-            Focus(direction);
-        }
+
+        Focus(direction);
     }
 
     void CodeScene::Delete()
@@ -99,5 +98,27 @@ namespace Scene
         {
             RenderUiListEnding();
         }
+    }
+
+    uint8_t CodeScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
+    {
+        size_t lines_per_page{Scene::GetLinesPerPageCount()};
+
+        if (count > lines_per_page - 1)
+            count = lines_per_page - 1;
+
+        if (direction == Direction::Bottom || direction == Direction::Up)
+        {
+            count = Scene::ScrollContent(direction, rerender, count);
+
+            if (rerender && count)
+            {
+                RenderContent();
+            }
+
+            return count;
+        }
+
+        return 0;
     }
 }

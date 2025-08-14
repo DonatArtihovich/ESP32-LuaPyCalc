@@ -432,9 +432,6 @@ namespace Scene
 
         if (clearing)
         {
-            ESP_LOGI(TAG, "line(\"%s\") - cursor_y(%d) + cursor.y(%d): \"%s\"",
-                     line->label.c_str(), cursor_y, cursor.y, (line - cursor_y + cursor.y)->label.c_str());
-
             ClearCursor(first_displayable + cursor.y);
         }
         cursor.x = cursor_x;
@@ -461,7 +458,6 @@ namespace Scene
             return 0;
 
         line += cursor.y;
-        ESP_LOGI(TAG, "Current line: %s", line->label.c_str());
 
         uint16_t cursor_x{cursor.x}, cursor_y{cursor.y};
 
@@ -471,6 +467,7 @@ namespace Scene
         switch (direction)
         {
         case Direction::Up:
+        {
             if (cursor_y > 0 || line > GetContentUiStart())
             {
                 if (cursor_y)
@@ -487,7 +484,9 @@ namespace Scene
             else
                 cursor_changed = false;
             break;
+        }
         case Direction::Right:
+        {
             if ((cursor_x < (line->label.size() < GetLineLength() + 1
                                  ? line->label.size() - 1
                                  : GetLineLength())) ||
@@ -503,7 +502,6 @@ namespace Scene
                 }
                 else if (scrolling > 0)
                 {
-                    ESP_LOGI(TAG, "Move cursor right scrolling %d", scrolling);
                     scrolled_count = ScrollContent(Direction::Bottom, rerender, scrolling);
                     if (scrolled_count)
                         cursor_y = std::count_if(
@@ -518,7 +516,9 @@ namespace Scene
             else
                 cursor_changed = false;
             break;
+        }
         case Direction::Bottom:
+        {
             if ((line + 1) != ui->end())
             {
                 if (cursor_y < GetLinesPerPageCount() - 1)
@@ -527,7 +527,6 @@ namespace Scene
                 }
                 else if (scrolling > 0)
                 {
-                    ESP_LOGI(TAG, "Move cursor bottom scrolling %d", scrolling);
                     scrolled_count = ScrollContent(Direction::Bottom, rerender, scrolling);
                     if (scrolled_count)
                         cursor_y = std::count_if(
@@ -541,7 +540,9 @@ namespace Scene
                     cursor_changed = false;
             }
             break;
+        }
         case Direction::Left:
+        {
             if (cursor_x > 0)
             {
                 cursor_x--;
@@ -566,8 +567,7 @@ namespace Scene
                 cursor_changed = false;
             break;
         }
-
-        ESP_LOGI(TAG, "Move cursor scrolled count: %d", scrolled_count);
+        }
 
         if (cursor_changed)
         {
