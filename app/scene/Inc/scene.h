@@ -66,10 +66,8 @@ namespace Scene
         void SetCursorControlling(bool cursor);
         virtual void EnterModalControlling();
         virtual void LeaveModalControlling(uint8_t stage, bool rerender = true);
-        void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
-        void RenderCursor();
         void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
         size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
         virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
@@ -154,6 +152,10 @@ namespace Scene
         virtual void RenderContent();
         virtual void RenderHeader();
         virtual void RenderModal();
+        void RenderCursor();
+
+        // void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
+        void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false, uint8_t start_x = 0);
 
         virtual void ClearHeader(Color color = Color::Black);
         virtual void ClearContent(Color color = Color::Black);

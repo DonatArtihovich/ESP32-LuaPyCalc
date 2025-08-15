@@ -260,7 +260,7 @@ namespace Scene
                                 GetLinesPerPageCount());
     }
 
-    void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after)
+    void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after, uint8_t start_x)
     {
         uint8_t fw, fh;
         size_t lines_per_page{GetLinesPerPageCount()};
@@ -279,6 +279,39 @@ namespace Scene
         if (clear_line_after && clear_start_y - fh >= 0)
         {
             clear_start_y -= fh;
+        }
+
+        ESP_LOGI(TAG, "start_x: %d", start_x);
+        if (start_x != 0)
+        {
+            lines_start_y -= fh;
+            clear_end_y -= fh;
+
+            UiStringItem &first_line_item{*(first_displaying + first_line)};
+
+            ESP_LOGI(TAG, "Clear: x: %d, y: %d, end_x: %d, end_y: %d", lines_start_x + start_x * fw,
+                     clear_end_y,
+                     lines_start_x + first_line_item.label.size() * fw,
+                     clear_end_y + fh);
+
+            display.Clear(Color::Black,
+                          lines_start_x + start_x * fw,
+                          clear_end_y,
+                          lines_start_x + first_line_item.label.size() * fw,
+                          clear_end_y + fh);
+
+            UiStringItem item{first_line_item};
+            item.label.erase(item.label.begin(), item.label.begin() + start_x);
+            item.x += start_x * fw;
+
+            ESP_LOGI(TAG, "Draw item %s", item.label.c_str());
+            display.DrawStringItem(&item);
+            if (last_line == first_line)
+            {
+                return;
+            }
+
+            first_line++;
         }
 
         display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
@@ -930,7 +963,8 @@ namespace Scene
             RenderLines(
                 first_rerender_line_index,
                 last_rerender_line_index,
-                first_displaying + last_rerender_line_index == ui->end() - 1);
+                first_displaying + last_rerender_line_index == ui->end() - 1,
+                initial_x);
         }
 
         SpawnCursor(initial_x, initial_y, first_displaying + cursor.y < ui->end());
@@ -953,7 +987,7 @@ namespace Scene
             return;
 
         size_t inserting_len = chars.size();
-        uint8_t insert_x{cursor.x}, insert_y{cursor.y};
+        uint8_t insert_x{cursor.x}, insert_x_initial{cursor.x}, insert_y{cursor.y};
 
         auto first_displaying = std::find_if(
             GetContentUiStart(),
@@ -1049,7 +1083,7 @@ namespace Scene
         }
         else
         {
-            RenderLines(insert_y, last_rendering_y);
+            RenderLines(insert_y, last_rendering_y, false, insert_x_initial);
         }
 
         SpawnCursor(-1, -1, false);

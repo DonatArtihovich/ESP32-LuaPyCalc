@@ -70,6 +70,7 @@ namespace Scene
                                       { return item.focused; })};
             ChangeItemFocus(&*focused, false, true);
             SpawnCursor();
+            return;
         }
         else if (IsCursorControlling())
         {
