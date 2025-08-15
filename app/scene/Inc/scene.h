@@ -77,6 +77,7 @@ namespace Scene
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars, size_t scrolling = 0);
         void CursorAppendLine(const char *label = "", Color color = Color::White);
+        void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
 
         virtual void InitModals();
         void AddModalLabel(std::string modal_label, Modal &modal);

@@ -297,7 +297,7 @@ namespace Scene
             display.Clear(Color::Black,
                           lines_start_x + start_x * fw,
                           clear_end_y,
-                          lines_start_x + first_line_item.label.size() * fw,
+                          display.GetWidth(),
                           clear_end_y + fh);
 
             UiStringItem item{first_line_item};
@@ -981,6 +981,23 @@ namespace Scene
         ui->push_back(last_line);
     }
 
+    void Scene::CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable)
+    {
+        UiStringItem last_line{label, color, line_before->font, false};
+        uint8_t fw, fh;
+        Font::GetFontx(line_before->font, 0, &fw, &fh);
+
+        last_line.x = line_before->x;
+        last_line.y = line_before->y - fh;
+
+        if (!displayable)
+        {
+            last_line.displayable = false;
+        }
+
+        ui->insert(line_before + 1, last_line);
+    }
+
     void Scene::CursorInsertChars(std::string chars, size_t scrolling)
     {
         if (!chars.size())
@@ -1018,19 +1035,15 @@ namespace Scene
                 last_rendering_y++;
             }
 
-            ESP_LOGI(TAG, "Chars: %s", chars.c_str());
             int size = chars.size();
             UiStringItem &line{(*ui)[line_index]};
 
             std::string next_chars{};
             for (int i = 0; i < size; i++)
             {
-                // ESP_LOGI(TAG, "Before insert: \"%s\", chars: \"%s\" insert_x: %d", line.label.c_str(), chars.c_str(), insert_x);
                 line.label.insert(line.label.begin() + insert_x, chars[0]);
                 chars.erase(chars.begin());
                 insert_x++;
-
-                // ESP_LOGI(TAG, "After insert: \"%s\", chars: \"%s\" insert_x: %d", line.label.c_str(), chars.c_str(), insert_x);
 
                 if (line.label.size() > GetLineLength())
                 {
@@ -1044,8 +1057,6 @@ namespace Scene
                 chars += next_chars;
             }
 
-            ESP_LOGI(TAG, "Chars after insert: %s", chars.c_str());
-
             if (chars.size())
             {
                 insert_x = 0;
@@ -1054,17 +1065,11 @@ namespace Scene
             size_t find_index = std::string::npos;
             if ((find_index = line.label.find('\n')) != std::string::npos)
             {
-                ESP_LOGI(TAG, "Find index \\n: %d", find_index);
-                ESP_LOGI(TAG, "Rbegin: %c", *line.label.rbegin());
-                ESP_LOGI(TAG, "Rend - find_index - 1: %c", *(line.label.rend() - find_index - 1));
-
                 for (auto it{line.label.rbegin()};
                      it < line.label.rend() - find_index - 1; it++)
                 {
                     chars.insert(chars.begin(), *it);
                 }
-
-                ESP_LOGI(TAG, "Chars after insert back: %s", chars.c_str());
 
                 line.label.erase(
                     line.label.begin() + find_index + 1,
