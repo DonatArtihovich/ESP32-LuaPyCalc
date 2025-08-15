@@ -1018,15 +1018,33 @@ namespace Scene
                 last_rendering_y++;
             }
 
+            ESP_LOGI(TAG, "Chars: %s", chars.c_str());
             int size = chars.size();
             UiStringItem &line{(*ui)[line_index]};
 
-            for (int i = 0; i < size && line.label.size() < GetLineLength(); i++)
+            std::string next_chars{};
+            for (int i = 0; i < size; i++)
             {
+                // ESP_LOGI(TAG, "Before insert: \"%s\", chars: \"%s\" insert_x: %d", line.label.c_str(), chars.c_str(), insert_x);
                 line.label.insert(line.label.begin() + insert_x, chars[0]);
                 chars.erase(chars.begin());
                 insert_x++;
+
+                // ESP_LOGI(TAG, "After insert: \"%s\", chars: \"%s\" insert_x: %d", line.label.c_str(), chars.c_str(), insert_x);
+
+                if (line.label.size() > GetLineLength())
+                {
+                    next_chars.insert(next_chars.begin(), *(line.label.end() - 1));
+                    line.label.erase(line.label.end() - 1);
+                }
             }
+
+            if (next_chars.size())
+            {
+                chars += next_chars;
+            }
+
+            ESP_LOGI(TAG, "Chars after insert: %s", chars.c_str());
 
             if (chars.size())
             {
@@ -1036,11 +1054,17 @@ namespace Scene
             size_t find_index = std::string::npos;
             if ((find_index = line.label.find('\n')) != std::string::npos)
             {
+                ESP_LOGI(TAG, "Find index \\n: %d", find_index);
+                ESP_LOGI(TAG, "Rbegin: %c", *line.label.rbegin());
+                ESP_LOGI(TAG, "Rend - find_index - 1: %c", *(line.label.rend() - find_index - 1));
+
                 for (auto it{line.label.rbegin()};
                      it < line.label.rend() - find_index - 1; it++)
                 {
                     chars.insert(chars.begin(), *it);
                 }
+
+                ESP_LOGI(TAG, "Chars after insert back: %s", chars.c_str());
 
                 line.label.erase(
                     line.label.begin() + find_index + 1,
@@ -1054,13 +1078,20 @@ namespace Scene
                  line.label[line.label.size() - 1] == '\n'))
             {
                 bool is_new_line_displayable{!(ui->end() - first_displaying + 1 > GetLinesPerPageCount())};
+                bool is_cursor_moving{is_new_line_displayable &&
+                                      cursor.y == line_index - first_displaying_index &&
+                                      cursor.x == line.label.size() - 1};
                 CursorAppendLine();
 
                 if (!is_new_line_displayable)
                 {
                     (ui->end() - 1)->displayable = false;
                 }
-                scrolled_count += MoveCursor(Direction::Right, false, scrolling);
+
+                if (is_cursor_moving)
+                {
+                    scrolled_count += MoveCursor(Direction::Right, false, scrolling);
+                }
             }
         }
 
