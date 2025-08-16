@@ -19,6 +19,13 @@ namespace CodeRunner
         Ruby
     };
 
+    struct CodeProcess
+    {
+        CodeLanguage language;
+        std::string data;
+        bool is_file{};
+    };
+
     class CodeRunController
     {
     public:

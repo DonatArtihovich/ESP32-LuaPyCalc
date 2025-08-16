@@ -48,7 +48,7 @@ namespace Main
         std::unique_ptr<Scene::Scene> scene;
 
         void SwitchScene(Scene::SceneId id);
-        esp_err_t InitRunnerIO();
+        esp_err_t InitCodeRunner();
 
     public:
         Main();
@@ -56,5 +56,4 @@ namespace Main
         void Tick();
         void SendCodeOutput(const char *output);
     };
-
 }

@@ -2,6 +2,8 @@
 
 static const char *TAG = "FileScene";
 
+extern QueueHandle_t xQueueRunnerProcessing;
+
 namespace Scene
 {
     FilesScene::FilesScene(DisplayController &display, SDCard &_sdcard)
@@ -937,8 +939,6 @@ namespace Scene
 
         const char *arr[]{"Text", "Lua", "Python", "Ruby"};
         ESP_LOGI(TAG, "Detected language: %s", arr[(int)runner_language]);
-
-        return;
     }
 
     void FilesScene::RunFile()
@@ -948,6 +948,13 @@ namespace Scene
             return;
 
         std::string file_path{curr_directory + (*ui)[0].label};
-        CodeRunController::RunCodeFile(file_path, runner_language);
+
+        CodeRunner::CodeProcess process{
+            .language = runner_language,
+            .data = file_path,
+            .is_file = true,
+        };
+
+        xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
     }
 }

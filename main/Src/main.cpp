@@ -3,9 +3,13 @@
 
 static const char *TAG = "App";
 
+extern QueueHandle_t xQueueRunnerProcessing;
 extern QueueHandle_t xQueueRunnerStdout;
 extern QueueHandle_t xQueueRunnerStdin;
 extern TaskHandle_t xTaskRunnerIO;
+extern TaskHandle_t xTaskRunnerProcessing;
+
+SemaphoreHandle_t xAppMutex = NULL;
 
 namespace Main
 {
@@ -35,10 +39,43 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
             {
-                App->SendCodeOutput(stdout_buffer);
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                {
+                    App->SendCodeOutput(stdout_buffer);
+                    xSemaphoreGive(xAppMutex);
+                }
                 memset(stdout_buffer, 0, sizeof(stdout_buffer));
             }
         }
+    }
+
+    static void TaskRunnerProcessing(void *arg)
+    {
+        xQueueRunnerProcessing = xQueueCreate(1, sizeof(CodeRunner::CodeProcess));
+        if (xQueueRunnerProcessing == NULL)
+        {
+            vTaskDelete(NULL);
+        }
+
+        CodeRunner::CodeProcess processing{};
+        while (1)
+        {
+            if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
+            {
+                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
+
+                if (processing.is_file)
+                {
+                    CodeRunController::RunCodeFile(processing.data, processing.language);
+                }
+                else
+                {
+                    CodeRunController::RunCodeString(processing.data, processing.language);
+                }
+            }
+        }
+
+        vTaskDelete(NULL);
     }
 
     Main::Main() : scene{new Scene::StartScene{display}} {}
@@ -47,7 +84,7 @@ namespace Main
     {
         ESP_ERROR_CHECK(keyboard.Init());
         ESP_ERROR_CHECK(display.Init());
-        ESP_ERROR_CHECK(InitRunnerIO());
+        ESP_ERROR_CHECK(InitCodeRunner());
 
         if (ESP_OK == sdcard.Mount(CONFIG_MOUNT_POINT))
         {
@@ -153,10 +190,16 @@ namespace Main
         scene->Init();
     }
 
-    esp_err_t Main::InitRunnerIO()
+    esp_err_t Main::InitCodeRunner()
     {
         if (xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO) != pdPASS)
         {
+            return ESP_FAIL;
+        }
+
+        if (xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, NULL, 9, &xTaskRunnerProcessing) != pdPASS)
+        {
+            vTaskDelete(xTaskRunnerIO);
             return ESP_FAIL;
         }
 
@@ -172,11 +215,26 @@ namespace Main
 
 extern "C" void app_main(void)
 {
+    xAppMutex = xSemaphoreCreateMutex();
+    if (xAppMutex == NULL)
+    {
+        ESP_LOGE(TAG, "Error creating app mutex");
+        vTaskDelete(NULL);
+    }
+
     Main::Main App{};
-    App.Setup();
+    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+    {
+        App.Setup();
+        xSemaphoreGive(xAppMutex);
+    }
 
     while (1)
     {
-        App.Tick();
+        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+        {
+            App.Tick();
+            xSemaphoreGive(xAppMutex);
+        }
     }
 }

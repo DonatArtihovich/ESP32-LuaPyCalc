@@ -2,6 +2,8 @@
 
 static const char *TAG = "CodeScene";
 
+extern QueueHandle_t xQueueRunnerProcessing;
+
 namespace Scene
 {
     CodeScene::CodeScene(DisplayController &display)
@@ -302,7 +304,15 @@ namespace Scene
                       { code += item.label; });
 
         OpenStageModal(CodeSceneStage::CodeRunModalStage);
-        CodeRunController::RunCodeString(code, runner_language);
+
+        CodeRunner::CodeProcess process{
+            .language = runner_language,
+            .data = code,
+            .is_file = false,
+        };
+
+        xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
+        ESP_LOGI(TAG, "Send processing code item");
     }
 
     void CodeScene::SendCodeOutput(const char *output)

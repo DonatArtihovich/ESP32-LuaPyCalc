@@ -3,9 +3,11 @@
 
 static const char *TAG = "CodeRunner";
 
+QueueHandle_t xQueueRunnerProcessing = NULL;
 QueueHandle_t xQueueRunnerStdout = NULL;
 QueueHandle_t xQueueRunnerStdin = NULL;
 TaskHandle_t xTaskRunnerIO = NULL;
+TaskHandle_t xTaskRunnerProcessing;
 
 namespace CodeRunner
 {
