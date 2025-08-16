@@ -10,8 +10,9 @@
 #include "esp_log.h"
 
 #include "display.h"
+#include "keyboard.h"
 
-using LCD::Color, Display::DisplayController, Display::UiStringItem, Display::Position;
+using LCD::Color, Display::DisplayController, Display::UiStringItem, Display::Position, Keyboard::KeyboardController;
 
 namespace Scene
 {
@@ -52,6 +53,7 @@ namespace Scene
     class Scene
     {
         bool is_cursor_controlling{};
+        std::string clipboard{};
         Cursor cursor{};
         uint8_t stage{};
 
@@ -77,6 +79,7 @@ namespace Scene
         void CursorInit(Cursor *cursor);
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars, size_t scrolling = 0);
+        void CursorPaste();
         void CursorAppendLine(const char *label = "", Color color = Color::White);
         void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
 

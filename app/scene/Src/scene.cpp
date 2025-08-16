@@ -8,10 +8,19 @@ namespace Scene
 
     void Scene::Value(char value)
     {
-        ESP_LOGI(TAG, "Entered value: %c", value);
+        bool is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
+        ESP_LOGI(TAG, "Entered value: %c, Ctrl pressed: %d", value, is_ctrl_pressed);
+
         if (IsCursorControlling())
         {
-            CursorInsertChars(std::string(1, value), GetLinesScroll());
+            if (!is_ctrl_pressed)
+            {
+                CursorInsertChars(std::string(1, value), GetLinesScroll());
+            }
+            else if (value == 'v' || value == 'V')
+            {
+                CursorPaste();
+            }
         }
     }
 
@@ -1331,5 +1340,11 @@ namespace Scene
         }
 
         return focused;
+    }
+
+    void Scene::CursorPaste()
+    {
+        CursorInsertChars(clipboard, GetLinesScroll());
+        clipboard.clear();
     }
 }
