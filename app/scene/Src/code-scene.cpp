@@ -65,7 +65,7 @@ namespace Scene
         {
             Scene::Enter();
         }
-        else if (IsModalStage())
+        else
         {
             auto focused{std::find_if(
                 ui->begin(),
@@ -79,18 +79,25 @@ namespace Scene
                 return SceneId::CurrentScene;
             }
 
-            if (IsStage(CodeSceneStage::LanguageChooseModalStage))
+            if (IsModalStage())
             {
-
-                for (auto &[key, language] : runner_languages)
+                if (IsStage(CodeSceneStage::LanguageChooseModalStage))
                 {
-                    if (focused->label == key)
+
+                    for (auto &[key, language] : runner_languages)
                     {
-                        runner_language = language;
-                        ChangeHeader(key);
-                        LeaveModalControlling();
+                        if (focused->label == key)
+                        {
+                            runner_language = language;
+                            ChangeHeader(key);
+                            LeaveModalControlling();
+                        }
                     }
                 }
+            }
+            else if (focused->label.contains("< Esc"))
+            {
+                return Escape();
             }
         }
 
