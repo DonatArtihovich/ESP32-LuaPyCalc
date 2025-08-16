@@ -3,11 +3,9 @@
 
 static const char *TAG = "CodeRunner";
 
-QueueHandle_t xQueueStdout = NULL;
-QueueHandle_t xQueueStdin = NULL;
-TaskHandle_t xCodeIOTask = NULL;
-
-static void TaskCodeIO(void *arg);
+QueueHandle_t xQueueRunnerStdout = NULL;
+QueueHandle_t xQueueRunnerStdin = NULL;
+TaskHandle_t xTaskRunnerIO = NULL;
 
 namespace CodeRunner
 {
@@ -41,46 +39,5 @@ namespace CodeRunner
         }
 
         return ret;
-    }
-
-    esp_err_t CodeRunController::Init()
-    {
-        if (xTaskCreate(TaskCodeIO, "Code IO", 4096, NULL, 10, &xCodeIOTask) != pdPASS)
-        {
-            return ESP_FAIL;
-        }
-
-        return ESP_OK;
-    }
-}
-
-static void TaskCodeIO(void *arg)
-{
-    xQueueStdout = xQueueCreate(32, sizeof(char[64]));
-
-    if (xQueueStdout == NULL)
-    {
-        ESP_LOGE(TAG, "Error creating Stdout Queue");
-        vTaskDelete(NULL);
-    }
-
-    xQueueStdin = xQueueCreate(64, sizeof(char[1]));
-
-    if (xQueueStdin == NULL)
-    {
-        ESP_LOGE(TAG, "Error creating Stdin Queue");
-        vQueueDelete(xQueueStdout);
-        vTaskDelete(NULL);
-    }
-
-    char stdout_buffer[64] = {0};
-
-    while (1)
-    {
-        if (xQueueReceive(xQueueStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
-        {
-            ESP_LOGI(TAG, "Send from script: %s", stdout_buffer);
-            memset(stdout_buffer, 0, sizeof(stdout_buffer));
-        }
     }
 }

@@ -1,17 +1,53 @@
 #include "main.h"
 #include "sdkconfig.h"
 
-static const char *TAG = "MAIN";
+static const char *TAG = "App";
+
+extern QueueHandle_t xQueueRunnerStdout;
+extern QueueHandle_t xQueueRunnerStdin;
+extern TaskHandle_t xTaskRunnerIO;
 
 namespace Main
 {
+    static void TaskRunnerIO(void *arg)
+    {
+        Main *App{(Main *)arg};
+        xQueueRunnerStdout = xQueueCreate(32, sizeof(char[64]));
+
+        if (xQueueRunnerStdout == NULL)
+        {
+            ESP_LOGE(TAG, "Error creating Stdout Queue");
+            vTaskDelete(NULL);
+        }
+
+        xQueueRunnerStdin = xQueueCreate(64, sizeof(char[1]));
+
+        if (xQueueRunnerStdin == NULL)
+        {
+            ESP_LOGE(TAG, "Error creating Stdin Queue");
+            vQueueDelete(xQueueRunnerStdout);
+            vTaskDelete(NULL);
+        }
+
+        char stdout_buffer[64] = {0};
+
+        while (1)
+        {
+            if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
+            {
+                App->SendCodeOutput(stdout_buffer);
+                memset(stdout_buffer, 0, sizeof(stdout_buffer));
+            }
+        }
+    }
+
     Main::Main() : scene{new Scene::StartScene{display}} {}
 
     void Main::Setup()
     {
         ESP_ERROR_CHECK(keyboard.Init());
         ESP_ERROR_CHECK(display.Init());
-        ESP_ERROR_CHECK(CodeRunController::Init());
+        ESP_ERROR_CHECK(InitRunnerIO());
 
         if (ESP_OK == sdcard.Mount(CONFIG_MOUNT_POINT))
         {
@@ -116,15 +152,31 @@ namespace Main
 
         scene->Init();
     }
+
+    esp_err_t Main::InitRunnerIO()
+    {
+        if (xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO) != pdPASS)
+        {
+            return ESP_FAIL;
+        }
+
+        return ESP_OK;
+    }
+
+    void Main::SendCodeOutput(const char *output)
+    {
+        scene->SendCodeOutput(output);
+    }
+
 }
 
 extern "C" void app_main(void)
 {
-    Main::Main app{};
-    app.Setup();
+    Main::Main App{};
+    App.Setup();
 
     while (1)
     {
-        app.Tick();
+        App.Tick();
     }
 }

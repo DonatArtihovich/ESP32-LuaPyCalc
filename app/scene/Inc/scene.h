@@ -177,6 +177,8 @@ namespace Scene
         virtual void Delete();
         virtual void Value(char value);
 
+        virtual void SendCodeOutput(const char *output);
+
         virtual ~Scene() = default;
     };
 }

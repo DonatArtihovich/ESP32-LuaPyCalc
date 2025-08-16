@@ -2,8 +2,8 @@
 
 static const char *TAG = "LuaRunController";
 
-extern QueueHandle_t xQueueStdout;
-extern QueueHandle_t xQueueStdin;
+extern QueueHandle_t xQueueRunnerStdout;
+extern QueueHandle_t xQueueRunnerStdin;
 
 namespace CodeRunner
 {
@@ -80,13 +80,13 @@ namespace CodeRunner
             {
                 snprintf(log_buffer, sizeof(log_buffer), "%s", p);
 
-                xQueueSend(xQueueStdout, log_buffer, portMAX_DELAY);
+                xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
                 memset(log_buffer, 0, sizeof(log_buffer));
             }
 
             if (i < n)
             {
-                xQueueSend(xQueueStdout, "\t", portMAX_DELAY);
+                xQueueSend(xQueueRunnerStdout, "\t", portMAX_DELAY);
             }
         }
 
@@ -96,7 +96,7 @@ namespace CodeRunner
     int LuaRunController::lua_io_read_impl(lua_State *L)
     {
         char io_buff[1] = {0};
-        if (xQueueReceive(xQueueStdin, io_buff, portMAX_DELAY) == pdPASS)
+        if (xQueueReceive(xQueueRunnerStdin, io_buff, portMAX_DELAY) == pdPASS)
         {
             lua_pushstring(L, io_buff);
         }

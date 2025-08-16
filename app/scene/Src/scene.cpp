@@ -1348,4 +1348,9 @@ namespace Scene
         CursorInsertChars(clipboard, GetLinesScroll());
         clipboard.clear();
     }
+
+    void Scene::SendCodeOutput(const char *output)
+    {
+        ESP_LOGI(TAG, "Code output: %s", output);
+    }
 }
