@@ -790,6 +790,11 @@ namespace Scene
         size_t count{initial_count};
         size_t start_line_index{first_displaying_index + initial_y};
 
+        if (start_line_index == ui->size() - 1 && (*ui)[start_line_index].label.size() == 0)
+        {
+            ClearCursor(ui->begin() + start_line_index);
+        }
+
         if (count > GetLineLength())
         {
             return;
