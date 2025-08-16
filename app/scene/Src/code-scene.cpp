@@ -99,6 +99,10 @@ namespace Scene
             {
                 return Escape();
             }
+            else if (focused->label.contains("Run"))
+            {
+                RunCode();
+            }
         }
 
         return SceneId::CurrentScene;
@@ -259,5 +263,14 @@ namespace Scene
         }
 
         return content_ui_start;
+    }
+
+    void CodeScene::RunCode()
+    {
+        std::string code{};
+        std::for_each(GetContentUiStart(), ui->end(), [&code](auto &item)
+                      { code += item.label; });
+
+        CodeRunController::RunCodeString(code, runner_language);
     }
 }

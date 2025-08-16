@@ -1,7 +1,7 @@
 #include "scene.h"
 #include "runner.h"
 
-using CodeRunner::CodeLanguage;
+using CodeRunner::CodeLanguage, CodeRunner::CodeRunController;
 
 namespace Scene
 {
@@ -30,6 +30,8 @@ namespace Scene
         void LeaveModalControlling(
             uint8_t stage = (uint8_t)CodeSceneStage::CodeEnterStage,
             bool rerender = true) override;
+
+        void RunCode();
 
     public:
         CodeScene(DisplayController &display);
