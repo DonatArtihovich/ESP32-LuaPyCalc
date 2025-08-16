@@ -13,6 +13,8 @@
 #include "files-scene.h"
 #include "code-scene.h"
 
+#include "runner.h"
+
 using Keyboard::KeyboardController, SD::SDCard, Display::DisplayController;
 
 namespace Main

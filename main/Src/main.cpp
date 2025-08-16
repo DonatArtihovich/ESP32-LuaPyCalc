@@ -11,6 +11,7 @@ namespace Main
     {
         ESP_ERROR_CHECK(keyboard.Init());
         ESP_ERROR_CHECK(display.Init());
+        ESP_ERROR_CHECK(CodeRunController::Init());
 
         if (ESP_OK == sdcard.Mount(CONFIG_MOUNT_POINT))
         {
