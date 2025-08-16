@@ -1092,7 +1092,8 @@ namespace Scene
                 bool is_new_line_displayable{!(ui->end() - first_displaying + 1 > GetLinesPerPageCount())};
                 bool is_cursor_moving{is_new_line_displayable &&
                                       cursor.y == line_index - first_displaying_index &&
-                                      cursor.x == line.label.size() - 1};
+                                      cursor.x == line.label.size() - 1 &&
+                                      !chars.size()};
                 CursorAppendLine();
 
                 if (!is_new_line_displayable)
