@@ -443,16 +443,6 @@ namespace Scene
         CursorInit(&cursor);
     }
 
-    void FilesScene::ChangeHeader(const char *header, bool rerender)
-    {
-        Scene::ChangeHeader(header);
-
-        if (rerender)
-        {
-            RenderHeader();
-        }
-    }
-
     void FilesScene::CloseFile()
     {
         ui->erase(GetContentUiStart(), ui->end());

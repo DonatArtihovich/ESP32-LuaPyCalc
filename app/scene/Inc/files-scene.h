@@ -71,8 +71,6 @@ namespace Scene
         void ToggleSaveButton(bool mode, bool rerender = false);
         void ToggleCreateButton(bool mode, bool rerender = false);
 
-        void ChangeHeader(const char *header, bool rerender = false) override;
-
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;

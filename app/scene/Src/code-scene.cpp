@@ -65,6 +65,34 @@ namespace Scene
         {
             Scene::Enter();
         }
+        else if (IsModalStage())
+        {
+            auto focused{std::find_if(
+                ui->begin(),
+                ui->end(),
+                [](auto &item)
+                { return item.focused; })};
+
+            if (focused == ui->end())
+            {
+                ESP_LOGE(TAG, "Focused item not found");
+                return SceneId::CurrentScene;
+            }
+
+            if (IsStage(CodeSceneStage::LanguageChooseModalStage))
+            {
+
+                for (auto &[key, language] : runner_languages)
+                {
+                    if (focused->label == key)
+                    {
+                        runner_language = language;
+                        ChangeHeader(key);
+                        LeaveModalControlling();
+                    }
+                }
+            }
+        }
 
         return SceneId::CurrentScene;
     }
@@ -165,19 +193,21 @@ namespace Scene
         uint8_t fw, fh;
         Font::GetFontx(display.fx24G, 0, &fw, &fh);
 
-        modal.ui.push_back(UiStringItem{"Lua", Color::White, display.fx24G});
-        display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::Center);
-        ChangeItemFocus(&*(modal.ui.end() - 1), true);
+        for (auto &[key, _] : runner_languages)
+        {
+            modal.ui.push_back(UiStringItem{key, Color::White, display.fx24G});
+        }
 
-        modal.ui.push_back(UiStringItem{"Python", Color::White, display.fx24G});
-        modal.ui.push_back(UiStringItem{"Ruby", Color::White, display.fx24G});
+        size_t langs_start_index{GetContentUiStartIndex(CodeSceneStage::LanguageChooseModalStage)};
 
-        size_t langs_count{modal.ui.size() - GetContentUiStartIndex(CodeSceneStage::LanguageChooseModalStage)};
-        uint8_t start_y{static_cast<uint8_t>((modal.ui.end() - langs_count)->y + fh * (langs_count / 2))};
+        display.SetPosition(&modal.ui[langs_start_index], Position::Center, Position::Center);
+        ChangeItemFocus(&modal.ui[langs_start_index], true);
 
-        display.SetListPositions(modal.ui.end() - langs_count, modal.ui.end(), 10, start_y, 9);
+        uint8_t start_y{static_cast<uint8_t>(modal.ui[langs_start_index].y + fh * (runner_languages.size() / 2))};
+
+        display.SetListPositions(modal.ui.begin() + langs_start_index, modal.ui.end(), 10, start_y, 9);
         std::for_each(
-            modal.ui.end() - langs_count,
+            modal.ui.begin() + langs_start_index,
             modal.ui.end(),
             [this](auto &item)
             { display.SetPosition(&item, Position::Center); });

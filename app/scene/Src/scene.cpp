@@ -153,18 +153,16 @@ namespace Scene
         }
     }
 
-    void Scene::ChangeHeader(const char *header, bool rerender)
+    void Scene::ChangeHeader(std::string header, bool rerender)
     {
-        UiStringItem &header_item{(*ui)[0]};
+        UiStringItem &header_item{main_ui[0]};
         header_item.label = header;
         display.SetPosition(&header_item, Position::Center, Position::End);
         ESP_LOGI(TAG, "Change header to \"%s\"", header_item.label.c_str());
 
         if (rerender)
         {
-            header_item.backgroundColor = Color::Black;
-            display.DrawStringItem(&header_item);
-            header_item.backgroundColor = Color::None;
+            RenderHeader();
         }
     }
 

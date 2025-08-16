@@ -1,4 +1,7 @@
 #include "scene.h"
+#include "runner.h"
+
+using CodeRunner::CodeLanguage;
 
 namespace Scene
 {
@@ -10,6 +13,14 @@ namespace Scene
 
     class CodeScene : public Scene
     {
+        CodeLanguage runner_language;
+
+        std::map<std::string, CodeRunner::CodeLanguage> runner_languages{
+            {"Lua", CodeLanguage::Lua},
+            {"Python", CodeLanguage::Python},
+            {"Ruby", CodeLanguage::Ruby},
+        };
+
         void RenderContent() override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
         void InitModals() override;

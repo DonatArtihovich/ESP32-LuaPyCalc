@@ -1,6 +1,5 @@
 #pragma once
 
-#include "display.h"
 #include <map>
 #include <vector>
 #include <cstring>
@@ -9,6 +8,8 @@
 #include <type_traits>
 #include <memory>
 #include "esp_log.h"
+
+#include "display.h"
 
 using LCD::Color, Display::DisplayController, Display::UiStringItem, Display::Position;
 
@@ -145,7 +146,7 @@ namespace Scene
         virtual size_t GetContentUiStartIndex(uint8_t stage);
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
-        virtual void ChangeHeader(const char *header, bool rerender = false);
+        virtual void ChangeHeader(std::string header, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
         void RenderUiListEnding(const char *end_label = "more items");
 
