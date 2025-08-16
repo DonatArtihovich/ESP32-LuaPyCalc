@@ -144,6 +144,10 @@ namespace Scene
         virtual std::vector<UiStringItem>::iterator GetContentUiStart();
         size_t GetContentUiStartIndex();
         virtual size_t GetContentUiStartIndex(uint8_t stage);
+        std::vector<UiStringItem>::iterator GetFocused();
+        std::vector<UiStringItem>::iterator GetFocused(std::vector<UiStringItem>::iterator begin);
+        std::vector<UiStringItem>::iterator GetFocused(std::vector<UiStringItem>::iterator begin,
+                                                       std::vector<UiStringItem>::iterator end);
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
         virtual void ChangeHeader(std::string header, bool rerender = false);
@@ -156,7 +160,6 @@ namespace Scene
         virtual void RenderModal();
         void RenderCursor();
 
-        // void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
         void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false, uint8_t start_x = 0);
 
         virtual void ClearHeader(Color color = Color::Black);

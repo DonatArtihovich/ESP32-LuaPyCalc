@@ -17,15 +17,10 @@ namespace Scene
 
     uint8_t Scene::Focus(Direction direction)
     {
-        auto last_focused = std::find_if(
-            ui->begin(),
-            ui->end(),
-            [](auto item)
-            { return item.focused == true; });
+        auto last_focused = GetFocused();
 
         if (last_focused == ui->end())
         {
-            ESP_LOGE(TAG, "Last focus not found");
             return -1;
         }
 
@@ -1311,5 +1306,30 @@ namespace Scene
     SceneId Scene::Escape()
     {
         return SceneId::CurrentScene;
+    }
+
+    std::vector<UiStringItem>::iterator Scene::GetFocused()
+    {
+        return GetFocused(ui->begin(), ui->end());
+    }
+
+    std::vector<UiStringItem>::iterator Scene::GetFocused(std::vector<UiStringItem>::iterator begin)
+    {
+        return GetFocused(begin, ui->end());
+    }
+
+    std::vector<UiStringItem>::iterator Scene::GetFocused(std::vector<UiStringItem>::iterator begin,
+                                                          std::vector<UiStringItem>::iterator end)
+    {
+        auto focused{std::find_if(begin, end,
+                                  [](auto &item)
+                                  { return item.focused; })};
+
+        if (focused == end)
+        {
+            ESP_LOGE(TAG, "Focused item not found");
+        }
+
+        return focused;
     }
 }

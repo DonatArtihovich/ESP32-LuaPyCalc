@@ -153,8 +153,7 @@ namespace Scene
             direction == Direction::Bottom)
         {
             SetCursorControlling(true);
-            auto focused = std::find_if(ui->begin(), ui->end(), [this](auto &item)
-                                        { return item.focused; });
+            auto focused = GetFocused();
             if (focused != ui->end())
             {
                 ChangeItemFocus(&(*focused), false, true);
@@ -185,11 +184,7 @@ namespace Scene
             return Scene::Enter();
         }
 
-        auto focused = std::find_if(
-            ui->begin(),
-            ui->end(),
-            [](auto &item) mutable
-            { return item.focused; });
+        auto focused = GetFocused();
 
         if (focused == ui->end())
         {
@@ -319,11 +314,7 @@ namespace Scene
 
         if (!IsModalStage())
         {
-            auto focused = std::find_if(
-                ui->begin(),
-                ui->end(),
-                [](auto &item)
-                { return item.focused; });
+            auto focused = GetFocused();
 
             if (focused != ui->end() &&
                 focused >= GetContentUiStart() &&
@@ -592,9 +583,7 @@ namespace Scene
         modal.PreLeave = [this]()
         {
             ui->erase(ui->begin(), ui->end() - 2);
-            auto focused{std::find_if(ui->begin(), ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
+            auto focused{GetFocused()};
 
             if (focused != ui->begin())
                 ChangeItemFocus(&(*focused), false);
@@ -635,11 +624,9 @@ namespace Scene
 
         modal.PreLeave = [this]()
         {
-            auto focused{std::find_if(ui->begin(), ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
+            auto focused{GetFocused()};
 
-            if (focused != ui->begin() + 1)
+            if (focused != ui->end())
                 ChangeItemFocus(&(*focused), false);
         };
 
@@ -668,9 +655,7 @@ namespace Scene
         modal.PreLeave = [this]()
         {
             ui->erase(ui->begin(), ui->end() - 3);
-            auto focused{std::find_if(ui->begin(), ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
+            auto focused{GetFocused()};
 
             if (focused != ui->end())
                 ChangeItemFocus(&(*focused), false);
@@ -685,11 +670,7 @@ namespace Scene
             if (!IsCursorControlling() && direction == Direction::Up)
             {
                 SetCursorControlling(true);
-                auto focused{std::find_if(
-                    ui->begin(),
-                    ui->end(),
-                    [](auto &item)
-                    { return item.focused; })};
+                auto focused{GetFocused()};
 
                 if (focused != ui->end())
                 {

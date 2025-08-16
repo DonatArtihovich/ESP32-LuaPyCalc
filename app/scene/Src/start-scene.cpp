@@ -27,13 +27,9 @@ namespace Scene
 
     SceneId StartScene::Enter()
     {
-        auto focused = std::find_if(
-            ui->cbegin(),
-            ui->cend(),
-            [](auto &item)
-            { return item.focused; });
+        auto focused = GetFocused();
 
-        if (focused != ui->cend())
+        if (focused != ui->end())
         {
             display.Clear(Color::Black);
             if (focused->label.contains("Files"))
