@@ -53,7 +53,7 @@ namespace Scene
     class Scene
     {
         bool is_cursor_controlling{};
-        std::string clipboard{};
+        std::string clipboard{"print(\"clipboard string\")"};
         Cursor cursor{};
         uint8_t stage{};
 
