@@ -692,11 +692,8 @@ namespace Scene
 
         modal.Arrow = [this](Direction direction)
         {
-            ESP_LOGI(TAG, "CreateModalArrow: direction %d", (int)direction);
-
             if (!IsCursorControlling() && direction == Direction::Up)
             {
-                ESP_LOGI(TAG, "CreateModalArrow: !IsCursorControlling() && direction == Direction::Up");
                 SetCursorControlling(true);
                 auto focused{std::find_if(
                     ui->begin(),
@@ -715,12 +712,10 @@ namespace Scene
                 if (direction == Direction::Left ||
                     direction == Direction::Right)
                 {
-                    ESP_LOGI(TAG, "CreateModalArrow: IsCursorControlling(); direction == Direction::Left || direction == Direction::Right");
                     MoveCursor(direction);
                 }
                 else if (direction == Direction::Bottom)
                 {
-                    ESP_LOGI(TAG, "CreateModalArrow: IsCursorControlling(); direction == Direction::Bottom");
                     SetCursorControlling(false);
                     ChangeItemFocus(&*(ui->end() - 3), true, true);
                 }
@@ -749,17 +744,8 @@ namespace Scene
         return FilesSceneStage::DirectoryStage == (FilesSceneStage)stage;
     }
 
-    void FilesScene::EnterModalControlling()
-    {
-        ESP_LOGI(TAG, "Enter %d Stage", (int)GetStage<FilesSceneStage>());
-        Scene::EnterModalControlling();
-    }
-
     void FilesScene::LeaveModalControlling(uint8_t stage, bool rerender)
     {
-        if (!IsModalStage())
-            return;
-
         Scene::LeaveModalControlling(stage, rerender);
     }
 

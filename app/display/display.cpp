@@ -159,33 +159,14 @@ namespace Display
         std::vector<UiStringItem>::iterator end,
         int16_t x,
         int16_t y,
-        uint8_t count)
+        uint8_t max_count)
     {
         lcd.SetFontDirection(1);
+        SetListPositions(start, end, x, y, max_count);
         uint8_t fw, fh;
 
         for (auto it = start; it < end; it++)
         {
-            if (!it->displayable)
-            {
-                ESP_LOGD(TAG, "Item not displayable, %s", it->label.c_str());
-                continue;
-            }
-            Font::GetFontx(it->font, 0, &fw, &fh);
-            uint16_t width = it->label.size() * fw;
-
-            it->x = x;
-            it->y = y;
-
-            y -= fh;
-
-            if (count == 0 || (x > GetWidth() || y < 0 || y > GetHeight() || x < 0))
-            {
-                it->displayable = false;
-                if (it < (end - 1))
-                    (it + 1)->displayable = false;
-            }
-
             if (!it->displayable)
             {
                 ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
@@ -196,12 +177,55 @@ namespace Display
                 ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
             }
 
+            Font::GetFontx(it->font, 0, &fw, &fh);
+            uint16_t width = it->label.size() * fw;
+
             if (it->backgroundColor != Color::None)
             {
                 lcd.DrawFillRect(it->y, it->x, it->y + fh, it->x + width, it->backgroundColor);
             }
             lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label.c_str(), it->color);
-            count--;
+        }
+    }
+
+    void DisplayController::SetListPositions(std::vector<UiStringItem>::iterator start,
+                                             std::vector<UiStringItem>::iterator end,
+                                             int16_t x,
+                                             int16_t y, uint8_t max_count)
+    {
+        uint8_t fh;
+        for (auto it = start; it < end; it++)
+        {
+            if (max_count == 0)
+            {
+                it->displayable = false;
+            }
+
+            if (!it->displayable)
+            {
+                continue;
+            }
+
+            Font::GetFontx(it->font, 0, 0, &fh);
+
+            it->x = x;
+            it->y = y;
+
+            y -= fh;
+
+            if ((x > GetWidth() || y < 0 || y > GetHeight() || x < 0))
+            {
+                it->displayable = false;
+                if (it < (end - 1))
+                    (it + 1)->displayable = false;
+            }
+
+            if (it->displayable)
+            {
+                max_count--;
+            }
+
+            ESP_LOGI(TAG, "it: %s, displayable: %d, x: %d, y: %d, max_count: %d", it->label.c_str(), it->displayable, it->x, it->y, max_count);
         }
     }
 

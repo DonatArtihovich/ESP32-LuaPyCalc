@@ -1,5 +1,7 @@
 #include "code-scene.h"
 
+static const char *TAG = "CodeScene";
+
 namespace Scene
 {
     CodeScene::CodeScene(DisplayController &display)
@@ -32,7 +34,7 @@ namespace Scene
         };
         CursorInit(&cursor);
 
-        RenderAll();
+        OpenStageModal(CodeSceneStage::LanguageChooseModalStage);
     }
 
     SceneId CodeScene::Escape()
@@ -41,6 +43,16 @@ namespace Scene
         {
             SetCursorControlling(false);
             ChangeItemFocus(&*(ui->begin() + 1), true, true);
+            return SceneId::CurrentScene;
+        }
+        else if (IsModalStage())
+        {
+            if (IsStage(CodeSceneStage::LanguageChooseModalStage))
+            {
+                return SceneId::StartScene;
+            }
+
+            LeaveModalControlling();
             return SceneId::CurrentScene;
         }
 
@@ -61,6 +73,12 @@ namespace Scene
     {
         Scene::Arrow(direction);
 
+        if (IsModalStage() && GetStageModal().Arrow != nullptr)
+        {
+            GetStageModal().Arrow(direction);
+            return;
+        }
+
         if (!IsCursorControlling() && direction == Direction::Bottom)
         {
             SetCursorControlling(true);
@@ -72,7 +90,8 @@ namespace Scene
             SpawnCursor();
             return;
         }
-        else if (IsCursorControlling())
+
+        if (IsCursorControlling())
         {
             MoveCursor(direction, true, GetLinesScroll());
             return;
@@ -121,5 +140,87 @@ namespace Scene
         }
 
         return 0;
+    }
+
+    void CodeScene::InitModals()
+    {
+        InitLanguageChooseModal();
+
+        for (auto &[key, modal] : modals)
+        {
+            modal.Cancel = [this]()
+            {
+                Escape();
+            };
+        }
+    }
+
+    void CodeScene::InitLanguageChooseModal()
+    {
+        Modal modal;
+
+        modal.ui.push_back(UiStringItem{"Choose language:", Color::White, display.fx24G, false});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::End);
+
+        uint8_t fw, fh;
+        Font::GetFontx(display.fx24G, 0, &fw, &fh);
+
+        modal.ui.push_back(UiStringItem{"Lua", Color::White, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::Center);
+        ChangeItemFocus(&*(modal.ui.end() - 1), true);
+
+        modal.ui.push_back(UiStringItem{"Python", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Ruby", Color::White, display.fx24G});
+
+        size_t langs_count{modal.ui.size() - GetContentUiStartIndex(CodeSceneStage::LanguageChooseModalStage)};
+        uint8_t start_y{static_cast<uint8_t>((modal.ui.end() - langs_count)->y + fh * (langs_count / 2))};
+
+        display.SetListPositions(modal.ui.end() - langs_count, modal.ui.end(), 10, start_y, 9);
+        std::for_each(
+            modal.ui.end() - langs_count,
+            modal.ui.end(),
+            [this](auto &item)
+            { display.SetPosition(&item, Position::Center); });
+
+        modal.PreEnter = [this]()
+        {
+            ChangeItemFocus(&(*ui)[1], true);
+        };
+
+        modal.PreLeave = [this]()
+        {
+            auto focused{std::find_if(
+                ui->begin(),
+                ui->end(),
+                [](auto &item)
+                { return item.focused; })};
+
+            if (focused != ui->end())
+            {
+                ChangeItemFocus(&*focused, false);
+            }
+        };
+
+        modal.Arrow = [this](Direction direction)
+        {
+            Focus(direction);
+        };
+
+        AddStageModal(CodeSceneStage::LanguageChooseModalStage, modal);
+    }
+
+    void CodeScene::LeaveModalControlling(uint8_t stage, bool rerender)
+    {
+        Scene::LeaveModalControlling(stage, rerender);
+    }
+
+    size_t CodeScene::GetContentUiStartIndex(uint8_t stage)
+    {
+        if (stage == (uint8_t)CodeSceneStage::LanguageChooseModalStage)
+        {
+            return 1;
+        }
+
+        return content_ui_start;
     }
 }

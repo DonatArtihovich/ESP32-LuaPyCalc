@@ -1166,6 +1166,7 @@ namespace Scene
             ui->end(),
             [this](auto &item)
             { display.DrawStringItem(&item); });
+
         if (IsCursorControlling())
         {
             RenderCursor();
@@ -1177,6 +1178,7 @@ namespace Scene
         if (!IsModalStage())
             return;
 
+        ESP_LOGI(TAG, "Enter %d Stage", GetStage());
         GetStageModal().PreEnter();
         ui = &modals[stage].ui;
         RenderModal();

@@ -73,7 +73,14 @@ namespace Display
         void DrawStringItems(
             std::vector<UiStringItem>::iterator start,
             std::vector<UiStringItem>::iterator end,
-            int16_t x, int16_t y, uint8_t count = 1);
+            int16_t x, int16_t y, uint8_t max_count = 1);
+
+        void SetListPositions(
+            std::vector<UiStringItem>::iterator start,
+            std::vector<UiStringItem>::iterator end,
+            int16_t x,
+            int16_t y,
+            uint8_t max_count);
 
         void DrawListEndingLabel(std::vector<UiStringItem>::iterator line,
                                  size_t count,

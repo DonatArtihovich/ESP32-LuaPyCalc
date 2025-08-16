@@ -51,7 +51,6 @@ namespace Scene
         uint8_t Focus(Direction direction) override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
-        void EnterModalControlling() override;
         void LeaveModalControlling(
             uint8_t stage = (uint8_t)FilesSceneStage::DirectoryStage,
             bool rerender = true) override;
