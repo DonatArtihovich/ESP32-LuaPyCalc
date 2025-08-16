@@ -66,6 +66,8 @@ namespace Scene
         const size_t max_lines_per_page{9};
         size_t content_ui_start{0};
 
+        bool is_code_running{};
+
         void SetCursorControlling(bool cursor);
         virtual void EnterModalControlling();
         virtual void LeaveModalControlling(uint8_t stage, bool rerender = true);

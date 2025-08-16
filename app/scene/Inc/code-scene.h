@@ -7,10 +7,11 @@ using CodeRunner::CodeLanguage, CodeRunner::CodeRunController;
 
 namespace Scene
 {
-    enum CodeSceneStage
+    enum class CodeSceneStage
     {
         CodeEnterStage,
         LanguageChooseModalStage,
+        CodeRunModalStage
     };
 
     class CodeScene : public Scene
@@ -27,6 +28,7 @@ namespace Scene
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
         void InitModals() override;
         void InitLanguageChooseModal();
+        void InitCodeRunModal();
         size_t GetContentUiStartIndex(uint8_t stage);
 
         void LeaveModalControlling(
@@ -44,6 +46,8 @@ namespace Scene
         SceneId Escape() override;
         void Delete() override;
         void Value(char value) override;
+
+        void SendCodeOutput(const char *output) override;
 
         ~CodeScene() = default;
     };

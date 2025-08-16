@@ -400,6 +400,7 @@ namespace Scene
 
         uint16_t cursor_x{}, cursor_y{};
         GetCursorXY(&cursor_x, &cursor_y);
+        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
 
         display.DrawCursor(
             cursor_x,
@@ -1182,8 +1183,14 @@ namespace Scene
             return;
 
         ESP_LOGI(TAG, "Enter %d Stage", GetStage());
-        GetStageModal().PreEnter();
-        ui = &modals[stage].ui;
+        Modal &modal{GetStageModal()};
+
+        if (modal.PreEnter)
+        {
+            modal.PreEnter();
+        }
+
+        ui = &modal.ui;
         RenderModal();
     }
 
@@ -1192,7 +1199,11 @@ namespace Scene
         if (!IsModalStage())
             return;
 
-        GetStageModal().PreLeave();
+        Modal &modal = GetStageModal();
+        if (modal.PreLeave)
+        {
+            modal.PreLeave();
+        }
 
         if (IsHomeStage(stage))
         {

@@ -184,14 +184,7 @@ namespace Scene
     void CodeScene::InitModals()
     {
         InitLanguageChooseModal();
-
-        for (auto &[key, modal] : modals)
-        {
-            modal.Cancel = [this]()
-            {
-                Escape();
-            };
-        }
+        InitCodeRunModal();
     }
 
     void CodeScene::InitLanguageChooseModal()
@@ -209,7 +202,7 @@ namespace Scene
             modal.ui.push_back(UiStringItem{key, Color::White, display.fx24G});
         }
 
-        size_t langs_start_index{GetContentUiStartIndex(CodeSceneStage::LanguageChooseModalStage)};
+        size_t langs_start_index{GetContentUiStartIndex((uint8_t)CodeSceneStage::LanguageChooseModalStage)};
 
         display.SetPosition(&modal.ui[langs_start_index], Position::Center, Position::Center);
         ChangeItemFocus(&modal.ui[langs_start_index], true);
@@ -250,6 +243,42 @@ namespace Scene
         AddStageModal(CodeSceneStage::LanguageChooseModalStage, modal);
     }
 
+    void CodeScene::InitCodeRunModal()
+    {
+        Modal modal{};
+
+        modal.ui.push_back(UiStringItem{"Running...", Color::White, display.fx32L, false});
+        display.SetPosition(&modal.ui[0], Position::Center, Position::End);
+
+        modal.PreEnter = [this]()
+        {
+            uint8_t fw, fh;
+            Font::GetFontx(display.fx16G, 0, &fw, &fh);
+            Cursor cursor{
+                .x = 0,
+                .y = 0,
+                .width = fw,
+                .height = fh,
+            };
+            CursorInit(&cursor);
+
+            Modal &modal{GetStageModal(CodeSceneStage::CodeRunModalStage)};
+            modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
+            modal.ui[1].x = 10;
+            modal.ui[1].y = display.GetHeight() - 60;
+
+            SetCursorControlling(true);
+        };
+
+        modal.PreLeave = [this]()
+        {
+            Modal &modal{GetStageModal()};
+            modal.ui.erase(modal.ui.begin() + 1, modal.ui.end());
+        };
+
+        AddStageModal(CodeSceneStage::CodeRunModalStage, modal);
+    }
+
     void CodeScene::LeaveModalControlling(uint8_t stage, bool rerender)
     {
         Scene::LeaveModalControlling(stage, rerender);
@@ -257,7 +286,8 @@ namespace Scene
 
     size_t CodeScene::GetContentUiStartIndex(uint8_t stage)
     {
-        if (stage == (uint8_t)CodeSceneStage::LanguageChooseModalStage)
+        if (stage == (uint8_t)CodeSceneStage::LanguageChooseModalStage ||
+            stage == (uint8_t)CodeSceneStage::CodeRunModalStage)
         {
             return 1;
         }
@@ -271,6 +301,16 @@ namespace Scene
         std::for_each(GetContentUiStart(), ui->end(), [&code](auto &item)
                       { code += item.label; });
 
+        OpenStageModal(CodeSceneStage::CodeRunModalStage);
         CodeRunController::RunCodeString(code, runner_language);
+    }
+
+    void CodeScene::SendCodeOutput(const char *output)
+    {
+        if (IsStage(CodeSceneStage::CodeRunModalStage))
+        {
+            ESP_LOGI(TAG, "Code output: %s", output);
+            CursorInsertChars(output, 1);
+        }
     }
 }
