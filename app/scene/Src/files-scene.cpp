@@ -55,11 +55,18 @@ namespace Scene
     void FilesScene::Value(char value)
     {
         FilesSceneStage stage{GetStage<FilesSceneStage>()};
-        bool enter{false};
+        bool enter{false}, is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
 
         if (stage == FilesSceneStage::FileOpenStage)
         {
-            enter = true;
+            if ((value == 'r' || value == 'R') && is_ctrl_pressed)
+            {
+                RunFile();
+            }
+            else
+            {
+                enter = true;
+            }
         }
         else if (stage == FilesSceneStage::CreateModalStage)
         {
@@ -417,6 +424,7 @@ namespace Scene
         ui->erase(GetContentUiStart(), ui->end());
 
         ReadFile(curr_directory + relative_path);
+        DetectLanguage(relative_path);
         RenderAll();
 
         uint8_t fw, fh;
@@ -896,5 +904,50 @@ namespace Scene
         default:
             return 0;
         }
+    }
+
+    void FilesScene::DetectLanguage(std::string filename)
+    {
+        std::string extension{};
+        size_t extension_start{filename.find_last_of('.')};
+        if (extension_start != std::string::npos)
+        {
+            extension.append(filename, extension_start);
+            std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
+        }
+
+        ESP_LOGI(TAG, "File extension: %s", extension.c_str());
+
+        if (extension == ".lua")
+        {
+            runner_language = CodeLanguage::Lua;
+        }
+        else if (extension == ".py")
+        {
+            runner_language = CodeLanguage::Python;
+        }
+        else if (extension == ".rb")
+        {
+            runner_language = CodeLanguage::Ruby;
+        }
+        else
+        {
+            runner_language = CodeLanguage::Text;
+        }
+
+        const char *arr[]{"Text", "Lua", "Python", "Ruby"};
+        ESP_LOGI(TAG, "Detected language: %s", arr[(int)runner_language]);
+
+        return;
+    }
+
+    void FilesScene::RunFile()
+    {
+        if (!IsStage(FilesSceneStage::FileOpenStage) ||
+            runner_language == CodeLanguage::Text)
+            return;
+
+        std::string file_path{curr_directory + (*ui)[0].label};
+        CodeRunController::RunCodeFile(file_path, runner_language);
     }
 }

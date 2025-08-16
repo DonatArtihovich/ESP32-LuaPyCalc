@@ -7,11 +7,9 @@ extern QueueHandle_t xQueueStdin;
 
 namespace CodeRunner
 {
-    esp_err_t LuaRunController::RunCodeString(const char *code)
-    {
-        esp_err_t ret{ESP_OK};
-        ESP_LOGI(TAG, "Run Lua code string...");
 
+    lua_State *LuaRunController::setup_lua()
+    {
         lua_State *L = luaL_newstate();
         luaL_openlibs(L);
 
@@ -22,8 +20,16 @@ namespace CodeRunner
         lua_pushcfunction(L, lua_io_read_impl);
         lua_setfield(L, -2, "read");
 
-        int lua_ret = luaL_dostring(L, code);
+        return L;
+    }
 
+    esp_err_t LuaRunController::RunCodeString(const char *code)
+    {
+        esp_err_t ret{ESP_OK};
+        ESP_LOGI(TAG, "Run Lua code string...");
+
+        lua_State *L{setup_lua()};
+        int lua_ret = luaL_dostring(L, code);
         lua_close(L);
 
         if (lua_ret != LUA_OK)
@@ -38,6 +44,24 @@ namespace CodeRunner
         // #define LUA_ERRSYNTAX 3
         // #define LUA_ERRMEM 4
         // #define LUA_ERRERR 5
+
+        return ret;
+    }
+
+    esp_err_t LuaRunController::RunCodeFile(const char *path)
+    {
+        esp_err_t ret{ESP_OK};
+        ESP_LOGI(TAG, "Run Lua code file %s...", path);
+
+        lua_State *L{setup_lua()};
+        int lua_ret = luaL_dofile(L, path);
+        lua_close(L);
+
+        if (lua_ret != LUA_OK)
+        {
+            ESP_LOGE(TAG, "Lua error: %d", lua_ret);
+            ret = ESP_FAIL;
+        }
 
         return ret;
     }

@@ -2,7 +2,9 @@
 #include "scene.h"
 #include "sd.h"
 
-using SD::SDCard;
+#include "runner.h"
+
+using SD::SDCard, CodeRunner::CodeLanguage, CodeRunner::CodeRunController;
 
 namespace Scene
 {
@@ -28,6 +30,7 @@ namespace Scene
         const size_t max_filename_size{8};
         const size_t max_filename_ext_size{3};
         std::vector<UiStringItem> directory_backup{};
+        CodeLanguage runner_language{CodeLanguage::Text};
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory();
@@ -35,8 +38,11 @@ namespace Scene
         void SaveDirectory();
 
         void OpenFile(const char *relative_path);
+        void DetectLanguage(std::string filename);
         void SaveFile();
         void CloseFile();
+
+        void RunFile();
 
         void DeleteFile(std::string filename);
         bool CreateFile(std::string filename, bool is_directory);

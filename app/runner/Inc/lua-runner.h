@@ -16,7 +16,10 @@ namespace CodeRunner
         static int lua_print_impl(lua_State *L);
         static int lua_io_read_impl(lua_State *L);
 
+        static lua_State *setup_lua();
+
     public:
         static esp_err_t RunCodeString(const char *code);
+        static esp_err_t RunCodeFile(const char *path);
     };
 }

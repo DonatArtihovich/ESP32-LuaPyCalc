@@ -13,6 +13,7 @@ namespace CodeRunner
 {
     enum class CodeLanguage
     {
+        Text,
         Lua,
         Python,
         Ruby
@@ -22,6 +23,7 @@ namespace CodeRunner
     {
     public:
         static esp_err_t RunCodeString(std::string code, CodeLanguage language);
+        static esp_err_t RunCodeFile(std::string path, CodeLanguage language);
         static esp_err_t Init();
     };
 }

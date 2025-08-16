@@ -27,6 +27,22 @@ namespace CodeRunner
         return ret;
     }
 
+    esp_err_t CodeRunController::RunCodeFile(std::string path, CodeLanguage language)
+    {
+        esp_err_t ret{ESP_OK};
+
+        switch (language)
+        {
+        case CodeLanguage::Lua:
+            ret = LuaRunController::RunCodeFile(path.c_str());
+            break;
+        default:
+            ESP_LOGI(TAG, "Language is not implemented yet");
+        }
+
+        return ret;
+    }
+
     esp_err_t CodeRunController::Init()
     {
         if (xTaskCreate(TaskCodeIO, "Code IO", 4096, NULL, 10, &xCodeIOTask) != pdPASS)
