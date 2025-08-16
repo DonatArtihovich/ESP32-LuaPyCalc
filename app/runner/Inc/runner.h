@@ -28,8 +28,13 @@ namespace CodeRunner
 
     class CodeRunController
     {
+        static bool is_running;
+
     public:
         static esp_err_t RunCodeString(std::string code, CodeLanguage language);
         static esp_err_t RunCodeFile(std::string path, CodeLanguage language);
+
+        static esp_err_t SetIsRunning(bool is_running);
+        static bool IsRunning();
     };
 }

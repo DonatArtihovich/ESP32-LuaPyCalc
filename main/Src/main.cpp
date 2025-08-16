@@ -9,6 +9,8 @@ extern QueueHandle_t xQueueRunnerStdin;
 extern TaskHandle_t xTaskRunnerIO;
 extern TaskHandle_t xTaskRunnerProcessing;
 
+extern SemaphoreHandle_t xIsRunningMutex;
+
 SemaphoreHandle_t xAppMutex = NULL;
 
 namespace Main
@@ -57,13 +59,19 @@ namespace Main
             vTaskDelete(NULL);
         }
 
+        xIsRunningMutex = xSemaphoreCreateMutex();
+        if (xIsRunningMutex == NULL)
+        {
+            vQueueDelete(xQueueRunnerProcessing);
+            vTaskDelete(NULL);
+        }
+
         CodeRunner::CodeProcess processing{};
         while (1)
         {
             if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
             {
                 ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
-
                 if (processing.is_file)
                 {
                     CodeRunController::RunCodeFile(processing.data, processing.language);

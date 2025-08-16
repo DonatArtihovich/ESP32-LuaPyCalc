@@ -54,6 +54,16 @@ namespace Scene
                 return SceneId::StartScene;
             }
 
+            if (IsStage(CodeSceneStage::CodeRunModalStage))
+            {
+                if (!CodeRunController::IsRunning())
+                {
+                    LeaveModalControlling();
+                }
+
+                return SceneId::CurrentScene;
+            }
+
             LeaveModalControlling();
             return SceneId::CurrentScene;
         }
