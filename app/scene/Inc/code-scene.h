@@ -1,11 +1,8 @@
 #pragma once
 
 #include "scene.h"
-#include "runner.h"
 
-#include <cmath>
-
-using CodeRunner::CodeLanguage, CodeRunner::CodeRunController;
+using CodeRunner::CodeLanguage;
 
 namespace Scene
 {
@@ -30,7 +27,6 @@ namespace Scene
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
         void InitModals() override;
         void InitLanguageChooseModal();
-        void InitCodeRunModal();
         size_t GetContentUiStartIndex(uint8_t stage);
 
         void LeaveModalControlling(

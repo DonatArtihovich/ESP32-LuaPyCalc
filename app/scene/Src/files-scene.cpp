@@ -438,6 +438,11 @@ namespace Scene
             return ui->end() - 1 - ui->begin();
         }
 
+        if (stage == FilesSceneStage::CodeRunModalStage)
+        {
+            return 1;
+        }
+
         return content_ui_start + (stage != FilesSceneStage::FileOpenStage);
     }
 
@@ -535,6 +540,8 @@ namespace Scene
                 Escape();
             };
         }
+
+        InitCodeRunModal((uint8_t)FilesSceneStage::CodeRunModalStage);
     }
 
     void FilesScene::InitDeleteModal()
@@ -943,17 +950,35 @@ namespace Scene
             return;
 
         std::string file_path{curr_directory + (*ui)[0].label};
-
         CodeRunner::CodeProcess process{
             .language = runner_language,
             .data = file_path,
             .is_file = true,
         };
 
+        OpenStageModal(FilesSceneStage::CodeRunModalStage);
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
     }
 
-    void SendCodeOutput(const char *output) {};
-    void SendCodeError(const char *traceback) {};
-    void SendCodeSuccess() {};
+    void FilesScene::SendCodeOutput(const char *output)
+    {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+        {
+            Scene::SendCodeOutput(output);
+        }
+    };
+    void FilesScene::SendCodeError(const char *traceback)
+    {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+        {
+            Scene::SendCodeError(traceback);
+        }
+    };
+    void FilesScene::SendCodeSuccess()
+    {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+        {
+            Scene::SendCodeSuccess();
+        }
+    };
 }

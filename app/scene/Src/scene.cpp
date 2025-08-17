@@ -2,6 +2,8 @@
 
 static const char *TAG = "Scene";
 
+extern QueueHandle_t xQueueRunnerStdin;
+
 namespace Scene
 {
     Scene::Scene(DisplayController &_display) : display{_display} {}
@@ -1289,6 +1291,11 @@ namespace Scene
         return modals.count(stage) != 0;
     }
 
+    void Scene::AddStageModal(uint8_t stage, Modal modal)
+    {
+        modals[stage] = modal;
+    }
+
     void Scene::AddModalLabel(std::string modal_label, Modal &modal)
     {
         UiStringItem label_item{"", Color::White, display.fx24G, false};
@@ -1400,6 +1407,58 @@ namespace Scene
         }
 
         return focused;
+    }
+
+    void Scene::InitCodeRunModal(uint8_t code_run_stage)
+    {
+        Modal modal{};
+
+        modal.ui.push_back(UiStringItem{"Running...", Color::White, display.fx32L, false});
+        display.SetPosition(&modal.ui[0], Position::Center, Position::End);
+
+        modal.PreEnter = [this, code_run_stage]()
+        {
+            uint8_t fw, fh;
+            Font::GetFontx(display.fx16G, 0, &fw, &fh);
+            Cursor cursor{
+                .x = 0,
+                .y = 0,
+                .width = fw,
+                .height = fh,
+            };
+            CursorInit(&cursor);
+
+            Modal &modal{GetStageModal(code_run_stage)};
+            modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
+            modal.ui[1].x = 10;
+            modal.ui[1].y = display.GetHeight() - 60;
+
+            SetCursorControlling(true);
+        };
+
+        modal.PreLeave = [this]()
+        {
+            Modal &modal{GetStageModal()};
+            modal.ui.erase(modal.ui.begin() + 1, modal.ui.end());
+        };
+
+        modal.Arrow = [this](Direction direction)
+        {
+            ESP_LOGI(TAG, "direction %d", (int)direction);
+        };
+
+        modal.Value = [this](char value, bool _)
+        {
+            if (CodeRunController::IsWaitingInput())
+            {
+                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS)
+                {
+                    CursorInsertChars(std::string(1, value));
+                }
+            }
+        };
+
+        AddStageModal(code_run_stage, modal);
     }
 
     void Scene::CursorPaste()

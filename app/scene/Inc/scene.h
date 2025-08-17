@@ -12,8 +12,14 @@
 
 #include "display.h"
 #include "keyboard.h"
+#include "runner.h"
 
-using LCD::Color, Display::DisplayController, Display::UiStringItem, Display::Position, Keyboard::KeyboardController;
+using LCD::Color,
+    Display::DisplayController,
+    Display::UiStringItem,
+    Display::Position,
+    Keyboard::KeyboardController,
+    CodeRunner::CodeRunController;
 
 namespace Scene
 {
@@ -91,6 +97,8 @@ namespace Scene
         void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
 
         virtual void InitModals();
+        void InitCodeRunModal(uint8_t code_run_stage);
+
         void AddModalLabel(std::string modal_label, Modal &modal);
 
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
@@ -129,6 +137,8 @@ namespace Scene
         {
             modals[(uint8_t)stage] = modal;
         }
+
+        void AddStageModal(uint8_t stage, Modal modal);
 
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
         Modal &GetStageModal(StageType stage)

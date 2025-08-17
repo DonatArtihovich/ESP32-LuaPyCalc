@@ -3,7 +3,6 @@
 static const char *TAG = "CodeScene";
 
 extern QueueHandle_t xQueueRunnerProcessing;
-extern QueueHandle_t xQueueRunnerStdin;
 
 namespace Scene
 {
@@ -183,7 +182,7 @@ namespace Scene
     void CodeScene::InitModals()
     {
         InitLanguageChooseModal();
-        InitCodeRunModal();
+        InitCodeRunModal((uint8_t)CodeSceneStage::CodeRunModalStage);
     }
 
     void CodeScene::InitLanguageChooseModal()
@@ -240,60 +239,6 @@ namespace Scene
         };
 
         AddStageModal(CodeSceneStage::LanguageChooseModalStage, modal);
-    }
-
-    void CodeScene::InitCodeRunModal()
-    {
-        Modal modal{};
-
-        modal.ui.push_back(UiStringItem{"Running...", Color::White, display.fx32L, false});
-        display.SetPosition(&modal.ui[0], Position::Center, Position::End);
-
-        modal.PreEnter = [this]()
-        {
-            uint8_t fw, fh;
-            Font::GetFontx(display.fx16G, 0, &fw, &fh);
-            Cursor cursor{
-                .x = 0,
-                .y = 0,
-                .width = fw,
-                .height = fh,
-            };
-            CursorInit(&cursor);
-
-            Modal &modal{GetStageModal(CodeSceneStage::CodeRunModalStage)};
-            modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
-            modal.ui[1].x = 10;
-            modal.ui[1].y = display.GetHeight() - 60;
-
-            SetCursorControlling(true);
-        };
-
-        modal.PreLeave = [this]()
-        {
-            Modal &modal{GetStageModal()};
-            modal.ui.erase(modal.ui.begin() + 1, modal.ui.end());
-        };
-
-        modal.Arrow = [this](Direction direction)
-        {
-            ESP_LOGI(TAG, "direction %d", (int)direction);
-        };
-
-        modal.Value = [this](char value, bool _)
-        {
-            ESP_LOGI(TAG, "value %c", value);
-            if (CodeRunController::IsWaitingInput())
-            {
-                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS)
-                {
-                    ESP_LOGI(TAG, "Send char to Input: %c", value);
-                    CursorInsertChars(std::string(1, value));
-                }
-            }
-        };
-
-        AddStageModal(CodeSceneStage::CodeRunModalStage, modal);
     }
 
     void CodeScene::LeaveModalControlling(uint8_t stage, bool rerender)

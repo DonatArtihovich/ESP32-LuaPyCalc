@@ -15,6 +15,7 @@ namespace Scene
         DeleteModalStage,
         CreateChooseModalStage,
         CreateModalStage,
+        CodeRunModalStage,
     };
 
     class FilesScene : public Scene
