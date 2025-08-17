@@ -131,7 +131,6 @@ namespace Scene
 
     void FilesScene::Arrow(Direction direction)
     {
-        Scene::Arrow(direction);
         if (IsStage(FilesSceneStage::FileOpenStage) &&
             !IsCursorControlling() &&
             direction == Direction::Bottom)
@@ -147,18 +146,7 @@ namespace Scene
             return;
         }
 
-        if (IsModalStage() && GetStageModal().Arrow != nullptr)
-        {
-            GetStageModal().Arrow(direction);
-            return;
-        }
-        else if (IsCursorControlling())
-        {
-            MoveCursor(direction, true, GetLinesScroll());
-            return;
-        }
-
-        Focus(direction);
+        Scene::Arrow(direction);
     }
 
     SceneId FilesScene::Enter()

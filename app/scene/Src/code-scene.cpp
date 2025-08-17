@@ -122,33 +122,19 @@ namespace Scene
 
     void CodeScene::Arrow(Direction direction)
     {
-        Scene::Arrow(direction);
-
-        if (IsModalStage() && GetStageModal().Arrow != nullptr)
-        {
-            GetStageModal().Arrow(direction);
-            return;
-        }
-
-        if (!IsCursorControlling() && direction == Direction::Bottom)
+        if (!IsModalStage() && !IsCursorControlling() && direction == Direction::Bottom)
         {
             SetCursorControlling(true);
-            auto focused{std::find_if(ui->begin(),
-                                      ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
-            ChangeItemFocus(&*focused, false, true);
+            auto focused{GetFocused()};
+            if (focused != ui->end())
+            {
+                ChangeItemFocus(&*focused, false, true);
+            }
             SpawnCursor();
             return;
         }
 
-        if (IsCursorControlling())
-        {
-            MoveCursor(direction, true, GetLinesScroll());
-            return;
-        }
-
-        Focus(direction);
+        Scene::Arrow(direction);
     }
 
     void CodeScene::Delete()
@@ -286,6 +272,16 @@ namespace Scene
         {
             Modal &modal{GetStageModal()};
             modal.ui.erase(modal.ui.begin() + 1, modal.ui.end());
+        };
+
+        modal.Arrow = [this](Direction direction)
+        {
+            ESP_LOGI(TAG, "direction %d", (int)direction);
+        };
+
+        modal.Value = [this](char value, bool _)
+        {
+            ESP_LOGI(TAG, "value %c", value);
         };
 
         AddStageModal(CodeSceneStage::CodeRunModalStage, modal);

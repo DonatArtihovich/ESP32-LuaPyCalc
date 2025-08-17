@@ -19,12 +19,6 @@ namespace Scene
         RenderAll();
     }
 
-    void StartScene::Arrow(Direction direction)
-    {
-        Scene::Arrow(direction);
-        Scene::Focus(direction);
-    }
-
     SceneId StartScene::Enter()
     {
         auto focused = GetFocused();

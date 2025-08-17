@@ -165,6 +165,24 @@ namespace Scene
             ESP_LOGI(TAG, "Arrow Left");
             break;
         }
+
+        if (IsModalStage())
+        {
+            Modal &modal{GetStageModal()};
+            if (modal.Arrow != nullptr)
+            {
+                GetStageModal().Arrow(direction);
+                return;
+            }
+        }
+
+        if (IsCursorControlling())
+        {
+            MoveCursor(direction, true, GetLinesScroll());
+            return;
+        }
+
+        Focus(direction);
     }
 
     void Scene::ChangeHeader(std::string header, bool rerender)
