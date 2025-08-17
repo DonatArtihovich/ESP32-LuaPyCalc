@@ -57,39 +57,14 @@ namespace Scene
     void FilesScene::Value(char value)
     {
         FilesSceneStage stage{GetStage<FilesSceneStage>()};
-        bool enter{false}, is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
+        bool enter{true}, is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
 
         if (stage == FilesSceneStage::FileOpenStage)
         {
             if ((value == 'r' || value == 'R') && is_ctrl_pressed)
             {
                 RunFile();
-            }
-            else
-            {
-                enter = true;
-            }
-        }
-        else if (stage == FilesSceneStage::CreateModalStage)
-        {
-            std::string allowed_digits{"_-"};
-            auto &label{(GetStageModal(stage).ui.end() - 1)->label};
-
-            if (isalnum(value) || allowed_digits.contains(value))
-            {
-                if (label.size() < max_filename_size ||
-                    (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
-                     label.contains('.')))
-                {
-                    enter = true;
-                }
-            }
-            else if (value == '.')
-            {
-                if (label.size() < (max_filename_size + max_filename_ext_size + 1))
-                {
-                    enter = true;
-                }
+                enter = false;
             }
         }
 
@@ -704,6 +679,38 @@ namespace Scene
             else
             {
                 Scene::Focus(direction);
+            }
+        };
+
+        modal.Value = [this](char value, bool is_ctrl_pressed)
+        {
+            if (!IsCursorControlling())
+                return;
+
+            std::string allowed_digits{"_-"};
+            auto &label{(GetStageModal().ui.end() - 1)->label};
+            bool enter{};
+
+            if (isalnum(value) || allowed_digits.contains(value))
+            {
+                if (label.size() < max_filename_size ||
+                    (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
+                     label.contains('.')))
+                {
+                    enter = true;
+                }
+            }
+            else if (value == '.')
+            {
+                if (label.size() < (max_filename_size + max_filename_ext_size + 1))
+                {
+                    enter = true;
+                }
+            }
+
+            if (enter)
+            {
+                CursorInsertChars(std::string(1, value), GetLinesScroll());
             }
         };
 

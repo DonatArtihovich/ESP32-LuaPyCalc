@@ -224,8 +224,6 @@ namespace Display
             {
                 max_count--;
             }
-
-            ESP_LOGI(TAG, "it: %s, displayable: %d, x: %d, y: %d, max_count: %d", it->label.c_str(), it->displayable, it->x, it->y, max_count);
         }
     }
 

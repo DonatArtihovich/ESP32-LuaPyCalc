@@ -48,6 +48,7 @@ namespace Scene
             PreEnter{},
             PreLeave{};
         std::function<void(Direction)> Arrow{};
+        std::function<void(char, bool)> Value{};
     };
 
     class Scene

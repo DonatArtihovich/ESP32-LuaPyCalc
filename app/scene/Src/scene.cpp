@@ -11,6 +11,17 @@ namespace Scene
         bool is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
         ESP_LOGI(TAG, "Entered value: %c, Ctrl pressed: %d", value, is_ctrl_pressed);
 
+        if (IsModalStage())
+        {
+            Modal &modal{GetStageModal()};
+            if (modal.Value)
+            {
+                modal.Value(value, is_ctrl_pressed);
+            }
+
+            return;
+        }
+
         if (IsCursorControlling())
         {
             if (!is_ctrl_pressed)
@@ -115,7 +126,6 @@ namespace Scene
         if (!item->focusable || item->focused == focus)
             return;
 
-        ESP_LOGI(TAG, "Item focus changed to %d", focus);
         item->focused = focus;
         if (focus)
         {
