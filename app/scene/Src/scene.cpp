@@ -1075,9 +1075,20 @@ namespace Scene
 
             UiStringItem &line{(*ui)[line_index]};
 
-            if (line.label.size() + size > GetLineLength())
+            size_t line_length{GetLineLength()};
+
+            if (line.label.size() + size > line_length)
             {
-                size = GetLineLength() - line.label.size();
+                size = line_length - line.label.size();
+            }
+
+            if (size == 0)
+            {
+                size_t count{line.label.size() - insert_x};
+                chars.append(line.label, line.label.size() - count);
+                line.label.erase(line.label.size() - count);
+
+                size = line_length - line.label.size();
             }
 
             for (int i = 0; i < size; i++)
