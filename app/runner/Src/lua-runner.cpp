@@ -88,6 +88,10 @@ namespace CodeRunner
             {
                 xQueueSend(xQueueRunnerStdout, "\t", portMAX_DELAY);
             }
+            else
+            {
+                xQueueSend(xQueueRunnerStdout, "\n", portMAX_DELAY);
+            }
         }
 
         return 0;
@@ -95,15 +99,33 @@ namespace CodeRunner
 
     int LuaRunController::lua_io_read_impl(lua_State *L)
     {
-        char io_buff[1] = {0};
-        if (xQueueReceive(xQueueRunnerStdin, io_buff, portMAX_DELAY) == pdPASS)
+        if (CodeRunController::SetIsWaitingInput(true) != ESP_OK)
         {
-            lua_pushstring(L, io_buff);
+            lua_pushnil(L);
+            return 1;
+        }
+        ESP_LOGI(TAG, "Is waiting input: true");
+
+        std::string end_symbols{" \n\t"};
+        std::string io_buff{};
+        char ch = 0;
+        while (xQueueReceive(xQueueRunnerStdin, &ch, portMAX_DELAY) == pdPASS &&
+               !end_symbols.contains(ch))
+        {
+            io_buff.push_back(ch);
+        }
+
+        if (io_buff.size())
+        {
+            lua_pushstring(L, io_buff.c_str());
         }
         else
         {
             lua_pushnil(L);
         }
+
+        ESP_LOGI(TAG, "Is waiting input: false");
+        CodeRunController::SetIsWaitingInput(false);
 
         return 1;
     }

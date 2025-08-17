@@ -10,10 +10,12 @@ TaskHandle_t xTaskRunnerIO = NULL;
 TaskHandle_t xTaskRunnerProcessing = NULL;
 
 SemaphoreHandle_t xIsRunningMutex = NULL;
+SemaphoreHandle_t xIsWaitingInputMutex = NULL;
 
 namespace CodeRunner
 {
     bool CodeRunController::is_running{};
+    bool CodeRunController::is_waiting_input{};
 
     esp_err_t CodeRunController::RunCodeString(std::string code, CodeLanguage language)
     {
@@ -80,5 +82,32 @@ namespace CodeRunner
         xSemaphoreGive(xIsRunningMutex);
 
         return is_running;
+    }
+
+    esp_err_t CodeRunController::SetIsWaitingInput(bool is_waiting_input)
+    {
+        if (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) == pdPASS)
+        {
+            CodeRunController::is_waiting_input = is_waiting_input;
+            xSemaphoreGive(xIsWaitingInputMutex);
+            return ESP_OK;
+        }
+
+        return ESP_FAIL;
+    }
+
+    bool CodeRunController::IsWaitingInput()
+    {
+        bool is_waiting_input{};
+
+        while (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) != pdPASS)
+        {
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }
+
+        is_waiting_input = CodeRunController::is_waiting_input;
+        xSemaphoreGive(xIsWaitingInputMutex);
+
+        return is_waiting_input;
     }
 }

@@ -10,6 +10,7 @@ extern TaskHandle_t xTaskRunnerIO;
 extern TaskHandle_t xTaskRunnerProcessing;
 
 extern SemaphoreHandle_t xIsRunningMutex;
+extern SemaphoreHandle_t xIsWaitingInputMutex;
 
 SemaphoreHandle_t xAppMutex = NULL;
 
@@ -63,6 +64,14 @@ namespace Main
         if (xIsRunningMutex == NULL)
         {
             vQueueDelete(xQueueRunnerProcessing);
+            vTaskDelete(NULL);
+        }
+
+        xIsWaitingInputMutex = xSemaphoreCreateMutex();
+        if (xIsWaitingInputMutex == NULL)
+        {
+            vQueueDelete(xQueueRunnerProcessing);
+            vSemaphoreDelete(xIsRunningMutex);
             vTaskDelete(NULL);
         }
 

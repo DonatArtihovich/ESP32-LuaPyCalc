@@ -3,6 +3,7 @@
 static const char *TAG = "CodeScene";
 
 extern QueueHandle_t xQueueRunnerProcessing;
+extern QueueHandle_t xQueueRunnerStdin;
 
 namespace Scene
 {
@@ -282,6 +283,14 @@ namespace Scene
         modal.Value = [this](char value, bool _)
         {
             ESP_LOGI(TAG, "value %c", value);
+            if (CodeRunController::IsWaitingInput())
+            {
+                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS)
+                {
+                    ESP_LOGI(TAG, "Send char to Input: %c", value);
+                    CursorInsertChars(std::string(1, value));
+                }
+            }
         };
 
         AddStageModal(CodeSceneStage::CodeRunModalStage, modal);
