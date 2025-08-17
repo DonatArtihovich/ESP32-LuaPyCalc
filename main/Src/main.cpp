@@ -54,6 +54,7 @@ namespace Main
 
     static void TaskRunnerProcessing(void *arg)
     {
+        Main *App{(Main *)arg};
         xQueueRunnerProcessing = xQueueCreate(1, sizeof(CodeRunner::CodeProcess));
         if (xQueueRunnerProcessing == NULL)
         {
@@ -75,19 +76,34 @@ namespace Main
             vTaskDelete(NULL);
         }
 
+        static char traceback[300] = {0};
         CodeRunner::CodeProcess processing{};
+
         while (1)
         {
             if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
             {
                 ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
+
                 if (processing.is_file)
                 {
                     CodeRunController::RunCodeFile(processing.data, processing.language);
                 }
                 else
                 {
-                    CodeRunController::RunCodeString(processing.data, processing.language);
+                    if (CodeRunController::RunCodeString(
+                            processing.data,
+                            processing.language,
+                            traceback,
+                            sizeof(traceback)) != ESP_OK)
+                    {
+                        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                        {
+                            App->SendCodeError(traceback);
+                            xSemaphoreGive(xAppMutex);
+                            memset(traceback, 0, sizeof(traceback));
+                        }
+                    }
                 }
             }
         }
@@ -214,7 +230,7 @@ namespace Main
             return ESP_FAIL;
         }
 
-        if (xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, NULL, 9, &xTaskRunnerProcessing) != pdPASS)
+        if (xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, this, 9, &xTaskRunnerProcessing) != pdPASS)
         {
             vTaskDelete(xTaskRunnerIO);
             return ESP_FAIL;
@@ -228,6 +244,10 @@ namespace Main
         scene->SendCodeOutput(output);
     }
 
+    void Main::SendCodeError(const char *traceback)
+    {
+        scene->SendCodeError(traceback);
+    }
 }
 
 extern "C" void app_main(void)

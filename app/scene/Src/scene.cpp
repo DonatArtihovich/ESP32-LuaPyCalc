@@ -373,7 +373,7 @@ namespace Scene
         *ret_y = static_cast<uint16_t>(first_line->y - y * cursor.height + 2);
     }
 
-    void Scene::ClearCursor(std::vector<UiStringItem>::iterator line,
+    void Scene::ClearCursor(UiStringItem *line,
                             int16_t cursor_x,
                             int16_t cursor_y)
     {
@@ -394,21 +394,23 @@ namespace Scene
         display.Clear(Color::Black, x, y, x + cursor.width, y + cursor.height);
         y -= 2;
 
-        char sym = ' ';
-        if (cursor_x < line->label.size())
+        if (line != nullptr)
         {
-            sym = line->label[cursor_x];
+            char sym = ' ';
+            if (cursor_x < line->label.size())
+            {
+                sym = line->label[cursor_x];
+            }
+            UiStringItem previous_cursor_pos{
+                std::string(1, sym).c_str(),
+                line->color,
+                line->font,
+                false,
+                Color::None,
+                x, y};
+
+            display.DrawStringItem(&previous_cursor_pos);
         }
-
-        UiStringItem previous_cursor_pos{
-            std::string(1, sym).c_str(),
-            line->color,
-            line->font,
-            false,
-            Color::None,
-            x, y};
-
-        display.DrawStringItem(&previous_cursor_pos);
     }
 
     void Scene::RenderCursor()
@@ -486,7 +488,7 @@ namespace Scene
 
         if (clearing && rerender)
         {
-            ClearCursor(first_displayable + cursor.y);
+            ClearCursor(&*(first_displayable + cursor.y));
         }
         cursor.x = cursor_x;
         cursor.y = cursor_y;
@@ -816,7 +818,7 @@ namespace Scene
 
         if (start_line_index == ui->size() - 1 && (*ui)[start_line_index].label.size() == 0)
         {
-            ClearCursor(ui->begin() + start_line_index);
+            ClearCursor(&(*ui)[start_line_index]);
         }
 
         if (count > GetLineLength())
@@ -1164,7 +1166,7 @@ namespace Scene
 
         if (scrolled_count == 0)
         {
-            ClearCursor(ui->begin() + start_line_index, initial_cursor_x, initial_cursor_y);
+            ClearCursor(&(*ui)[start_line_index], initial_cursor_x, initial_cursor_y);
         }
 
         SpawnCursor(-1, -1, false);
@@ -1211,6 +1213,16 @@ namespace Scene
         {
             RenderCursor();
         }
+    }
+
+    void Scene::RenderModalContent()
+    {
+        display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 60);
+        std::for_each(
+            Scene::GetContentUiStart(),
+            ui->end(),
+            [this](auto &item)
+            { display.DrawStringItem(&item); });
     }
 
     void Scene::EnterModalControlling()
@@ -1401,5 +1413,10 @@ namespace Scene
     void Scene::SendCodeOutput(const char *output)
     {
         ESP_LOGI(TAG, "Code output: %s", output);
+    }
+
+    void Scene::SendCodeError(const char *traceback)
+    {
+        ESP_LOGE(TAG, "Code error: %s", traceback);
     }
 }

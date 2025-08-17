@@ -23,13 +23,47 @@ namespace CodeRunner
         return L;
     }
 
-    esp_err_t LuaRunController::RunCodeString(const char *code)
+    esp_err_t LuaRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
         ESP_LOGI(TAG, "Run Lua code string...");
 
         lua_State *L{setup_lua()};
-        int lua_ret = luaL_dostring(L, code);
+        int lua_ret = LUA_OK; // luaL_dostring(L, code);
+
+        if ((lua_ret = luaL_loadstring(L, code)) != LUA_OK)
+        {
+            snprintf(traceback, traceback_len, lua_tostring(L, -1));
+            lua_pop(L, 1); // delete err msg
+        }
+        else
+        {
+            lua_ret = lua_pcall(L, 0, LUA_MULTRET, 0);
+
+            if (lua_ret != LUA_OK)
+            {
+                lua_getglobal(L, "debug"); // get traceback:
+                lua_getfield(L, -1, "traceback");
+                lua_pushvalue(L, -3);  // copy error msg
+                lua_pushinteger(L, 2); // stack trace depth
+
+                lua_call(L, 2, 1); // debug.traceback(err)
+
+                const char *tr = lua_tostring(L, 1);
+                if (tr != NULL)
+                {
+                    ESP_LOGI(TAG, "traceback_len: %d", traceback_len);
+                    snprintf(traceback, traceback_len, tr);
+                    lua_pop(L, 2); // delete err msg and traceback
+                }
+                else
+                {
+                    snprintf(traceback, traceback_len, "Runtime error.");
+                    lua_pop(L, 2); // delete err msg and traceback
+                }
+            }
+        }
+
         lua_close(L);
 
         if (lua_ret != LUA_OK)

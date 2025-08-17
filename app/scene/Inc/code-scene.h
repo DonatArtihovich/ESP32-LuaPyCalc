@@ -3,6 +3,8 @@
 #include "scene.h"
 #include "runner.h"
 
+#include <cmath>
+
 using CodeRunner::CodeLanguage, CodeRunner::CodeRunController;
 
 namespace Scene
@@ -48,6 +50,7 @@ namespace Scene
         void Value(char value) override;
 
         void SendCodeOutput(const char *output) override;
+        void SendCodeError(const char *traceback) override;
 
         ~CodeScene() = default;
     };

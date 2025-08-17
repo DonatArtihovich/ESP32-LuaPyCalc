@@ -19,7 +19,7 @@ namespace CodeRunner
         static lua_State *setup_lua();
 
     public:
-        static esp_err_t RunCodeString(const char *code);
+        static esp_err_t RunCodeString(const char *code, char *traceback, size_t traceback_len);
         static esp_err_t RunCodeFile(const char *path);
     };
 }

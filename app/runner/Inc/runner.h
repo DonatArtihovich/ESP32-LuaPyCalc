@@ -32,7 +32,7 @@ namespace CodeRunner
         static bool is_waiting_input;
 
     public:
-        static esp_err_t RunCodeString(std::string code, CodeLanguage language);
+        static esp_err_t RunCodeString(std::string code, CodeLanguage language, char *traceback, size_t traceback_len);
         static esp_err_t RunCodeFile(std::string path, CodeLanguage language);
 
         static esp_err_t SetIsRunning(bool is_running);
