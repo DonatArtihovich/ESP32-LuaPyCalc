@@ -85,6 +85,11 @@ namespace Scene
         SceneId Enter() override;
         SceneId Escape() override;
         void Delete() override;
+
+        void SendCodeOutput(const char *output) override;
+        void SendCodeError(const char *traceback) override;
+        void SendCodeSuccess() override;
+
         ~FilesScene() = default;
     };
 }

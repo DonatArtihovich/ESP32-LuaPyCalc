@@ -7,6 +7,7 @@
 #include <functional>
 #include <type_traits>
 #include <memory>
+#include <cmath>
 #include "esp_log.h"
 
 #include "display.h"
@@ -79,6 +80,7 @@ namespace Scene
         void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true, bool rerender = true);
         size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
         virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
+        virtual void ScrollToEnd();
 
         bool IsCursorControlling();
         void CursorInit(Cursor *cursor);
@@ -185,6 +187,7 @@ namespace Scene
 
         virtual void SendCodeOutput(const char *output);
         virtual void SendCodeError(const char *traceback);
+        virtual void SendCodeSuccess();
 
         virtual ~Scene() = default;
     };

@@ -51,6 +51,7 @@ namespace Scene
 
         void SendCodeOutput(const char *output) override;
         void SendCodeError(const char *traceback) override;
+        void SendCodeSuccess() override;
 
         ~CodeScene() = default;
     };

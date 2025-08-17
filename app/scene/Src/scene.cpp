@@ -1410,13 +1410,72 @@ namespace Scene
         }
     }
 
+    void Scene::ScrollToEnd()
+    {
+        for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+        {
+            if (ui->end() - it > GetLinesPerPageCount())
+            {
+                it->displayable = false;
+            }
+            else
+            {
+                it->displayable = true;
+            }
+        }
+    }
+
     void Scene::SendCodeOutput(const char *output)
     {
         ESP_LOGI(TAG, "Code output: %s", output);
+        CursorInsertChars(output, 1);
     }
 
     void Scene::SendCodeError(const char *traceback)
     {
         ESP_LOGE(TAG, "Code error: %s", traceback);
+        size_t len = strlen(traceback);
+        size_t line_len = GetLineLength();
+        UiStringItem error_line{"", Color::Red, GetContentUiStart()->font, false};
+
+        char label[line_len + 1] = {0};
+        int lines_count{static_cast<int>(ceil((double)len / line_len))};
+
+        for (const char *p{traceback}; p < traceback + len; p += line_len)
+        {
+            snprintf(label, line_len + 1, p);
+            error_line.label = label;
+            ui->push_back(error_line);
+        }
+
+        uint8_t fh;
+        Font::GetFontx(error_line.font, 0, 0, &fh);
+
+        display.SetListPositions(
+            ui->end() - lines_count,
+            ui->end(),
+            10,
+            display.GetHeight() - 60 - fh * (ui->size() - lines_count - Scene::GetContentUiStartIndex()),
+            5);
+
+        ScrollToEnd();
+        RenderModalContent();
+        ClearCursor();
+    }
+
+    void Scene::SendCodeSuccess()
+    {
+        ESP_LOGI(TAG, "Code Successfully executed.");
+        UiStringItem end_item{"Successfully executed.", Color::Green, GetContentUiStart()->font, false};
+
+        uint8_t fh;
+        Font::GetFontx(end_item.font, 0, 0, &fh);
+        end_item.x = 10;
+        end_item.y = display.GetHeight() - 60 - fh * (ui->size() - 1 - Scene::GetContentUiStartIndex());
+
+        ui->push_back(end_item);
+
+        ScrollToEnd();
+        RenderModalContent();
     }
 }

@@ -56,5 +56,6 @@ namespace Main
         void Tick();
         void SendCodeOutput(const char *output);
         void SendCodeError(const char *traceback);
+        void SendCodeSuccess();
     };
 }

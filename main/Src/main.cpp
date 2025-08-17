@@ -104,6 +104,14 @@ namespace Main
                             memset(traceback, 0, sizeof(traceback));
                         }
                     }
+                    else
+                    {
+                        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                        {
+                            App->SendCodeSuccess();
+                            xSemaphoreGive(xAppMutex);
+                        }
+                    }
                 }
             }
         }
@@ -247,6 +255,11 @@ namespace Main
     void Main::SendCodeError(const char *traceback)
     {
         scene->SendCodeError(traceback);
+    }
+
+    void Main::SendCodeSuccess()
+    {
+        scene->SendCodeSuccess();
     }
 }
 

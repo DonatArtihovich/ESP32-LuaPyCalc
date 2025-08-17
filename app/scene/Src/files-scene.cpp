@@ -952,4 +952,8 @@ namespace Scene
 
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
     }
+
+    void SendCodeOutput(const char *output) {};
+    void SendCodeError(const char *traceback) {};
+    void SendCodeSuccess() {};
 }
