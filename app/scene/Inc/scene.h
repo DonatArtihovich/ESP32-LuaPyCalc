@@ -53,7 +53,9 @@ namespace Scene
     class Scene
     {
         bool is_cursor_controlling{};
-        std::string clipboard{"print(\"clipboard string\", 2 + 4)"};
+        std::string clipboard{"print(\"Enter your string: \")\n"
+                              "l = io.read(\"*l\")\n"
+                              "print(\"You entered: \", l)"};
         Cursor cursor{};
         uint8_t stage{};
 
@@ -73,7 +75,7 @@ namespace Scene
         virtual void LeaveModalControlling(uint8_t stage, bool rerender = true);
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
         void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
-        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
+        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true, bool rerender = true);
         size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
         virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
 

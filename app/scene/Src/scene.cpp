@@ -283,18 +283,12 @@ namespace Scene
             clear_start_y -= fh;
         }
 
-        ESP_LOGI(TAG, "start_x: %d", start_x);
         if (start_x != 0)
         {
             lines_start_y -= fh;
             clear_end_y -= fh;
 
             UiStringItem &first_line_item{*(first_displaying + first_line)};
-
-            ESP_LOGI(TAG, "Clear: x: %d, y: %d, end_x: %d, end_y: %d", lines_start_x + start_x * fw,
-                     clear_end_y,
-                     lines_start_x + first_line_item.label.size() * fw,
-                     clear_end_y + fh);
 
             display.Clear(Color::Black,
                           lines_start_x + start_x * fw,
@@ -306,7 +300,6 @@ namespace Scene
             item.label.erase(item.label.begin(), item.label.begin() + start_x);
             item.x += start_x * fw;
 
-            ESP_LOGI(TAG, "Draw item %s", item.label.c_str());
             display.DrawStringItem(&item);
             if (last_line == first_line)
             {
@@ -328,9 +321,6 @@ namespace Scene
         display.DrawStringItems(first_render_line, render_end,
                                 lines_start_x, lines_start_y,
                                 lines_per_page - first_line);
-
-        std::for_each(first_render_line, render_end, [](auto &item)
-                      { printf("Render line:%s\n", item.label.c_str()); });
 
         if (!(ui->end() - 1)->displayable)
         {
@@ -409,7 +399,7 @@ namespace Scene
             cursor.height);
     }
 
-    void Scene::SpawnCursor(int16_t cursor_x, int16_t cursor_y, bool clearing)
+    void Scene::SpawnCursor(int16_t cursor_x, int16_t cursor_y, bool clearing, bool rerender)
     {
         if (cursor_x < 0)
         {
@@ -466,7 +456,7 @@ namespace Scene
             cursor_y++;
         }
 
-        if (clearing)
+        if (clearing && rerender)
         {
             ClearCursor(first_displayable + cursor.y);
         }
@@ -474,7 +464,10 @@ namespace Scene
         cursor.y = cursor_y;
 
         ESP_LOGI(TAG, "Spawn cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
-        RenderCursor();
+        if (rerender)
+        {
+            RenderCursor();
+        }
     }
 
     size_t Scene::GetLineLength()
@@ -607,7 +600,7 @@ namespace Scene
 
         if (cursor_changed)
         {
-            SpawnCursor(cursor_x, cursor_y, scrolled_count == 0);
+            SpawnCursor(cursor_x, cursor_y, scrolled_count == 0, rerender);
         }
 
         return scrolled_count;
@@ -638,9 +631,9 @@ namespace Scene
                 return 0;
             }
 
-            if (count > ui->end() - last_displayable - 1)
+            if (count > ui->end() - last_displayable)
             {
-                count = ui->end() - last_displayable - 1;
+                count = ui->end() - last_displayable;
             }
 
             std::vector<UiStringItem>::iterator it{};
@@ -1011,8 +1004,13 @@ namespace Scene
         if (!chars.size())
             return;
 
+        ESP_LOGI(TAG, "Inserting %s", chars.c_str());
+
         size_t inserting_len = chars.size();
-        uint8_t insert_x{cursor.x}, insert_x_initial{cursor.x}, insert_y{cursor.y};
+        uint8_t insert_x{cursor.x}, last_insert_y{cursor.y};
+        const uint8_t insert_x_initial{cursor.x}, first_insert_y{cursor.y},
+            initial_cursor_x{cursor.x},
+            initial_cursor_y{cursor.y};
 
         auto first_displaying = std::find_if(
             GetContentUiStart(),
@@ -1027,9 +1025,8 @@ namespace Scene
         }
 
         size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
-        auto start_line_index{first_displaying_index + insert_y};
+        auto start_line_index{first_displaying_index + first_insert_y};
 
-        uint8_t last_rendering_y{insert_y};
         size_t scrolled_count{0};
 
         for (size_t line_index{start_line_index}; line_index < ui->size(); line_index++)
@@ -1037,32 +1034,25 @@ namespace Scene
             if (!chars.size())
                 break;
 
-            if (last_rendering_y < GetLinesPerPageCount() - 1 &&
-                line_index > start_line_index)
+            if (line_index > start_line_index)
             {
-                last_rendering_y++;
+                last_insert_y++;
             }
 
             int size = chars.size();
+
             UiStringItem &line{(*ui)[line_index]};
 
-            std::string next_chars{};
+            if (line.label.size() + size > GetLineLength())
+            {
+                size = GetLineLength() - line.label.size();
+            }
+
             for (int i = 0; i < size; i++)
             {
                 line.label.insert(line.label.begin() + insert_x, chars[0]);
                 chars.erase(chars.begin());
                 insert_x++;
-
-                if (line.label.size() > GetLineLength())
-                {
-                    next_chars.insert(next_chars.begin(), *(line.label.end() - 1));
-                    line.label.erase(line.label.end() - 1);
-                }
-            }
-
-            if (next_chars.size())
-            {
-                chars += next_chars;
             }
 
             if (chars.size())
@@ -1090,13 +1080,17 @@ namespace Scene
                 (chars.size() ||
                  line.label[line.label.size() - 1] == '\n'))
             {
-                bool is_new_line_displayable{!(ui->end() - first_displaying + 1 > GetLinesPerPageCount())};
+                bool is_new_line_displayable{!(ui->size() - first_displaying_index > GetLinesPerPageCount())};
                 bool is_cursor_moving{is_new_line_displayable &&
                                       cursor.y == line_index - first_displaying_index &&
                                       cursor.x == line.label.size() - 1 &&
                                       !chars.size()};
                 CursorAppendLine();
 
+                ESP_LOGI(TAG, "is_new_line_displayable: %d, (ui->size() - first_displaying_index)(%d) > GetLinesPerPageCount()(%d)",
+                         is_new_line_displayable,
+                         (int)(ui->end() - first_displaying + 1),
+                         GetLinesPerPageCount());
                 if (!is_new_line_displayable)
                 {
                     (ui->end() - 1)->displayable = false;
@@ -1112,9 +1106,11 @@ namespace Scene
         size_t cursor_scrolling_count{0};
         if (scrolling > 0)
         {
-            cursor_scrolling_count = last_rendering_y - insert_y <= scrolling
+            cursor_scrolling_count = last_insert_y - first_insert_y <= scrolling
                                          ? scrolling
-                                         : last_rendering_y - insert_y;
+                                         : last_insert_y - first_insert_y;
+            ESP_LOGI(TAG, "last_insert_y(%d) - first_insert_y(%d) <= scrolling(%d)", last_insert_y, first_insert_y, scrolling);
+            ESP_LOGI(TAG, "cursor_scrolling_count(%d)", cursor_scrolling_count);
         }
 
         for (int i{}; i < inserting_len; i++)
@@ -1122,13 +1118,25 @@ namespace Scene
             scrolled_count += MoveCursor(Direction::Right, false, cursor_scrolling_count);
         }
 
+        ESP_LOGI(TAG, "Scrolled count: %d", scrolled_count);
+
         if (scrolled_count > 0)
         {
             RenderContent();
         }
         else
         {
-            RenderLines(insert_y, last_rendering_y, false, insert_x_initial);
+            if (last_insert_y > GetLinesPerPageCount() - 1)
+            {
+                last_insert_y = GetLinesPerPageCount() - 1;
+            }
+
+            RenderLines(first_insert_y, last_insert_y, false, insert_x_initial);
+        }
+
+        if (scrolled_count == 0)
+        {
+            ClearCursor(ui->begin() + start_line_index, initial_cursor_x, initial_cursor_y);
         }
 
         SpawnCursor(-1, -1, false);
@@ -1356,8 +1364,10 @@ namespace Scene
 
     void Scene::CursorPaste()
     {
-        CursorInsertChars(clipboard, GetLinesScroll());
-        clipboard.clear();
+        if (clipboard.size())
+        {
+            CursorInsertChars(clipboard, GetLinesScroll());
+        }
     }
 
     void Scene::SendCodeOutput(const char *output)
