@@ -1185,12 +1185,14 @@ namespace Scene
         SpawnCursor(-1, -1, false);
     }
 
-    void Scene::CursorInit(Cursor *c)
+    void Scene::CursorInit(FontxFile *font, uint8_t x, uint8_t y)
     {
-        cursor.x = c->x;
-        cursor.y = c->y;
-        cursor.width = c->width;
-        cursor.height = c->height;
+        uint8_t fw, fh;
+        Font::GetFontx(font, 0, &fw, &fh);
+        cursor.x = x;
+        cursor.y = y;
+        cursor.width = fw;
+        cursor.height = fh;
     }
 
     void Scene::SetStage(uint8_t stage)
@@ -1429,17 +1431,14 @@ namespace Scene
 
         modal.PreEnter = [this, code_run_stage]()
         {
-            uint8_t fw, fh;
-            Font::GetFontx(display.fx16G, 0, &fw, &fh);
-            Cursor cursor{
-                .x = 0,
-                .y = 0,
-                .width = fw,
-                .height = fh,
-            };
-            CursorInit(&cursor);
-
             Modal &modal{GetStageModal(code_run_stage)};
+
+            char cursor_xy[8] = {0};
+            snprintf(cursor_xy, sizeof(cursor_xy), "%hhd;%hhd;%hhd", cursor.x, cursor.y, (uint8_t)IsCursorControlling());
+            modal.data = cursor_xy;
+
+            CursorInit(display.fx16G);
+
             modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
             modal.ui[1].x = 10;
             modal.ui[1].y = display.GetHeight() - 60;
@@ -1451,6 +1450,24 @@ namespace Scene
         {
             Modal &modal{GetStageModal()};
             modal.ui.erase(modal.ui.begin() + 1, modal.ui.end());
+            ESP_LOGI(TAG, "CodeRunModal.data: %s", modal.data.c_str());
+
+            if (modal.data.size())
+            {
+                uint8_t x{}, y{}, is_cursor_controlling{};
+                sscanf(
+                    modal.data.c_str(),
+                    "%hhd;%hhd;%hhd", &x, &y,
+                    &is_cursor_controlling);
+
+                CursorInit(display.fx16G, x, y);
+                SetCursorControlling(is_cursor_controlling);
+                modal.data.clear();
+            }
+            else
+            {
+                ESP_LOGE(TAG, "Code Run modal data not found");
+            }
         };
 
         modal.Arrow = [this](Direction direction)

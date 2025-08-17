@@ -89,7 +89,7 @@ namespace Scene
         virtual void ScrollToEnd();
 
         bool IsCursorControlling();
-        void CursorInit(Cursor *cursor);
+        void CursorInit(FontxFile *font, uint8_t x = 0, uint8_t y = 0);
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars, size_t scrolling = 0);
         void CursorPaste();

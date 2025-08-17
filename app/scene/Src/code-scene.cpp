@@ -26,16 +26,7 @@ namespace Scene
 
         ui->push_back(UiStringItem{"", Color::White, display.fx16G, false});
 
-        uint8_t fw, fh;
-        Font::GetFontx(display.fx16G, 0, &fw, &fh);
-        Cursor cursor{
-            .x = 0,
-            .y = 0,
-            .width = fw,
-            .height = fh,
-        };
-        CursorInit(&cursor);
-
+        CursorInit(display.fx16G);
         OpenStageModal(CodeSceneStage::LanguageChooseModalStage);
     }
 
@@ -130,6 +121,7 @@ namespace Scene
             {
                 ChangeItemFocus(&*focused, false, true);
             }
+
             SpawnCursor();
             return;
         }

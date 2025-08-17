@@ -392,19 +392,13 @@ namespace Scene
         DetectLanguage(relative_path);
         RenderAll();
 
-        uint8_t fw, fh;
-        Font::GetFontx(display.fx16G, 0, &fw, &fh);
         size_t lines_count = ui->size() - Scene::GetContentUiStartIndex();
 
-        Cursor cursor{
-            .x = static_cast<uint8_t>(file_line_length - 1),
-            .y = static_cast<uint8_t>(lines_count > file_lines_per_page
-                                          ? file_lines_per_page - 1
-                                          : lines_count - 1),
-            .width = fw,
-            .height = fh,
-        };
-        CursorInit(&cursor);
+        uint8_t cursor_x{static_cast<uint8_t>(file_line_length - 1)},
+            cursor_y{static_cast<uint8_t>(lines_count > file_lines_per_page
+                                              ? file_lines_per_page - 1
+                                              : lines_count - 1)};
+        CursorInit(display.fx16G, cursor_x, cursor_y);
     }
 
     void FilesScene::CloseFile()
@@ -776,15 +770,7 @@ namespace Scene
             AddModalLabel("Enter directory name:", modal);
         }
 
-        uint8_t fw, fh;
-        Font::GetFontx(display.fx24G, 0, &fw, &fh);
-        Cursor cursor{
-            .x = 0,
-            .y = 0,
-            .width = fw,
-            .height = fh,
-        };
-        CursorInit(&cursor);
+        CursorInit(display.fx24G);
         SetCursorControlling(true);
     }
 
