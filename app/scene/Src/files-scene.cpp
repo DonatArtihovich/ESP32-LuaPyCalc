@@ -282,9 +282,12 @@ namespace Scene
 
     void FilesScene::Delete()
     {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+            return;
+
         Scene::Delete();
 
-        if (!IsModalStage())
+        if (!IsModalStage() && IsStage(FilesSceneStage::DirectoryStage))
         {
             auto focused = GetFocused();
 

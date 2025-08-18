@@ -131,6 +131,9 @@ namespace Scene
 
     void CodeScene::Delete()
     {
+        if (IsStage(CodeSceneStage::CodeRunModalStage))
+            return;
+
         Scene::Delete();
     }
 
