@@ -5,6 +5,8 @@ static const char *TAG = "LuaRunController";
 extern QueueHandle_t xQueueRunnerStdout;
 extern QueueHandle_t xQueueRunnerStdin;
 
+extern SemaphoreHandle_t xDisplayingSemaphore;
+
 namespace CodeRunner
 {
 
@@ -109,17 +111,19 @@ namespace CodeRunner
             {
                 snprintf(log_buffer, sizeof(log_buffer), "%s", p);
 
-                xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
+                size_t log_buffer_len = strlen(log_buffer);
+                if (log_buffer_len < 63)
+                {
+                    log_buffer[log_buffer_len] = i < n ? '\t' : '\n';
+                    xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
+                }
+                else
+                {
+                    xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
+                    xQueueSend(xQueueRunnerStdout, i < n ? "\t" : "\n", portMAX_DELAY);
+                }
+                CodeRunController::SetIsWaitingOutput(true);
                 memset(log_buffer, 0, sizeof(log_buffer));
-            }
-
-            if (i < n)
-            {
-                xQueueSend(xQueueRunnerStdout, "\t", portMAX_DELAY);
-            }
-            else
-            {
-                xQueueSend(xQueueRunnerStdout, "\n", portMAX_DELAY);
             }
         }
 
@@ -134,6 +138,7 @@ namespace CodeRunner
             return 1;
         }
         ESP_LOGI(TAG, "Is waiting input: true");
+        xSemaphoreGive(xDisplayingSemaphore);
 
         std::string io_buff{};
         char ch = 0;

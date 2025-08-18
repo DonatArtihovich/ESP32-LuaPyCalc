@@ -950,27 +950,8 @@ namespace Scene
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
     }
 
-    void FilesScene::SendCodeOutput(const char *output)
+    bool FilesScene::IsCodeRunning()
     {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeOutput(output);
-        }
-    };
-
-    void FilesScene::SendCodeError(const char *traceback)
-    {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeError(traceback);
-        }
-    };
-
-    void FilesScene::SendCodeSuccess()
-    {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeSuccess();
-        }
-    };
+        return IsStage(FilesSceneStage::CodeRunModalStage);
+    }
 }

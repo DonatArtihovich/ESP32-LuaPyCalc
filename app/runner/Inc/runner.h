@@ -30,6 +30,7 @@ namespace CodeRunner
     {
         static bool is_running;
         static bool is_waiting_input;
+        static bool is_waiting_output;
 
     public:
         static esp_err_t RunCodeString(std::string code, CodeLanguage language, char *traceback, size_t traceback_len);
@@ -40,5 +41,8 @@ namespace CodeRunner
 
         static esp_err_t SetIsWaitingInput(bool is_waiting_input);
         static bool IsWaitingInput();
+
+        static esp_err_t SetIsWaitingOutput(bool is_waiting_output);
+        static bool IsWaitingOutput();
     };
 }

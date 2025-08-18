@@ -57,5 +57,6 @@ namespace Main
         void SendCodeOutput(const char *output);
         void SendCodeError(const char *traceback);
         void SendCodeSuccess();
+        void DisplayCodeLog(bool is_end = true);
     };
 }

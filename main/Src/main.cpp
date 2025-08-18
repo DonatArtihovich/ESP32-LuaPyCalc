@@ -8,9 +8,13 @@ extern QueueHandle_t xQueueRunnerStdout;
 extern QueueHandle_t xQueueRunnerStdin;
 extern TaskHandle_t xTaskRunnerIO;
 extern TaskHandle_t xTaskRunnerProcessing;
+extern TaskHandle_t xTaskRunnerDisplaying;
 
 extern SemaphoreHandle_t xIsRunningMutex;
 extern SemaphoreHandle_t xIsWaitingInputMutex;
+extern SemaphoreHandle_t xIsWaitingOutputMutex;
+
+extern SemaphoreHandle_t xDisplayingSemaphore;
 
 SemaphoreHandle_t xAppMutex = NULL;
 
@@ -36,6 +40,15 @@ namespace Main
             vTaskDelete(NULL);
         }
 
+        xIsWaitingOutputMutex = xSemaphoreCreateMutex();
+        if (xIsWaitingOutputMutex == NULL)
+        {
+            ESP_LOGE(TAG, "Error creating IsOutputSent Mutex");
+            vQueueDelete(xQueueRunnerStdout);
+            vQueueDelete(xQueueRunnerStdin);
+            vTaskDelete(NULL);
+        }
+
         char stdout_buffer[64] = {0};
 
         while (1)
@@ -46,6 +59,7 @@ namespace Main
                 {
                     App->SendCodeOutput(stdout_buffer);
                     xSemaphoreGive(xAppMutex);
+                    CodeRunController::SetIsWaitingOutput(false);
                 }
                 memset(stdout_buffer, 0, sizeof(stdout_buffer));
             }
@@ -106,6 +120,7 @@ namespace Main
                     if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
                     {
                         App->SendCodeError(traceback);
+                        App->DisplayCodeLog();
                         xSemaphoreGive(xAppMutex);
                         memset(traceback, 0, sizeof(traceback));
                     }
@@ -115,8 +130,38 @@ namespace Main
                     if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
                     {
                         App->SendCodeSuccess();
+                        App->DisplayCodeLog();
                         xSemaphoreGive(xAppMutex);
                     }
+                }
+            }
+        }
+
+        vTaskDelete(NULL);
+    }
+
+    static void TaskRunnerDisplaying(void *arg)
+    {
+        Main *App{(Main *)arg};
+
+        xDisplayingSemaphore = xSemaphoreCreateBinary();
+        if (xDisplayingSemaphore == NULL)
+        {
+            ESP_LOGE(TAG, "Error creating Displaying semaphore");
+            vTaskDelete(NULL);
+        }
+
+        while (1)
+        {
+            if (xSemaphoreTake(xDisplayingSemaphore, portMAX_DELAY) == pdPASS)
+            {
+                while (CodeRunController::IsWaitingOutput())
+                    ;
+
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                {
+                    App->DisplayCodeLog(false);
+                    xSemaphoreGive(xAppMutex);
                 }
             }
         }
@@ -249,6 +294,13 @@ namespace Main
             return ESP_FAIL;
         }
 
+        if (xTaskCreate(TaskRunnerDisplaying, "Code Log Displaying", 2048, this, 8, &xTaskRunnerProcessing) != pdPASS)
+        {
+            vTaskDelete(xTaskRunnerIO);
+            vTaskDelete(xTaskRunnerProcessing);
+            return ESP_FAIL;
+        }
+
         return ESP_OK;
     }
 
@@ -265,6 +317,11 @@ namespace Main
     void Main::SendCodeSuccess()
     {
         scene->SendCodeSuccess();
+    }
+
+    void Main::DisplayCodeLog(bool is_end)
+    {
+        scene->DisplayCodeLog(is_end);
     }
 }
 

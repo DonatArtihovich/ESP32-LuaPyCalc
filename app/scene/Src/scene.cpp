@@ -1031,7 +1031,7 @@ namespace Scene
         ui->insert(line_before + 1, last_line);
     }
 
-    void Scene::CursorInsertChars(std::string chars, size_t scrolling)
+    void Scene::CursorInsertChars(std::string chars, size_t scrolling, bool rerender)
     {
         if (!chars.size())
             return;
@@ -1163,26 +1163,37 @@ namespace Scene
 
         ESP_LOGI(TAG, "Scrolled count: %d", scrolled_count);
 
-        if (scrolled_count > 0)
+        if (rerender)
         {
-            RenderContent();
+            if (scrolled_count > 0)
+            {
+                RenderContent();
+            }
+            else
+            {
+                if (last_insert_y > GetLinesPerPageCount() - 1)
+                {
+                    last_insert_y = GetLinesPerPageCount() - 1;
+                }
+
+                RenderLines(first_insert_y, last_insert_y, false, insert_x_initial);
+            }
         }
         else
         {
-            if (last_insert_y > GetLinesPerPageCount() - 1)
-            {
-                last_insert_y = GetLinesPerPageCount() - 1;
-            }
-
-            RenderLines(first_insert_y, last_insert_y, false, insert_x_initial);
+            display.SetListPositions(GetContentUiStart(),
+                                     ui->end(),
+                                     10,
+                                     display.GetHeight() - 60,
+                                     GetLinesPerPageCount());
         }
 
-        if (scrolled_count == 0)
+        if (scrolled_count == 0 && rerender)
         {
             ClearCursor(&(*ui)[start_line_index], initial_cursor_x, initial_cursor_y);
         }
 
-        SpawnCursor(-1, -1, false);
+        SpawnCursor(-1, -1, false, rerender);
     }
 
     void Scene::CursorInit(FontxFile *font, uint8_t x, uint8_t y)
@@ -1224,7 +1235,7 @@ namespace Scene
             [this](auto &item)
             { display.DrawStringItem(&item); });
 
-        if (IsCursorControlling())
+        if (IsCursorControlling() && !IsCodeRunning())
         {
             RenderCursor();
         }
@@ -1438,6 +1449,7 @@ namespace Scene
             modal.data = cursor_xy;
 
             CursorInit(display.fx16G);
+            // code_log_cursor = cursor;
 
             modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
             modal.ui[1].x = 10;
@@ -1514,12 +1526,18 @@ namespace Scene
 
     void Scene::SendCodeOutput(const char *output)
     {
+        if (!IsCodeRunning())
+            return;
+
         ESP_LOGI(TAG, "Code output: %s", output);
-        CursorInsertChars(output, 1);
+        CursorInsertChars(output, 1, false);
     }
 
     void Scene::SendCodeError(const char *traceback)
     {
+        if (!IsCodeRunning())
+            return;
+
         ESP_LOGE(TAG, "Code error: %s", traceback);
         size_t len = strlen(traceback);
         size_t line_len = GetLineLength();
@@ -1546,12 +1564,13 @@ namespace Scene
             5);
 
         ScrollToEnd();
-        RenderModalContent();
-        ClearCursor();
     }
 
     void Scene::SendCodeSuccess()
     {
+        if (!IsCodeRunning())
+            return;
+
         ESP_LOGI(TAG, "Code Successfully executed.");
         UiStringItem end_item{"Successfully executed.", Color::Green, GetContentUiStart()->font, false};
 
@@ -1563,6 +1582,19 @@ namespace Scene
         ui->push_back(end_item);
 
         ScrollToEnd();
+    }
+
+    void Scene::DisplayCodeLog(bool code_end)
+    {
+        if (!IsCodeRunning())
+            return;
+
+        ESP_LOGI(TAG, "Display code log...");
         RenderModalContent();
+    }
+
+    bool Scene::IsCodeRunning()
+    {
+        return false;
     }
 }

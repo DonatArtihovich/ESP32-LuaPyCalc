@@ -77,6 +77,7 @@ namespace Scene
         void ToggleUpButton(bool mode, bool rerender = false);
         void ToggleSaveButton(bool mode, bool rerender = false);
         void ToggleCreateButton(bool mode, bool rerender = false);
+        bool IsCodeRunning() override;
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
@@ -86,10 +87,6 @@ namespace Scene
         SceneId Enter() override;
         SceneId Escape() override;
         void Delete() override;
-
-        void SendCodeOutput(const char *output) override;
-        void SendCodeError(const char *traceback) override;
-        void SendCodeSuccess() override;
 
         ~FilesScene() = default;
     };
