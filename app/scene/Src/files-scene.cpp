@@ -2,6 +2,8 @@
 
 static const char *TAG = "FileScene";
 
+extern QueueHandle_t xQueueRunnerProcessing;
+
 namespace Scene
 {
     FilesScene::FilesScene(DisplayController &display, SDCard &_sdcard)
@@ -9,12 +11,20 @@ namespace Scene
 
     void FilesScene::Init()
     {
+        content_ui_start = 4;
         InitModals();
+
         ui->push_back(UiStringItem{"  Files   ", Color::White, display.fx32L, false});
+        display.SetPosition(&*(ui->end() - 1), Position::Center, Position::End);
+
         ui->push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
+        display.SetPosition(&*(ui->end() - 1), Position::Start, Position::End);
 
         ui->push_back(UiStringItem{"Create", Color::White, display.fx24G}); // [Create] button
-        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G});   // [Save] button
+        display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
+
+        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G}); // [Save] button
+        display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
         (ui->end() - 1)->displayable = false;
 
         ui->push_back(UiStringItem{"", Color::White, display.fx24M, false}); // [^ Up] button
@@ -32,24 +42,9 @@ namespace Scene
         RenderAll();
     }
 
-    void FilesScene::RenderAll()
-    {
-        RenderHeader();
-        RenderContent();
-        if (IsCursorControlling())
-        {
-            RenderCursor();
-        }
-    }
-
     void FilesScene::RenderContent()
     {
-        display.Clear(Color::Black, 0, 0, 0, display.GetHeight() - 35);
-        display.DrawStringItems(ui->begin() + content_ui_start,
-                                ui->end(),
-                                10,
-                                display.GetHeight() - 60,
-                                Scene::GetLinesPerPageCount());
+        Scene::RenderContent();
 
         if (!(ui->end() - 1)->displayable)
         {
@@ -62,32 +57,14 @@ namespace Scene
     void FilesScene::Value(char value)
     {
         FilesSceneStage stage{GetStage<FilesSceneStage>()};
-        bool enter{false};
+        bool enter{true}, is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
 
         if (stage == FilesSceneStage::FileOpenStage)
         {
-            enter = true;
-        }
-        else if (stage == FilesSceneStage::CreateModalStage)
-        {
-            std::string allowed_digits{"_-"};
-            auto &label{(GetStageModal(stage).ui.end() - 1)->label};
-
-            if (isalnum(value) || allowed_digits.contains(value))
+            if ((value == 'r' || value == 'R') && is_ctrl_pressed)
             {
-                if (label.size() < max_filename_size ||
-                    (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
-                     label.contains('.')))
-                {
-                    enter = true;
-                }
-            }
-            else if (value == '.')
-            {
-                if (label.size() < (max_filename_size + max_filename_ext_size + 1))
-                {
-                    enter = true;
-                }
+                RunFile();
+                enter = false;
             }
         }
 
@@ -154,14 +131,12 @@ namespace Scene
 
     void FilesScene::Arrow(Direction direction)
     {
-        Scene::Arrow(direction);
         if (IsStage(FilesSceneStage::FileOpenStage) &&
             !IsCursorControlling() &&
             direction == Direction::Bottom)
         {
             SetCursorControlling(true);
-            auto focused = std::find_if(ui->begin(), ui->end(), [this](auto &item)
-                                        { return item.focused; });
+            auto focused = GetFocused();
             if (focused != ui->end())
             {
                 ChangeItemFocus(&(*focused), false, true);
@@ -171,33 +146,17 @@ namespace Scene
             return;
         }
 
-        if (IsModalStage() && GetStageModal().Arrow != nullptr)
-        {
-            GetStageModal().Arrow(direction);
-            return;
-        }
-        else if (IsCursorControlling())
-        {
-            MoveCursor(direction, true, GetLinesScroll());
-            return;
-        }
-
-        Focus(direction);
+        Scene::Arrow(direction);
     }
 
     SceneId FilesScene::Enter()
     {
         if (IsCursorControlling())
         {
-            Value('\n');
-            return SceneId::CurrentScene;
+            return Scene::Enter();
         }
 
-        auto focused = std::find_if(
-            ui->begin(),
-            ui->end(),
-            [](auto &item) mutable
-            { return item.focused; });
+        auto focused = GetFocused();
 
         if (focused == ui->end())
         {
@@ -308,9 +267,9 @@ namespace Scene
                     LeaveModalControlling((uint8_t)FilesSceneStage::CreateChooseModalStage);
                 }
             }
-            else
+            else if (stage == FilesSceneStage::CodeRunModalStage)
             {
-                LeaveModalControlling();
+                LeaveModalControlling((uint8_t)FilesSceneStage::FileOpenStage);
             }
         }
         else
@@ -323,17 +282,14 @@ namespace Scene
 
     void FilesScene::Delete()
     {
-        if (IsCursorControlling())
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+            return;
+
+        Scene::Delete();
+
+        if (!IsModalStage() && IsStage(FilesSceneStage::DirectoryStage))
         {
-            CursorDeleteChars(1, GetLinesScroll());
-        }
-        else if (!IsModalStage())
-        {
-            auto focused = std::find_if(
-                ui->begin(),
-                ui->end(),
-                [](auto &item)
-                { return item.focused; });
+            auto focused = GetFocused();
 
             if (focused != ui->end() &&
                 focused >= GetContentUiStart() &&
@@ -436,40 +392,16 @@ namespace Scene
         ui->erase(GetContentUiStart(), ui->end());
 
         ReadFile(curr_directory + relative_path);
+        DetectLanguage(relative_path);
         RenderAll();
 
-        uint8_t fw, fh;
-        Font::GetFontx(display.fx16G, 0, &fw, &fh);
         size_t lines_count = ui->size() - Scene::GetContentUiStartIndex();
 
-        Cursor cursor{
-            .x = static_cast<uint8_t>(file_line_length - 1),
-            .y = static_cast<uint8_t>(lines_count > file_lines_per_page
-                                          ? file_lines_per_page - 1
-                                          : lines_count - 1),
-            .width = fw,
-            .height = fh,
-        };
-        CursorInit(&cursor);
-    }
-
-    void FilesScene::ChangeHeader(const char *header, bool rerender)
-    {
-        Scene::ChangeHeader(header);
-
-        if (rerender)
-        {
-            RenderHeader();
-        }
-    }
-
-    void FilesScene::RenderHeader()
-    {
-        display.Clear(Color::Black, 0, display.GetHeight() - 60, display.GetWidth(), display.GetHeight());
-        display.DrawStringItem(&(*ui)[0], Position::Center, Position::End);
-        display.DrawStringItem(&(*ui)[1], Position::Start, Position::End);
-        display.DrawStringItem(&(*ui)[2], Position::End, Position::End);
-        display.DrawStringItem(&(*ui)[3], Position::End, Position::End);
+        uint8_t cursor_x{static_cast<uint8_t>(file_line_length - 1)},
+            cursor_y{static_cast<uint8_t>(lines_count > file_lines_per_page
+                                              ? file_lines_per_page - 1
+                                              : lines_count - 1)};
+        CursorInit(display.fx16G, cursor_x, cursor_y);
     }
 
     void FilesScene::CloseFile()
@@ -503,6 +435,11 @@ namespace Scene
             return ui->end() - 1 - ui->begin();
         }
 
+        if (stage == FilesSceneStage::CodeRunModalStage)
+        {
+            return 1;
+        }
+
         return content_ui_start + (stage != FilesSceneStage::FileOpenStage);
     }
 
@@ -517,7 +454,7 @@ namespace Scene
         case FilesSceneStage::CreateModalStage:
             return 1;
         default:
-            return 0;
+            return max_lines_per_page;
         }
     }
 
@@ -600,6 +537,8 @@ namespace Scene
                 Escape();
             };
         }
+
+        InitCodeRunModal((uint8_t)FilesSceneStage::CodeRunModalStage);
     }
 
     void FilesScene::InitDeleteModal()
@@ -621,9 +560,7 @@ namespace Scene
         modal.PreLeave = [this]()
         {
             ui->erase(ui->begin(), ui->end() - 2);
-            auto focused{std::find_if(ui->begin(), ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
+            auto focused{GetFocused()};
 
             if (focused != ui->begin())
                 ChangeItemFocus(&(*focused), false);
@@ -664,11 +601,9 @@ namespace Scene
 
         modal.PreLeave = [this]()
         {
-            auto focused{std::find_if(ui->begin(), ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
+            auto focused{GetFocused()};
 
-            if (focused != ui->begin() + 1)
+            if (focused != ui->end())
                 ChangeItemFocus(&(*focused), false);
         };
 
@@ -697,9 +632,7 @@ namespace Scene
         modal.PreLeave = [this]()
         {
             ui->erase(ui->begin(), ui->end() - 3);
-            auto focused{std::find_if(ui->begin(), ui->end(),
-                                      [](auto &item)
-                                      { return item.focused; })};
+            auto focused{GetFocused()};
 
             if (focused != ui->end())
                 ChangeItemFocus(&(*focused), false);
@@ -711,17 +644,10 @@ namespace Scene
 
         modal.Arrow = [this](Direction direction)
         {
-            ESP_LOGI(TAG, "CreateModalArrow: direction %d", (int)direction);
-
             if (!IsCursorControlling() && direction == Direction::Up)
             {
-                ESP_LOGI(TAG, "CreateModalArrow: !IsCursorControlling() && direction == Direction::Up");
                 SetCursorControlling(true);
-                auto focused{std::find_if(
-                    ui->begin(),
-                    ui->end(),
-                    [](auto &item)
-                    { return item.focused; })};
+                auto focused{GetFocused()};
 
                 if (focused != ui->end())
                 {
@@ -734,12 +660,10 @@ namespace Scene
                 if (direction == Direction::Left ||
                     direction == Direction::Right)
                 {
-                    ESP_LOGI(TAG, "CreateModalArrow: IsCursorControlling(); direction == Direction::Left || direction == Direction::Right");
                     MoveCursor(direction);
                 }
                 else if (direction == Direction::Bottom)
                 {
-                    ESP_LOGI(TAG, "CreateModalArrow: IsCursorControlling(); direction == Direction::Bottom");
                     SetCursorControlling(false);
                     ChangeItemFocus(&*(ui->end() - 3), true, true);
                 }
@@ -747,6 +671,38 @@ namespace Scene
             else
             {
                 Scene::Focus(direction);
+            }
+        };
+
+        modal.Value = [this](char value, bool is_ctrl_pressed)
+        {
+            if (!IsCursorControlling())
+                return;
+
+            std::string allowed_digits{"_-"};
+            auto &label{(GetStageModal().ui.end() - 1)->label};
+            bool enter{};
+
+            if (isalnum(value) || allowed_digits.contains(value))
+            {
+                if (label.size() < max_filename_size ||
+                    (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
+                     label.contains('.')))
+                {
+                    enter = true;
+                }
+            }
+            else if (value == '.')
+            {
+                if (label.size() < (max_filename_size + max_filename_ext_size + 1))
+                {
+                    enter = true;
+                }
+            }
+
+            if (enter)
+            {
+                CursorInsertChars(std::string(1, value), GetLinesScroll());
             }
         };
 
@@ -765,20 +721,12 @@ namespace Scene
 
     bool FilesScene::IsHomeStage(uint8_t stage)
     {
-        return FilesSceneStage::DirectoryStage == (FilesSceneStage)stage;
-    }
-
-    void FilesScene::EnterModalControlling()
-    {
-        ESP_LOGI(TAG, "Enter %d Stage", (int)GetStage<FilesSceneStage>());
-        Scene::EnterModalControlling();
+        return FilesSceneStage::DirectoryStage == (FilesSceneStage)stage ||
+               FilesSceneStage::FileOpenStage == (FilesSceneStage)stage;
     }
 
     void FilesScene::LeaveModalControlling(uint8_t stage, bool rerender)
     {
-        if (!IsModalStage())
-            return;
-
         Scene::LeaveModalControlling(stage, rerender);
     }
 
@@ -826,15 +774,7 @@ namespace Scene
             AddModalLabel("Enter directory name:", modal);
         }
 
-        uint8_t fw, fh;
-        Font::GetFontx(display.fx24G, 0, &fw, &fh);
-        Cursor cursor{
-            .x = 0,
-            .y = 0,
-            .width = fw,
-            .height = fh,
-        };
-        CursorInit(&cursor);
+        CursorInit(display.fx24G);
         SetCursorControlling(true);
     }
 
@@ -959,4 +899,78 @@ namespace Scene
             return 0;
         }
     }
+
+    void FilesScene::DetectLanguage(std::string filename)
+    {
+        std::string extension{};
+        size_t extension_start{filename.find_last_of('.')};
+        if (extension_start != std::string::npos)
+        {
+            extension.append(filename, extension_start);
+            std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
+        }
+
+        ESP_LOGI(TAG, "File extension: %s", extension.c_str());
+
+        if (extension == ".lua")
+        {
+            runner_language = CodeLanguage::Lua;
+        }
+        else if (extension == ".py")
+        {
+            runner_language = CodeLanguage::Python;
+        }
+        else if (extension == ".rb")
+        {
+            runner_language = CodeLanguage::Ruby;
+        }
+        else
+        {
+            runner_language = CodeLanguage::Text;
+        }
+
+        const char *arr[]{"Text", "Lua", "Python", "Ruby"};
+        ESP_LOGI(TAG, "Detected language: %s", arr[(int)runner_language]);
+    }
+
+    void FilesScene::RunFile()
+    {
+        if (!IsStage(FilesSceneStage::FileOpenStage) ||
+            runner_language == CodeLanguage::Text)
+            return;
+
+        std::string file_path{curr_directory + (*ui)[0].label};
+        CodeRunner::CodeProcess process{
+            .language = runner_language,
+            .data = file_path,
+            .is_file = true,
+        };
+
+        OpenStageModal(FilesSceneStage::CodeRunModalStage);
+        xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
+    }
+
+    void FilesScene::SendCodeOutput(const char *output)
+    {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+        {
+            Scene::SendCodeOutput(output);
+        }
+    };
+
+    void FilesScene::SendCodeError(const char *traceback)
+    {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+        {
+            Scene::SendCodeError(traceback);
+        }
+    };
+
+    void FilesScene::SendCodeSuccess()
+    {
+        if (IsStage(FilesSceneStage::CodeRunModalStage))
+        {
+            Scene::SendCodeSuccess();
+        }
+    };
 }

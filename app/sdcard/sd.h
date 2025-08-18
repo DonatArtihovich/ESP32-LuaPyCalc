@@ -1,12 +1,10 @@
 #pragma once
 
-#include <cstdio>
 #include <dirent.h>
-#include <unistd.h>
 #include <cstring>
 #include <vector>
-#include <string>
-#include <cerrno>
+#include <filesystem>
+#include <fstream>
 
 #include "esp_log.h"
 #include "driver/spi_master.h"

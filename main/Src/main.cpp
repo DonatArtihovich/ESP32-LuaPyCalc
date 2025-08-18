@@ -1,16 +1,136 @@
 #include "main.h"
 #include "sdkconfig.h"
 
-static const char *TAG = "MAIN";
+static const char *TAG = "App";
+
+extern QueueHandle_t xQueueRunnerProcessing;
+extern QueueHandle_t xQueueRunnerStdout;
+extern QueueHandle_t xQueueRunnerStdin;
+extern TaskHandle_t xTaskRunnerIO;
+extern TaskHandle_t xTaskRunnerProcessing;
+
+extern SemaphoreHandle_t xIsRunningMutex;
+extern SemaphoreHandle_t xIsWaitingInputMutex;
+
+SemaphoreHandle_t xAppMutex = NULL;
 
 namespace Main
 {
+    static void TaskRunnerIO(void *arg)
+    {
+        Main *App{(Main *)arg};
+        xQueueRunnerStdout = xQueueCreate(32, sizeof(char[64]));
+
+        if (xQueueRunnerStdout == NULL)
+        {
+            ESP_LOGE(TAG, "Error creating Stdout Queue");
+            vTaskDelete(NULL);
+        }
+
+        xQueueRunnerStdin = xQueueCreate(64, sizeof(char[1]));
+
+        if (xQueueRunnerStdin == NULL)
+        {
+            ESP_LOGE(TAG, "Error creating Stdin Queue");
+            vQueueDelete(xQueueRunnerStdout);
+            vTaskDelete(NULL);
+        }
+
+        char stdout_buffer[64] = {0};
+
+        while (1)
+        {
+            if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
+            {
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                {
+                    App->SendCodeOutput(stdout_buffer);
+                    xSemaphoreGive(xAppMutex);
+                }
+                memset(stdout_buffer, 0, sizeof(stdout_buffer));
+            }
+        }
+    }
+
+    static void TaskRunnerProcessing(void *arg)
+    {
+        Main *App{(Main *)arg};
+        xQueueRunnerProcessing = xQueueCreate(1, sizeof(CodeRunner::CodeProcess));
+        if (xQueueRunnerProcessing == NULL)
+        {
+            vTaskDelete(NULL);
+        }
+
+        xIsRunningMutex = xSemaphoreCreateMutex();
+        if (xIsRunningMutex == NULL)
+        {
+            vQueueDelete(xQueueRunnerProcessing);
+            vTaskDelete(NULL);
+        }
+
+        xIsWaitingInputMutex = xSemaphoreCreateMutex();
+        if (xIsWaitingInputMutex == NULL)
+        {
+            vQueueDelete(xQueueRunnerProcessing);
+            vSemaphoreDelete(xIsRunningMutex);
+            vTaskDelete(NULL);
+        }
+
+        static char traceback[300] = {0};
+        CodeRunner::CodeProcess processing{};
+
+        while (1)
+        {
+            if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
+            {
+                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
+
+                esp_err_t ret{ESP_OK};
+                if (processing.is_file)
+                {
+                    ret = CodeRunController::RunCodeFile(
+                        processing.data,
+                        processing.language,
+                        traceback, sizeof(traceback));
+                }
+                else
+                {
+                    ret = CodeRunController::RunCodeString(
+                        processing.data,
+                        processing.language,
+                        traceback, sizeof(traceback));
+                }
+
+                if (ret != ESP_OK)
+                {
+                    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                    {
+                        App->SendCodeError(traceback);
+                        xSemaphoreGive(xAppMutex);
+                        memset(traceback, 0, sizeof(traceback));
+                    }
+                }
+                else
+                {
+                    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                    {
+                        App->SendCodeSuccess();
+                        xSemaphoreGive(xAppMutex);
+                    }
+                }
+            }
+        }
+
+        vTaskDelete(NULL);
+    }
+
     Main::Main() : scene{new Scene::StartScene{display}} {}
 
     void Main::Setup()
     {
         ESP_ERROR_CHECK(keyboard.Init());
         ESP_ERROR_CHECK(display.Init());
+        ESP_ERROR_CHECK(InitCodeRunner());
 
         if (ESP_OK == sdcard.Mount(CONFIG_MOUNT_POINT))
         {
@@ -106,6 +226,7 @@ namespace Main
             break;
         case SceneId::CodeScene:
             ESP_LOGI(TAG, "Switch to Code Scene");
+            scene = std::make_unique<Scene::CodeScene>(display);
             break;
         case SceneId::SettingsScene:
             ESP_LOGI(TAG, "Switch to Settings Scene");
@@ -114,15 +235,61 @@ namespace Main
 
         scene->Init();
     }
+
+    esp_err_t Main::InitCodeRunner()
+    {
+        if (xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO) != pdPASS)
+        {
+            return ESP_FAIL;
+        }
+
+        if (xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, this, 9, &xTaskRunnerProcessing) != pdPASS)
+        {
+            vTaskDelete(xTaskRunnerIO);
+            return ESP_FAIL;
+        }
+
+        return ESP_OK;
+    }
+
+    void Main::SendCodeOutput(const char *output)
+    {
+        scene->SendCodeOutput(output);
+    }
+
+    void Main::SendCodeError(const char *traceback)
+    {
+        scene->SendCodeError(traceback);
+    }
+
+    void Main::SendCodeSuccess()
+    {
+        scene->SendCodeSuccess();
+    }
 }
 
 extern "C" void app_main(void)
 {
-    Main::Main app{};
-    app.Setup();
+    xAppMutex = xSemaphoreCreateMutex();
+    if (xAppMutex == NULL)
+    {
+        ESP_LOGE(TAG, "Error creating app mutex");
+        vTaskDelete(NULL);
+    }
+
+    Main::Main App{};
+    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+    {
+        App.Setup();
+        xSemaphoreGive(xAppMutex);
+    }
 
     while (1)
     {
-        app.Tick();
+        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+        {
+            App.Tick();
+            xSemaphoreGive(xAppMutex);
+        }
     }
 }
