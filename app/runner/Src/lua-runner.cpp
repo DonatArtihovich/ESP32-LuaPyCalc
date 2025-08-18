@@ -108,6 +108,10 @@ namespace CodeRunner
         for (int i = 1; i <= n; i++)
         {
             const char *s = lua_tostring(L, i);
+
+            if (s == NULL)
+                s = "nil";
+
             size_t s_len = strlen(s);
 
             for (const char *p = s; p < s + s_len; p += sizeof(log_buffer))
@@ -140,16 +144,15 @@ namespace CodeRunner
         }
         ESP_LOGI(TAG, "Is waiting input: true");
 
-        std::string end_symbols{" \n\t"};
         std::string io_buff{};
         char ch = 0;
         while (xQueueReceive(xQueueRunnerStdin, &ch, portMAX_DELAY) == pdPASS &&
-               !end_symbols.contains(ch))
+               ch != '\n')
         {
             io_buff.push_back(ch);
         }
 
-        if (io_buff.size())
+        if (io_buff.size() || ch == '\n')
         {
             lua_pushstring(L, io_buff.c_str());
         }
