@@ -11,6 +11,9 @@
 #include "scene.h"
 #include "start-scene.h"
 #include "files-scene.h"
+#include "code-scene.h"
+
+#include "runner.h"
 
 using Keyboard::KeyboardController, SD::SDCard, Display::DisplayController;
 
@@ -45,10 +48,14 @@ namespace Main
         std::unique_ptr<Scene::Scene> scene;
 
         void SwitchScene(Scene::SceneId id);
+        esp_err_t InitCodeRunner();
 
     public:
         Main();
         void Setup();
         void Tick();
+        void SendCodeOutput(const char *output);
+        void SendCodeError(const char *traceback);
+        void SendCodeSuccess();
     };
 }

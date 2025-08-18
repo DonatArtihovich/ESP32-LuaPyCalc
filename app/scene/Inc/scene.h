@@ -1,6 +1,5 @@
 #pragma once
 
-#include "display.h"
 #include <map>
 #include <vector>
 #include <cstring>
@@ -8,9 +7,19 @@
 #include <functional>
 #include <type_traits>
 #include <memory>
+#include <cmath>
 #include "esp_log.h"
 
-using LCD::Color, Display::DisplayController, Display::UiStringItem, Display::Position;
+#include "display.h"
+#include "keyboard.h"
+#include "runner.h"
+
+using LCD::Color,
+    Display::DisplayController,
+    Display::UiStringItem,
+    Display::Position,
+    Keyboard::KeyboardController,
+    CodeRunner::CodeRunController;
 
 namespace Scene
 {
@@ -46,19 +55,15 @@ namespace Scene
             PreEnter{},
             PreLeave{};
         std::function<void(Direction)> Arrow{};
-    };
-
-    struct FocusColors
-    {
-        Color focused_text = Color::White,
-              focused_background = Color::Blue,
-              unfocused_text = Color::White,
-              unfocused_background = Color::Black;
+        std::function<void(char, bool)> Value{};
     };
 
     class Scene
     {
         bool is_cursor_controlling{};
+        std::string clipboard{"print(\"Enter your string: \")\n"
+                              "l = io.read(\"*l\")\n"
+                              "print(\"You entered: \", l)"};
         Cursor cursor{};
         uint8_t stage{};
 
@@ -69,25 +74,31 @@ namespace Scene
         std::map<uint8_t, Modal> modals{};
         const size_t default_line_length{37};
         const size_t max_lines_per_page{9};
+        size_t content_ui_start{0};
+
+        bool is_code_running{};
 
         void SetCursorControlling(bool cursor);
         virtual void EnterModalControlling();
         virtual void LeaveModalControlling(uint8_t stage, bool rerender = true);
-        void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false);
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
-        void ClearCursor(std::vector<UiStringItem>::iterator line, int16_t x = -1, int16_t y = -1);
-        void RenderCursor();
-        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true);
+        void ClearCursor(UiStringItem *line = nullptr, int16_t x = -1, int16_t y = -1);
+        void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true, bool rerender = true);
         size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
         virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
+        virtual void ScrollToEnd();
 
         bool IsCursorControlling();
-        void CursorInit(Cursor *cursor);
+        void CursorInit(FontxFile *font, uint8_t x = 0, uint8_t y = 0);
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars, size_t scrolling = 0);
+        void CursorPaste();
         void CursorAppendLine(const char *label = "", Color color = Color::White);
+        void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
 
         virtual void InitModals();
+        void InitCodeRunModal(uint8_t code_run_stage);
+
         void AddModalLabel(std::string modal_label, Modal &modal);
 
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
@@ -127,6 +138,8 @@ namespace Scene
             modals[(uint8_t)stage] = modal;
         }
 
+        void AddStageModal(uint8_t stage, Modal modal);
+
         template <typename StageType, typename = std::enable_if_t<std::is_enum_v<StageType>>>
         Modal &GetStageModal(StageType stage)
         {
@@ -145,29 +158,46 @@ namespace Scene
         virtual bool IsHomeStage(uint8_t stage);
 
         virtual size_t GetLinesPerPageCount();
-        virtual size_t GetLinesPerPageCount(uint8_t stage) = 0;
+        virtual size_t GetLinesPerPageCount(uint8_t stage);
         virtual size_t GetLinesScroll();
         virtual size_t GetLineLength();
         virtual std::vector<UiStringItem>::iterator GetContentUiStart();
         size_t GetContentUiStartIndex();
-        virtual size_t GetContentUiStartIndex(uint8_t stage) = 0;
+        virtual size_t GetContentUiStartIndex(uint8_t stage);
+        std::vector<UiStringItem>::iterator GetFocused();
+        std::vector<UiStringItem>::iterator GetFocused(std::vector<UiStringItem>::iterator begin);
+        std::vector<UiStringItem>::iterator GetFocused(std::vector<UiStringItem>::iterator begin,
+                                                       std::vector<UiStringItem>::iterator end);
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
-        virtual void ChangeHeader(const char *header, bool rerender = false);
+        virtual void ChangeHeader(std::string header, bool rerender = false);
         virtual uint8_t Focus(Direction direction);
         void RenderUiListEnding(const char *end_label = "more items");
-        virtual void RenderAll() = 0;
-        virtual void RenderContent() = 0;
+
+        virtual void RenderAll();
+        virtual void RenderContent();
+        virtual void RenderHeader();
         virtual void RenderModal();
+        virtual void RenderModalContent();
+        void RenderCursor();
+
+        void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false, uint8_t start_x = 0);
+
+        virtual void ClearHeader(Color color = Color::Black);
+        virtual void ClearContent(Color color = Color::Black);
 
     public:
         Scene(DisplayController &display);
         virtual void Init() = 0;
         virtual void Arrow(Direction direction);
-        virtual SceneId Enter() = 0;
-        virtual SceneId Escape() = 0;
+        virtual SceneId Enter();
+        virtual SceneId Escape();
         virtual void Delete();
         virtual void Value(char value);
+
+        virtual void SendCodeOutput(const char *output);
+        virtual void SendCodeError(const char *traceback);
+        virtual void SendCodeSuccess();
 
         virtual ~Scene() = default;
     };

@@ -1,9 +1,5 @@
 #include "start-scene.h"
 
-#include <string>
-
-static const char *TAG = "StartScene";
-
 namespace Scene
 {
     StartScene::StartScene(DisplayController &display) : Scene{display} {}
@@ -23,56 +19,31 @@ namespace Scene
         RenderAll();
     }
 
-    void StartScene::Arrow(Direction direction)
-    {
-        Scene::Arrow(direction);
-        Scene::Focus(direction);
-    }
-
-    void StartScene::RenderAll()
-    {
-        display.Clear(Color::Black);
-        display.DrawStringItem(&(*ui)[0], Display::Position::Center, Display::Position::End);
-        RenderContent();
-    }
-
-    void StartScene::RenderContent()
-    {
-        display.DrawStringItems(GetContentUiStart(), ui->end(), 0, display.GetHeight() - 80, 3);
-    }
-
     SceneId StartScene::Enter()
     {
-        auto focused = std::find_if(
-            ui->cbegin(),
-            ui->cend(),
-            [](auto &item)
-            { return item.focused; });
+        auto focused = GetFocused();
 
-        if (focused != ui->cend())
+        if (focused != ui->end())
         {
+            display.Clear(Color::Black);
             if (focused->label.contains("Files"))
             {
-                display.Clear(Color::Black);
                 return SceneId::FilesScene;
+            }
+            else if (focused->label.contains("Code"))
+            {
+                return SceneId::CodeScene;
+            }
+            else if (focused->label.contains("Settings"))
+            {
+                return SceneId::SettingsScene;
             }
         }
 
         return SceneId::CurrentScene;
     }
 
-    SceneId StartScene::Escape()
-    {
-        return SceneId::CurrentScene;
-    }
-    // StartScene::
-    size_t StartScene::GetContentUiStartIndex(uint8_t stage)
-    {
-        return 1;
-    }
-
-    size_t StartScene::GetLinesPerPageCount(uint8_t stage)
-    {
-        return lines_per_page;
-    }
+    void StartScene::SendCodeOutput(const char *output) {}
+    void StartScene::SendCodeError(const char *traceback) {}
+    void StartScene::SendCodeSuccess() {}
 }

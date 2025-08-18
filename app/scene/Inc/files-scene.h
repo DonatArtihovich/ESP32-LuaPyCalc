@@ -2,7 +2,9 @@
 #include "scene.h"
 #include "sd.h"
 
-using SD::SDCard;
+#include "runner.h"
+
+using SD::SDCard, CodeRunner::CodeLanguage, CodeRunner::CodeRunController;
 
 namespace Scene
 {
@@ -13,6 +15,7 @@ namespace Scene
         DeleteModalStage,
         CreateChooseModalStage,
         CreateModalStage,
+        CodeRunModalStage,
     };
 
     class FilesScene : public Scene
@@ -20,7 +23,6 @@ namespace Scene
         SDCard &sdcard;
 
         std::string curr_directory{SD("")};
-        const size_t content_ui_start{4};
         const size_t directory_lines_per_page{max_lines_per_page}; // including "more"
         const size_t file_lines_per_page{max_lines_per_page};      // not including "more"
         const size_t directory_lines_scroll{directory_lines_per_page};
@@ -29,6 +31,7 @@ namespace Scene
         const size_t max_filename_size{8};
         const size_t max_filename_ext_size{3};
         std::vector<UiStringItem> directory_backup{};
+        CodeLanguage runner_language{CodeLanguage::Text};
 
         void OpenDirectory(const char *relative_path);
         size_t ReadDirectory();
@@ -36,8 +39,11 @@ namespace Scene
         void SaveDirectory();
 
         void OpenFile(const char *relative_path);
+        void DetectLanguage(std::string filename);
         void SaveFile();
         void CloseFile();
+
+        void RunFile();
 
         void DeleteFile(std::string filename);
         bool CreateFile(std::string filename, bool is_directory);
@@ -52,7 +58,6 @@ namespace Scene
         uint8_t Focus(Direction direction) override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
-        void EnterModalControlling() override;
         void LeaveModalControlling(
             uint8_t stage = (uint8_t)FilesSceneStage::DirectoryStage,
             bool rerender = true) override;
@@ -67,15 +72,11 @@ namespace Scene
         void SetupCreateChooseModal();
         void SetupCreateModal();
 
-        void RenderAll() override;
         void RenderContent() override;
-        void RenderHeader();
 
         void ToggleUpButton(bool mode, bool rerender = false);
         void ToggleSaveButton(bool mode, bool rerender = false);
         void ToggleCreateButton(bool mode, bool rerender = false);
-
-        void ChangeHeader(const char *header, bool rerender = false) override;
 
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
@@ -85,6 +86,11 @@ namespace Scene
         SceneId Enter() override;
         SceneId Escape() override;
         void Delete() override;
+
+        void SendCodeOutput(const char *output) override;
+        void SendCodeError(const char *traceback) override;
+        void SendCodeSuccess() override;
+
         ~FilesScene() = default;
     };
 }
