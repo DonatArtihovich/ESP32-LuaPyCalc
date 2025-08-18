@@ -217,7 +217,9 @@ namespace Display
             {
                 it->displayable = false;
                 if (it < (end - 1))
+                {
                     (it + 1)->displayable = false;
+                }
             }
 
             if (it->displayable)

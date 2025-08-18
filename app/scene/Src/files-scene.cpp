@@ -267,9 +267,9 @@ namespace Scene
                     LeaveModalControlling((uint8_t)FilesSceneStage::CreateChooseModalStage);
                 }
             }
-            else
+            else if (stage == FilesSceneStage::CodeRunModalStage)
             {
-                LeaveModalControlling();
+                LeaveModalControlling((uint8_t)FilesSceneStage::FileOpenStage);
             }
         }
         else
@@ -454,7 +454,7 @@ namespace Scene
         case FilesSceneStage::CreateModalStage:
             return 1;
         default:
-            return 0;
+            return max_lines_per_page;
         }
     }
 
@@ -721,7 +721,8 @@ namespace Scene
 
     bool FilesScene::IsHomeStage(uint8_t stage)
     {
-        return FilesSceneStage::DirectoryStage == (FilesSceneStage)stage;
+        return FilesSceneStage::DirectoryStage == (FilesSceneStage)stage ||
+               FilesSceneStage::FileOpenStage == (FilesSceneStage)stage;
     }
 
     void FilesScene::LeaveModalControlling(uint8_t stage, bool rerender)
@@ -956,6 +957,7 @@ namespace Scene
             Scene::SendCodeOutput(output);
         }
     };
+
     void FilesScene::SendCodeError(const char *traceback)
     {
         if (IsStage(FilesSceneStage::CodeRunModalStage))
@@ -963,6 +965,7 @@ namespace Scene
             Scene::SendCodeError(traceback);
         }
     };
+
     void FilesScene::SendCodeSuccess()
     {
         if (IsStage(FilesSceneStage::CodeRunModalStage))

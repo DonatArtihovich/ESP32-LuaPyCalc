@@ -85,32 +85,37 @@ namespace Main
             {
                 ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
 
+                esp_err_t ret{ESP_OK};
                 if (processing.is_file)
                 {
-                    CodeRunController::RunCodeFile(processing.data, processing.language);
+                    ret = CodeRunController::RunCodeFile(
+                        processing.data,
+                        processing.language,
+                        traceback, sizeof(traceback));
                 }
                 else
                 {
-                    if (CodeRunController::RunCodeString(
-                            processing.data,
-                            processing.language,
-                            traceback,
-                            sizeof(traceback)) != ESP_OK)
+                    ret = CodeRunController::RunCodeString(
+                        processing.data,
+                        processing.language,
+                        traceback, sizeof(traceback));
+                }
+
+                if (ret != ESP_OK)
+                {
+                    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
                     {
-                        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
-                        {
-                            App->SendCodeError(traceback);
-                            xSemaphoreGive(xAppMutex);
-                            memset(traceback, 0, sizeof(traceback));
-                        }
+                        App->SendCodeError(traceback);
+                        xSemaphoreGive(xAppMutex);
+                        memset(traceback, 0, sizeof(traceback));
                     }
-                    else
+                }
+                else
+                {
+                    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
                     {
-                        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
-                        {
-                            App->SendCodeSuccess();
-                            xSemaphoreGive(xAppMutex);
-                        }
+                        App->SendCodeSuccess();
+                        xSemaphoreGive(xAppMutex);
                     }
                 }
             }

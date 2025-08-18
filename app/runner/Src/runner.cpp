@@ -37,7 +37,7 @@ namespace CodeRunner
         return ret;
     }
 
-    esp_err_t CodeRunController::RunCodeFile(std::string path, CodeLanguage language)
+    esp_err_t CodeRunController::RunCodeFile(std::string path, CodeLanguage language, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
 
@@ -46,7 +46,7 @@ namespace CodeRunner
         switch (language)
         {
         case CodeLanguage::Lua:
-            ret |= LuaRunController::RunCodeFile(path.c_str());
+            ret |= LuaRunController::RunCodeFile(path.c_str(), traceback, traceback_len);
             break;
         default:
             ESP_LOGI(TAG, "Language is not implemented yet");
