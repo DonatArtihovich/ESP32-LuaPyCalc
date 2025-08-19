@@ -112,6 +112,8 @@ namespace CodeRunner
                 snprintf(log_buffer, sizeof(log_buffer), "%s", p);
 
                 size_t log_buffer_len = strlen(log_buffer);
+
+                CodeRunController::SetIsWaitingOutput(true);
                 if (log_buffer_len < 63)
                 {
                     log_buffer[log_buffer_len] = i < n ? '\t' : '\n';
@@ -122,7 +124,6 @@ namespace CodeRunner
                     xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
                     xQueueSend(xQueueRunnerStdout, i < n ? "\t" : "\n", portMAX_DELAY);
                 }
-                CodeRunController::SetIsWaitingOutput(true);
                 memset(log_buffer, 0, sizeof(log_buffer));
             }
         }
@@ -132,11 +133,8 @@ namespace CodeRunner
 
     int LuaRunController::lua_io_read_impl(lua_State *L)
     {
-        if (CodeRunController::SetIsWaitingInput(true) != ESP_OK)
-        {
-            lua_pushnil(L);
-            return 1;
-        }
+        CodeRunController::SetIsWaitingInput(true);
+
         ESP_LOGI(TAG, "Is waiting input: true");
         xSemaphoreGive(xDisplayingSemaphore);
 
