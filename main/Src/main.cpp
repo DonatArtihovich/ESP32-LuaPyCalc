@@ -31,10 +31,16 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
             {
-                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
                 {
-                    App->SendCodeOutput(stdout_buffer);
-                    xSemaphoreGive(xAppMutex);
+                    vTaskDelay(pdMS_TO_TICKS(1));
+                }
+
+                App->SendCodeOutput(stdout_buffer);
+                xSemaphoreGive(xAppMutex);
+
+                if (!uxQueueMessagesWaiting(xQueueRunnerStdout))
+                {
                     CodeRunController::SetIsWaitingOutput(false);
                 }
                 memset(stdout_buffer, 0, sizeof(stdout_buffer));
@@ -104,6 +110,8 @@ namespace Main
                     App->DisplayCodeLog();
                     xSemaphoreGive(xAppMutex);
                 }
+
+                CodeRunController::SetIsRunning(false);
             }
         }
 

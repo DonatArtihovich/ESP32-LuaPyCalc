@@ -388,7 +388,7 @@ namespace Scene
             cursor_y = cursor.y;
         }
 
-        ESP_LOGI(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
+        ESP_LOGD(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
 
         uint16_t x, y;
         GetCursorXY(&x, &y, cursor_x, cursor_y);
@@ -422,7 +422,7 @@ namespace Scene
 
         uint16_t cursor_x{}, cursor_y{};
         GetCursorXY(&cursor_x, &cursor_y);
-        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
+        ESP_LOGD(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
 
         display.DrawCursor(
             cursor_x,
@@ -495,7 +495,7 @@ namespace Scene
         cursor.x = cursor_x;
         cursor.y = cursor_y;
 
-        ESP_LOGI(TAG, "Spawn cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
+        ESP_LOGD(TAG, "Spawn cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
         if (rerender)
         {
             RenderCursor();
@@ -1036,7 +1036,7 @@ namespace Scene
         if (!chars.size())
             return;
 
-        ESP_LOGI(TAG, "Inserting %s", chars.c_str());
+        ESP_LOGD(TAG, "Inserting %s", chars.c_str());
 
         size_t inserting_len = chars.size();
         uint8_t insert_x{cursor.x}, last_insert_y{cursor.y};
@@ -1121,19 +1121,16 @@ namespace Scene
 
             if (line_index == (ui->size() - 1) &&
                 (chars.size() ||
-                 line.label[line.label.size() - 1] == '\n'))
+                 line.label[line.label.size() - 1] == '\n' ||
+                 (line.label.size() == GetLineLength() && cursor.x == line.label.size() - 1)))
             {
-                bool is_new_line_displayable{!(ui->size() - first_displaying_index > GetLinesPerPageCount())};
-                bool is_cursor_moving{is_new_line_displayable &&
-                                      cursor.y == line_index - first_displaying_index &&
+                bool is_new_line_displayable{!(ui->size() - first_displaying_index >= GetLinesPerPageCount())};
+                bool is_cursor_moving{cursor.y == line_index - first_displaying_index &&
                                       cursor.x == line.label.size() - 1 &&
                                       !chars.size()};
+
                 CursorAppendLine();
 
-                ESP_LOGI(TAG, "is_new_line_displayable: %d, (ui->size() - first_displaying_index)(%d) > GetLinesPerPageCount()(%d)",
-                         is_new_line_displayable,
-                         (int)(ui->end() - first_displaying + 1),
-                         GetLinesPerPageCount());
                 if (!is_new_line_displayable)
                 {
                     (ui->end() - 1)->displayable = false;
@@ -1141,7 +1138,7 @@ namespace Scene
 
                 if (is_cursor_moving)
                 {
-                    scrolled_count += MoveCursor(Direction::Right, false, scrolling);
+                    scrolled_count += MoveCursor(Direction::Right, false, 1);
                 }
             }
         }
@@ -1152,16 +1149,12 @@ namespace Scene
             cursor_scrolling_count = last_insert_y - first_insert_y <= scrolling
                                          ? scrolling
                                          : last_insert_y - first_insert_y;
-            ESP_LOGI(TAG, "last_insert_y(%d) - first_insert_y(%d) <= scrolling(%d)", last_insert_y, first_insert_y, scrolling);
-            ESP_LOGI(TAG, "cursor_scrolling_count(%d)", cursor_scrolling_count);
         }
 
         for (int i{}; i < inserting_len; i++)
         {
             scrolled_count += MoveCursor(Direction::Right, false, cursor_scrolling_count);
         }
-
-        ESP_LOGI(TAG, "Scrolled count: %d", scrolled_count);
 
         if (rerender)
         {
@@ -1515,7 +1508,6 @@ namespace Scene
         {
             if (ui->end() - it > GetLinesPerPageCount())
             {
-                ESP_LOGI(TAG, "Make %s not disp, ui->end() - it (%d) > GetLinesPerPageCount()(%d)", it->label.c_str(), static_cast<int>(ui->end() - it), GetLinesPerPageCount());
                 it->displayable = false;
             }
             else
@@ -1530,7 +1522,6 @@ namespace Scene
         if (!IsCodeRunning())
             return;
 
-        ESP_LOGI(TAG, "Code output: %s", output);
         CursorInsertChars(output, 1, false);
     }
 
@@ -1584,12 +1575,12 @@ namespace Scene
             RenderCursor();
         }
 
-        for (auto it{GetContentUiStart()}; it < ui->end(); it++)
-        {
-            ESP_LOGW(TAG, "After Display: %s, displayable: %d, x: %d, y: %d",
-                     it->label.c_str(),
-                     it->displayable, it->x, it->y);
-        }
+        // for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+        // {
+        //     ESP_LOGW(TAG, "After Display: %s, displayable: %d, x: %d, y: %d",
+        //              it->label.c_str(),
+        //              it->displayable, it->x, it->y);
+        // }
     }
 
     bool Scene::IsCodeRunning()

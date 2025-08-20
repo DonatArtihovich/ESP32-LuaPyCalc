@@ -36,7 +36,6 @@ namespace CodeRunner
             ESP_LOGI(TAG, "Language is not implemented yet");
         }
 
-        SetIsRunning(false);
         return ret;
     }
 
@@ -54,7 +53,6 @@ namespace CodeRunner
             ESP_LOGI(TAG, "Language is not implemented yet");
         }
 
-        SetIsRunning(false);
         return ret;
     }
 
