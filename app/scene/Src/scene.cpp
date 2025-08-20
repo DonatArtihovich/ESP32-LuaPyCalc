@@ -1236,7 +1236,7 @@ namespace Scene
 
     void Scene::RenderModalContent()
     {
-        display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 60);
+        display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 35);
         std::for_each(
             Scene::GetContentUiStart(),
             ui->end(),
