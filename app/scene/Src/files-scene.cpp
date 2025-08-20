@@ -122,10 +122,11 @@ namespace Scene
             seek_pos += read;
         }
 
-        if (GetContentUiStart() == ui->end())
+        if (GetContentUiStart() == ui->end() ||
+            (ui->end() - 1)->label.size() == GetLineLength())
         {
             ui->push_back(UiStringItem{
-                buff,
+                "",
                 Color::White,
                 display.fx16G,
                 false,
@@ -421,9 +422,9 @@ namespace Scene
     void FilesScene::OpenFile(const char *relative_path)
     {
         SaveDirectory();
+        SetStage(FilesSceneStage::FileOpenStage);
         ChangeHeader(relative_path);
         ChangeItemFocus(&(*ui)[1], true);
-        SetStage(FilesSceneStage::FileOpenStage);
         ToggleCreateButton(false);
         (*ui)[3].displayable = true;
         ui->erase(GetContentUiStart(), ui->end());
