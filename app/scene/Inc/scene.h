@@ -62,11 +62,8 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "local l\n"
             "for i = 1, 200 do\n"
-            "  print(\"Enter your string: \")\n"
-            "  l = io.read(\"*l\")\n"
-            "  print(\"You entered: \", l)\n"
+            "  print(\"Number\", i)\n"
             "end"};
         Cursor cursor{};
         // Cursor code_log_cursor{};

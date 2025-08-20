@@ -1442,7 +1442,6 @@ namespace Scene
             modal.data = cursor_xy;
 
             CursorInit(display.fx16G);
-            // code_log_cursor = cursor;
 
             modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
             modal.ui[1].x = 10;
@@ -1477,7 +1476,13 @@ namespace Scene
 
         modal.Arrow = [this](Direction direction)
         {
+            if (CodeRunController::IsRunning())
+                return;
             ESP_LOGI(TAG, "direction %d", (int)direction);
+            if (direction == Direction::Up || direction == Direction::Bottom)
+            {
+                ScrollContent(direction, true, GetLinesScroll());
+            }
         };
 
         modal.Value = [this](char value, bool _)

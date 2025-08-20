@@ -506,16 +506,16 @@ namespace Scene
     uint8_t FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
     {
         size_t lines_per_page{Scene::GetLinesPerPageCount()};
-        bool is_file_open_stage{IsStage(FilesSceneStage::FileOpenStage)};
+        bool is_directory_open_stage{IsStage(FilesSceneStage::DirectoryStage)};
 
-        if (count > lines_per_page - 1 - !is_file_open_stage)
-            count = lines_per_page - 1 - !is_file_open_stage;
+        if (count > lines_per_page - 1 - is_directory_open_stage)
+            count = lines_per_page - 1 - is_directory_open_stage;
 
         if (direction == Direction::Bottom || direction == Direction::Up)
         {
             count = Scene::ScrollContent(direction, rerender, count);
 
-            if (!is_file_open_stage)
+            if (is_directory_open_stage)
             {
                 if (direction == Direction::Bottom &&
                     !(*ui)[content_ui_start].focusable &&
