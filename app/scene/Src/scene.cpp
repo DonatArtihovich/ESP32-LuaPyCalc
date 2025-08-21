@@ -1237,11 +1237,11 @@ namespace Scene
     void Scene::RenderModalContent()
     {
         display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 35);
-        std::for_each(
-            Scene::GetContentUiStart(),
-            ui->end(),
-            [this](auto &item)
-            { display.DrawStringItem(&item); });
+        display.DrawStringItems(GetContentUiStart(),
+                                ui->end(),
+                                10,
+                                display.GetHeight() - 60,
+                                GetLinesPerPageCount());
     }
 
     void Scene::EnterModalControlling()
@@ -1481,7 +1481,12 @@ namespace Scene
             ESP_LOGI(TAG, "direction %d", (int)direction);
             if (direction == Direction::Up || direction == Direction::Bottom)
             {
-                ScrollContent(direction, true, GetLinesScroll());
+                ScrollContent(direction, false, GetLinesScroll());
+                RenderModalContent();
+                if (!(ui->end() - 1)->displayable)
+                {
+                    RenderUiListEnding("more log lines...");
+                }
             }
         };
 
