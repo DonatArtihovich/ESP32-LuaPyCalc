@@ -23,9 +23,9 @@ namespace Scene
         ui->push_back(UiStringItem{"Create", Color::White, display.fx24G}); // [Create] button
         display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
 
-        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G}); // [Save] button
+        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G, false}); // [Save] button
         display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
-        (ui->end() - 1)->displayable = false;
+        (ui->end() - 1)->label.clear();
 
         ui->push_back(UiStringItem{"", Color::White, display.fx24M, false}); // [^ Up] button
 
@@ -65,6 +65,10 @@ namespace Scene
             {
                 RunFile();
                 enter = false;
+            }
+            else if (!(*ui)[3].label.size() && IsCursorControlling())
+            {
+                ToggleSaveButton(true, true);
             }
         }
 
@@ -118,10 +122,11 @@ namespace Scene
             seek_pos += read;
         }
 
-        if (GetContentUiStart() == ui->end())
+        if (GetContentUiStart() == ui->end() ||
+            (ui->end() - 1)->label.size() == GetLineLength())
         {
             ui->push_back(UiStringItem{
-                buff,
+                "",
                 Color::White,
                 display.fx16G,
                 false,
@@ -271,6 +276,10 @@ namespace Scene
             {
                 LeaveModalControlling((uint8_t)FilesSceneStage::FileOpenStage);
             }
+            else
+            {
+                LeaveModalControlling();
+            }
         }
         else
         {
@@ -284,6 +293,13 @@ namespace Scene
     {
         if (IsStage(FilesSceneStage::CodeRunModalStage))
             return;
+
+        if (IsStage(FilesSceneStage::FileOpenStage) &&
+            IsCursorControlling() &&
+            !(*ui)[3].label.size())
+        {
+            ToggleSaveButton(true, true);
+        }
 
         Scene::Delete();
 
@@ -347,25 +363,47 @@ namespace Scene
         }
         else
         {
-            ChangeItemFocus(&(*ui)[up_index], false);
+            ChangeItemFocus(&(*ui)[up_index], false, rerender);
             (*ui)[up_index].label.clear();
             (*ui)[up_index].focusable = false;
-            ChangeItemFocus(&(*GetContentUiStart()), true);
+            ChangeItemFocus(&(*GetContentUiStart()), true, rerender);
         }
 
-        display.DrawStringItem(&*(ui->begin() + up_index));
+        if (rerender)
+        {
+            display.DrawStringItem(&(*ui)[up_index]);
+        }
     }
 
     void FilesScene::ToggleSaveButton(bool mode, bool rerender)
     {
-
         size_t save_index{3};
-        auto item{ui->begin() + save_index};
-        item->displayable = mode;
+        if (mode)
+        {
+            (*ui)[save_index].label = "Save";
+            (*ui)[save_index].focusable = true;
+        }
+        else
+        {
+            ChangeItemFocus(&(*ui)[save_index], false);
+            (*ui)[save_index].focusable = false;
+            ChangeItemFocus(&(*ui)[1], true, rerender);
+        }
 
         if (rerender)
         {
-            display.DrawStringItem(&(*item));
+            if (!mode)
+            {
+                (*ui)[save_index].backgroundColor = Color::Black;
+                (*ui)[save_index].label = std::string((*ui)[save_index].label.size(), ' ');
+                display.DrawStringItem(&(*ui)[save_index]);
+                (*ui)[save_index].label.clear();
+                (*ui)[save_index].backgroundColor = Color::None;
+            }
+            else
+            {
+                display.DrawStringItem(&(*ui)[save_index]);
+            }
         }
     }
 
@@ -384,11 +422,11 @@ namespace Scene
     void FilesScene::OpenFile(const char *relative_path)
     {
         SaveDirectory();
+        SetStage(FilesSceneStage::FileOpenStage);
         ChangeHeader(relative_path);
         ChangeItemFocus(&(*ui)[1], true);
-        SetStage(FilesSceneStage::FileOpenStage);
         ToggleCreateButton(false);
-        ToggleSaveButton(true);
+        (*ui)[3].displayable = true;
         ui->erase(GetContentUiStart(), ui->end());
 
         ReadFile(curr_directory + relative_path);
@@ -413,7 +451,7 @@ namespace Scene
         ui->insert(ui->end(), directory_backup.begin(), directory_backup.end());
         SetStage(FilesSceneStage::DirectoryStage);
         ChangeHeader("Files");
-        ToggleSaveButton(false);
+        (*ui)[3].displayable = false;
         ToggleCreateButton(true);
         RenderAll();
         directory_backup.clear();
@@ -468,16 +506,16 @@ namespace Scene
     uint8_t FilesScene::ScrollContent(Direction direction, bool rerender, uint8_t count)
     {
         size_t lines_per_page{Scene::GetLinesPerPageCount()};
-        bool is_file_open_stage{IsStage(FilesSceneStage::FileOpenStage)};
+        bool is_directory_open_stage{IsStage(FilesSceneStage::DirectoryStage)};
 
-        if (count > lines_per_page - 1 - !is_file_open_stage)
-            count = lines_per_page - 1 - !is_file_open_stage;
+        if (count > lines_per_page - 1 - is_directory_open_stage)
+            count = lines_per_page - 1 - is_directory_open_stage;
 
         if (direction == Direction::Bottom || direction == Direction::Up)
         {
             count = Scene::ScrollContent(direction, rerender, count);
 
-            if (!is_file_open_stage)
+            if (is_directory_open_stage)
             {
                 if (direction == Direction::Bottom &&
                     !(*ui)[content_ui_start].focusable &&
@@ -521,6 +559,7 @@ namespace Scene
             line++;
         }
 
+        ToggleSaveButton(false, true);
         ESP_LOGI(TAG, "File %s saved.", file_path.c_str());
     }
 
@@ -950,27 +989,8 @@ namespace Scene
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
     }
 
-    void FilesScene::SendCodeOutput(const char *output)
+    bool FilesScene::IsCodeRunning()
     {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeOutput(output);
-        }
-    };
-
-    void FilesScene::SendCodeError(const char *traceback)
-    {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeError(traceback);
-        }
-    };
-
-    void FilesScene::SendCodeSuccess()
-    {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeSuccess();
-        }
-    };
+        return IsStage(FilesSceneStage::CodeRunModalStage);
+    }
 }

@@ -34,6 +34,7 @@ namespace Scene
             bool rerender = true) override;
 
         void RunCode();
+        bool IsCodeRunning() override;
 
     public:
         CodeScene(DisplayController &display);
@@ -44,10 +45,6 @@ namespace Scene
         SceneId Escape() override;
         void Delete() override;
         void Value(char value) override;
-
-        void SendCodeOutput(const char *output) override;
-        void SendCodeError(const char *traceback) override;
-        void SendCodeSuccess() override;
 
         ~CodeScene() = default;
     };

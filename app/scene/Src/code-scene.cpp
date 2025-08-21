@@ -270,27 +270,8 @@ namespace Scene
         ESP_LOGI(TAG, "Send processing code item");
     }
 
-    void CodeScene::SendCodeOutput(const char *output)
+    bool CodeScene::IsCodeRunning()
     {
-        if (IsStage(CodeSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeOutput(output);
-        }
-    }
-
-    void CodeScene::SendCodeError(const char *traceback)
-    {
-        if (IsStage(CodeSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeError(traceback);
-        }
-    }
-
-    void CodeScene::SendCodeSuccess()
-    {
-        if (IsStage(CodeSceneStage::CodeRunModalStage))
-        {
-            Scene::SendCodeSuccess();
-        }
+        return IsStage(CodeSceneStage::CodeRunModalStage);
     }
 }

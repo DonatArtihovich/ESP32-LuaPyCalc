@@ -61,9 +61,10 @@ namespace Scene
     class Scene
     {
         bool is_cursor_controlling{};
-        std::string clipboard{"print(\"Enter your string: \")\n"
-                              "l = io.read(\"*l\")\n"
-                              "print(\"You entered: \", l)"};
+        std::string clipboard{
+            "for i = 1, 97 do\n"
+            "  print(\"Number\", i)\n"
+            "end"};
         Cursor cursor{};
         uint8_t stage{};
 
@@ -89,9 +90,10 @@ namespace Scene
         virtual void ScrollToEnd();
 
         bool IsCursorControlling();
+        virtual bool IsCodeRunning();
         void CursorInit(FontxFile *font, uint8_t x = 0, uint8_t y = 0);
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
-        void CursorInsertChars(std::string chars, size_t scrolling = 0);
+        void CursorInsertChars(std::string chars, size_t scrolling = 0, bool rerender = true);
         void CursorPaste();
         void CursorAppendLine(const char *label = "", Color color = Color::White);
         void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
@@ -198,6 +200,7 @@ namespace Scene
         virtual void SendCodeOutput(const char *output);
         virtual void SendCodeError(const char *traceback);
         virtual void SendCodeSuccess();
+        virtual void DisplayCodeLog(bool code_end = true);
 
         virtual ~Scene() = default;
     };
