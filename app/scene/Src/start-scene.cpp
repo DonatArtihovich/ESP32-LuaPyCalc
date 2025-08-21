@@ -42,8 +42,4 @@ namespace Scene
 
         return SceneId::CurrentScene;
     }
-
-    void StartScene::SendCodeOutput(const char *output) {}
-    void StartScene::SendCodeError(const char *traceback) {}
-    void StartScene::SendCodeSuccess() {}
 }

@@ -388,7 +388,7 @@ namespace Scene
             cursor_y = cursor.y;
         }
 
-        ESP_LOGI(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
+        ESP_LOGD(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
 
         uint16_t x, y;
         GetCursorXY(&x, &y, cursor_x, cursor_y);
@@ -422,7 +422,7 @@ namespace Scene
 
         uint16_t cursor_x{}, cursor_y{};
         GetCursorXY(&cursor_x, &cursor_y);
-        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
+        ESP_LOGD(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
 
         display.DrawCursor(
             cursor_x,
@@ -495,7 +495,7 @@ namespace Scene
         cursor.x = cursor_x;
         cursor.y = cursor_y;
 
-        ESP_LOGI(TAG, "Spawn cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
+        ESP_LOGD(TAG, "Spawn cursor X: %d, Cursor Y: %d", cursor.x, cursor.y);
         if (rerender)
         {
             RenderCursor();
@@ -1031,12 +1031,12 @@ namespace Scene
         ui->insert(line_before + 1, last_line);
     }
 
-    void Scene::CursorInsertChars(std::string chars, size_t scrolling)
+    void Scene::CursorInsertChars(std::string chars, size_t scrolling, bool rerender)
     {
         if (!chars.size())
             return;
 
-        ESP_LOGI(TAG, "Inserting %s", chars.c_str());
+        ESP_LOGD(TAG, "Inserting %s", chars.c_str());
 
         size_t inserting_len = chars.size();
         uint8_t insert_x{cursor.x}, last_insert_y{cursor.y};
@@ -1121,19 +1121,16 @@ namespace Scene
 
             if (line_index == (ui->size() - 1) &&
                 (chars.size() ||
-                 line.label[line.label.size() - 1] == '\n'))
+                 line.label[line.label.size() - 1] == '\n' ||
+                 (line.label.size() == GetLineLength() && cursor.x == line.label.size() - 1)))
             {
-                bool is_new_line_displayable{!(ui->size() - first_displaying_index > GetLinesPerPageCount())};
-                bool is_cursor_moving{is_new_line_displayable &&
-                                      cursor.y == line_index - first_displaying_index &&
+                bool is_new_line_displayable{!(ui->size() - first_displaying_index >= GetLinesPerPageCount())};
+                bool is_cursor_moving{cursor.y == line_index - first_displaying_index &&
                                       cursor.x == line.label.size() - 1 &&
                                       !chars.size()};
+
                 CursorAppendLine();
 
-                ESP_LOGI(TAG, "is_new_line_displayable: %d, (ui->size() - first_displaying_index)(%d) > GetLinesPerPageCount()(%d)",
-                         is_new_line_displayable,
-                         (int)(ui->end() - first_displaying + 1),
-                         GetLinesPerPageCount());
                 if (!is_new_line_displayable)
                 {
                     (ui->end() - 1)->displayable = false;
@@ -1141,7 +1138,7 @@ namespace Scene
 
                 if (is_cursor_moving)
                 {
-                    scrolled_count += MoveCursor(Direction::Right, false, scrolling);
+                    scrolled_count += MoveCursor(Direction::Right, false, 1);
                 }
             }
         }
@@ -1152,8 +1149,6 @@ namespace Scene
             cursor_scrolling_count = last_insert_y - first_insert_y <= scrolling
                                          ? scrolling
                                          : last_insert_y - first_insert_y;
-            ESP_LOGI(TAG, "last_insert_y(%d) - first_insert_y(%d) <= scrolling(%d)", last_insert_y, first_insert_y, scrolling);
-            ESP_LOGI(TAG, "cursor_scrolling_count(%d)", cursor_scrolling_count);
         }
 
         for (int i{}; i < inserting_len; i++)
@@ -1161,28 +1156,37 @@ namespace Scene
             scrolled_count += MoveCursor(Direction::Right, false, cursor_scrolling_count);
         }
 
-        ESP_LOGI(TAG, "Scrolled count: %d", scrolled_count);
-
-        if (scrolled_count > 0)
+        if (rerender)
         {
-            RenderContent();
+            if (scrolled_count > 0)
+            {
+                RenderContent();
+            }
+            else
+            {
+                if (last_insert_y > GetLinesPerPageCount() - 1)
+                {
+                    last_insert_y = GetLinesPerPageCount() - 1;
+                }
+
+                RenderLines(first_insert_y, last_insert_y, false, insert_x_initial);
+            }
         }
         else
         {
-            if (last_insert_y > GetLinesPerPageCount() - 1)
-            {
-                last_insert_y = GetLinesPerPageCount() - 1;
-            }
-
-            RenderLines(first_insert_y, last_insert_y, false, insert_x_initial);
+            display.SetListPositions(GetContentUiStart(),
+                                     ui->end(),
+                                     10,
+                                     display.GetHeight() - 60,
+                                     GetLinesPerPageCount());
         }
 
-        if (scrolled_count == 0)
+        if (scrolled_count == 0 && rerender)
         {
             ClearCursor(&(*ui)[start_line_index], initial_cursor_x, initial_cursor_y);
         }
 
-        SpawnCursor(-1, -1, false);
+        SpawnCursor(-1, -1, false, rerender);
     }
 
     void Scene::CursorInit(FontxFile *font, uint8_t x, uint8_t y)
@@ -1224,7 +1228,7 @@ namespace Scene
             [this](auto &item)
             { display.DrawStringItem(&item); });
 
-        if (IsCursorControlling())
+        if (IsCursorControlling() && !IsCodeRunning())
         {
             RenderCursor();
         }
@@ -1232,12 +1236,12 @@ namespace Scene
 
     void Scene::RenderModalContent()
     {
-        display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 60);
-        std::for_each(
-            Scene::GetContentUiStart(),
-            ui->end(),
-            [this](auto &item)
-            { display.DrawStringItem(&item); });
+        display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 35);
+        display.DrawStringItems(GetContentUiStart(),
+                                ui->end(),
+                                10,
+                                display.GetHeight() - 60,
+                                GetLinesPerPageCount());
     }
 
     void Scene::EnterModalControlling()
@@ -1472,7 +1476,18 @@ namespace Scene
 
         modal.Arrow = [this](Direction direction)
         {
+            if (CodeRunController::IsRunning())
+                return;
             ESP_LOGI(TAG, "direction %d", (int)direction);
+            if (direction == Direction::Up || direction == Direction::Bottom)
+            {
+                ScrollContent(direction, false, GetLinesScroll());
+                RenderModalContent();
+                if (!(ui->end() - 1)->displayable)
+                {
+                    RenderUiListEnding("more log lines...");
+                }
+            }
         };
 
         modal.Value = [this](char value, bool _)
@@ -1514,20 +1529,24 @@ namespace Scene
 
     void Scene::SendCodeOutput(const char *output)
     {
-        ESP_LOGI(TAG, "Code output: %s", output);
-        CursorInsertChars(output, 1);
+        if (!IsCodeRunning())
+            return;
+
+        CursorInsertChars(output, 1, false);
     }
 
     void Scene::SendCodeError(const char *traceback)
     {
+        if (!IsCodeRunning())
+            return;
+
         ESP_LOGE(TAG, "Code error: %s", traceback);
+
         size_t len = strlen(traceback);
         size_t line_len = GetLineLength();
         UiStringItem error_line{"", Color::Red, GetContentUiStart()->font, false};
 
         char label[line_len + 1] = {0};
-        int lines_count{static_cast<int>(ceil((double)len / line_len))};
-
         for (const char *p{traceback}; p < traceback + len; p += line_len)
         {
             snprintf(label, line_len + 1, p);
@@ -1535,34 +1554,47 @@ namespace Scene
             ui->push_back(error_line);
         }
 
-        uint8_t fh;
-        Font::GetFontx(error_line.font, 0, 0, &fh);
-
-        display.SetListPositions(
-            ui->end() - lines_count,
-            ui->end(),
-            10,
-            display.GetHeight() - 60 - fh * (ui->size() - lines_count - Scene::GetContentUiStartIndex()),
-            5);
-
         ScrollToEnd();
-        RenderModalContent();
-        ClearCursor();
+        display.SetListPositions(GetContentUiStart(), ui->end(), 10, display.GetHeight() - 60, GetLinesPerPageCount());
     }
 
     void Scene::SendCodeSuccess()
     {
+        if (!IsCodeRunning())
+            return;
+
         ESP_LOGI(TAG, "Code Successfully executed.");
+
         UiStringItem end_item{"Successfully executed.", Color::Green, GetContentUiStart()->font, false};
-
-        uint8_t fh;
-        Font::GetFontx(end_item.font, 0, 0, &fh);
-        end_item.x = 10;
-        end_item.y = display.GetHeight() - 60 - fh * (ui->size() - 1 - Scene::GetContentUiStartIndex());
-
         ui->push_back(end_item);
 
         ScrollToEnd();
+        display.SetListPositions(GetContentUiStart(), ui->end(), 10, display.GetHeight() - 60, GetLinesPerPageCount());
+    }
+
+    void Scene::DisplayCodeLog(bool code_end)
+    {
+        if (!IsCodeRunning())
+            return;
+
+        ESP_LOGI(TAG, "Display code log...");
+
         RenderModalContent();
+        if (!code_end)
+        {
+            RenderCursor();
+        }
+
+        // for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+        // {
+        //     ESP_LOGW(TAG, "After Display: %s, displayable: %d, x: %d, y: %d",
+        //              it->label.c_str(),
+        //              it->displayable, it->x, it->y);
+        // }
+    }
+
+    bool Scene::IsCodeRunning()
+    {
+        return false;
     }
 }

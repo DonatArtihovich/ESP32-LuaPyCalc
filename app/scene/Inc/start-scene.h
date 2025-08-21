@@ -12,10 +12,6 @@ namespace Scene
         void Init() override;
         SceneId Enter() override;
 
-        void SendCodeOutput(const char *output) override;
-        void SendCodeError(const char *traceback) override;
-        void SendCodeSuccess() override;
-
         ~StartScene() = default;
     };
 }

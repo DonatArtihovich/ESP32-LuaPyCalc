@@ -8,9 +8,14 @@ extern QueueHandle_t xQueueRunnerStdout;
 extern QueueHandle_t xQueueRunnerStdin;
 extern TaskHandle_t xTaskRunnerIO;
 extern TaskHandle_t xTaskRunnerProcessing;
+extern TaskHandle_t xTaskRunnerDisplaying;
+extern TaskHandle_t xTaskRunnerWatchdogResetting;
 
 extern SemaphoreHandle_t xIsRunningMutex;
 extern SemaphoreHandle_t xIsWaitingInputMutex;
+extern SemaphoreHandle_t xIsWaitingOutputMutex;
+
+extern SemaphoreHandle_t xDisplayingSemaphore;
 
 SemaphoreHandle_t xAppMutex = NULL;
 
@@ -19,22 +24,6 @@ namespace Main
     static void TaskRunnerIO(void *arg)
     {
         Main *App{(Main *)arg};
-        xQueueRunnerStdout = xQueueCreate(32, sizeof(char[64]));
-
-        if (xQueueRunnerStdout == NULL)
-        {
-            ESP_LOGE(TAG, "Error creating Stdout Queue");
-            vTaskDelete(NULL);
-        }
-
-        xQueueRunnerStdin = xQueueCreate(64, sizeof(char[1]));
-
-        if (xQueueRunnerStdin == NULL)
-        {
-            ESP_LOGE(TAG, "Error creating Stdin Queue");
-            vQueueDelete(xQueueRunnerStdout);
-            vTaskDelete(NULL);
-        }
 
         char stdout_buffer[64] = {0};
 
@@ -42,10 +31,17 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
             {
-                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
                 {
-                    App->SendCodeOutput(stdout_buffer);
-                    xSemaphoreGive(xAppMutex);
+                    vTaskDelay(pdMS_TO_TICKS(1));
+                }
+
+                App->SendCodeOutput(stdout_buffer);
+                xSemaphoreGive(xAppMutex);
+
+                if (!uxQueueMessagesWaiting(xQueueRunnerStdout))
+                {
+                    CodeRunController::SetIsWaitingOutput(false);
                 }
                 memset(stdout_buffer, 0, sizeof(stdout_buffer));
             }
@@ -55,26 +51,6 @@ namespace Main
     static void TaskRunnerProcessing(void *arg)
     {
         Main *App{(Main *)arg};
-        xQueueRunnerProcessing = xQueueCreate(1, sizeof(CodeRunner::CodeProcess));
-        if (xQueueRunnerProcessing == NULL)
-        {
-            vTaskDelete(NULL);
-        }
-
-        xIsRunningMutex = xSemaphoreCreateMutex();
-        if (xIsRunningMutex == NULL)
-        {
-            vQueueDelete(xQueueRunnerProcessing);
-            vTaskDelete(NULL);
-        }
-
-        xIsWaitingInputMutex = xSemaphoreCreateMutex();
-        if (xIsWaitingInputMutex == NULL)
-        {
-            vQueueDelete(xQueueRunnerProcessing);
-            vSemaphoreDelete(xIsRunningMutex);
-            vTaskDelete(NULL);
-        }
 
         static char traceback[300] = {0};
         CodeRunner::CodeProcess processing{};
@@ -103,25 +79,79 @@ namespace Main
 
                 if (ret != ESP_OK)
                 {
-                    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                    while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
                     {
-                        App->SendCodeError(traceback);
-                        xSemaphoreGive(xAppMutex);
-                        memset(traceback, 0, sizeof(traceback));
+                        vTaskDelay(pdMS_TO_TICKS(1));
                     }
+
+                    while (CodeRunController::IsWaitingOutput())
+                    {
+                        vTaskDelay(pdMS_TO_TICKS(1));
+                    }
+
+                    App->SendCodeError(traceback);
+                    App->DisplayCodeLog();
+                    xSemaphoreGive(xAppMutex);
+                    memset(traceback, 0, sizeof(traceback));
                 }
                 else
                 {
-                    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                    while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
                     {
-                        App->SendCodeSuccess();
-                        xSemaphoreGive(xAppMutex);
+                        vTaskDelay(pdMS_TO_TICKS(1));
                     }
+
+                    while (CodeRunController::IsWaitingOutput())
+                    {
+                        vTaskDelay(pdMS_TO_TICKS(1));
+                    }
+
+                    App->SendCodeSuccess();
+                    App->DisplayCodeLog();
+                    xSemaphoreGive(xAppMutex);
+                }
+
+                CodeRunController::SetIsRunning(false);
+            }
+        }
+
+        vTaskDelete(NULL);
+    }
+
+    static void TaskRunnerDisplaying(void *arg)
+    {
+        Main *App{(Main *)arg};
+
+        while (1)
+        {
+            if (xSemaphoreTake(xDisplayingSemaphore, portMAX_DELAY) == pdPASS)
+            {
+                while (CodeRunController::IsWaitingOutput())
+                {
+                    vTaskDelay(pdMS_TO_TICKS(1));
+                }
+
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                {
+                    App->DisplayCodeLog(false);
+                    xSemaphoreGive(xAppMutex);
                 }
             }
         }
 
         vTaskDelete(NULL);
+    }
+
+    static void TaskRunnerWatchdogResetting(void *arg)
+    {
+        while (1)
+        {
+            if (CodeRunController::IsRunning())
+            {
+                esp_task_wdt_reset();
+            }
+            vTaskDelay(2000 / portTICK_PERIOD_MS);
+        }
     }
 
     Main::Main() : scene{new Scene::StartScene{display}} {}
@@ -238,17 +268,122 @@ namespace Main
 
     esp_err_t Main::InitCodeRunner()
     {
-        if (xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO) != pdPASS)
-        {
-            return ESP_FAIL;
-        }
+        std::vector<QueueHandle_t> queues{};
 
-        if (xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, this, 9, &xTaskRunnerProcessing) != pdPASS)
+        auto queues_check = [&queues](QueueHandle_t queue)
         {
-            vTaskDelete(xTaskRunnerIO);
-            return ESP_FAIL;
-        }
+            if (queue == NULL)
+            {
+                for (auto q : queues)
+                {
+                    if (q != NULL)
+                    {
+                        vQueueDelete(q);
+                    }
+                }
 
+                ESP_LOGE(TAG, "Error creating queue");
+                vTaskDelete(NULL);
+            }
+            else
+            {
+                queues.push_back(queue);
+            }
+        };
+
+        queues_check(xQueueRunnerStdout = xQueueCreate(32, sizeof(char[64])));
+        queues_check(xQueueRunnerStdin = xQueueCreate(64, sizeof(char[1])));
+        queues_check(xQueueRunnerProcessing = xQueueCreate(1, sizeof(CodeRunner::CodeProcess)));
+
+        std::vector<SemaphoreHandle_t> semphrs{};
+
+        auto sem_check = [&semphrs, &queues](SemaphoreHandle_t sem)
+        {
+            if (sem == NULL)
+            {
+                for (auto q : queues)
+                {
+                    if (q != NULL)
+                    {
+                        vQueueDelete(q);
+                    }
+                }
+
+                for (auto s : semphrs)
+                {
+                    if (s != NULL)
+                    {
+                        vSemaphoreDelete(s);
+                    }
+                }
+
+                ESP_LOGE(TAG, "Error creating semaphore");
+                vTaskDelete(NULL);
+            }
+            else
+            {
+                semphrs.push_back(sem);
+            }
+        };
+
+        sem_check(xAppMutex = xSemaphoreCreateMutex());
+        sem_check(xIsWaitingOutputMutex = xSemaphoreCreateMutex());
+        sem_check(xIsRunningMutex = xSemaphoreCreateMutex());
+        sem_check(xIsWaitingInputMutex = xSemaphoreCreateMutex());
+        sem_check(xDisplayingSemaphore = xSemaphoreCreateBinary());
+
+        std::vector<TaskHandle_t> tasks{};
+
+        auto tsk_check = [&tasks, &semphrs, &queues](TaskHandle_t tsk)
+        {
+            if (tsk == NULL)
+            {
+                for (auto q : queues)
+                {
+                    if (q != NULL)
+                    {
+                        vQueueDelete(q);
+                    }
+                }
+
+                for (auto s : semphrs)
+                {
+                    if (s != NULL)
+                    {
+                        vSemaphoreDelete(s);
+                    }
+                }
+
+                for (auto t : tasks)
+                {
+                    if (t != NULL)
+                    {
+                        vTaskDelete(t);
+                    }
+                }
+
+                ESP_LOGE(TAG, "Error creating task");
+                vTaskDelete(NULL);
+            }
+            else
+            {
+                tasks.push_back(tsk);
+            }
+        };
+
+        xTaskCreate(TaskRunnerWatchdogResetting, "TWDT Reset", 2048, 0, 11, &xTaskRunnerWatchdogResetting);
+        tsk_check(xTaskRunnerWatchdogResetting);
+
+        xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO);
+        tsk_check(xTaskRunnerIO);
+
+        xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, this, 9, &xTaskRunnerProcessing);
+        tsk_check(xTaskRunnerProcessing);
+
+        xTaskCreate(TaskRunnerDisplaying, "Code Log Displaying", 2048, this, 8, &xTaskRunnerDisplaying);
+        tsk_check(xTaskRunnerDisplaying);
+
+        ESP_LOGI(TAG, "Init FreeRTOS Runner objects.");
         return ESP_OK;
     }
 
@@ -266,30 +401,26 @@ namespace Main
     {
         scene->SendCodeSuccess();
     }
+
+    void Main::DisplayCodeLog(bool is_end)
+    {
+        scene->DisplayCodeLog(is_end);
+    }
 }
 
 extern "C" void app_main(void)
 {
-    xAppMutex = xSemaphoreCreateMutex();
-    if (xAppMutex == NULL)
-    {
-        ESP_LOGE(TAG, "Error creating app mutex");
-        vTaskDelete(NULL);
-    }
-
     Main::Main App{};
-    if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
-    {
-        App.Setup();
-        xSemaphoreGive(xAppMutex);
-    }
+    App.Setup();
 
     while (1)
     {
-        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+        while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
         {
-            App.Tick();
-            xSemaphoreGive(xAppMutex);
+            vTaskDelay(pdMS_TO_TICKS(1));
         }
+
+        App.Tick();
+        xSemaphoreGive(xAppMutex);
     }
 }

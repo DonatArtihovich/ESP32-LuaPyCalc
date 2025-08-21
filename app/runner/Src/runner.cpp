@@ -8,20 +8,24 @@ QueueHandle_t xQueueRunnerStdout = NULL;
 QueueHandle_t xQueueRunnerStdin = NULL;
 TaskHandle_t xTaskRunnerIO = NULL;
 TaskHandle_t xTaskRunnerProcessing = NULL;
+TaskHandle_t xTaskRunnerDisplaying = NULL;
+TaskHandle_t xTaskRunnerWatchdogResetting = NULL;
 
 SemaphoreHandle_t xIsRunningMutex = NULL;
 SemaphoreHandle_t xIsWaitingInputMutex = NULL;
+SemaphoreHandle_t xIsWaitingOutputMutex = NULL;
+SemaphoreHandle_t xDisplayingSemaphore = NULL;
 
 namespace CodeRunner
 {
     bool CodeRunController::is_running{};
     bool CodeRunController::is_waiting_input{};
+    bool CodeRunController::is_waiting_output{};
 
     esp_err_t CodeRunController::RunCodeString(std::string code, CodeLanguage language, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
-
-        ret |= SetIsRunning(true);
+        SetIsRunning(true);
 
         switch (language)
         {
@@ -32,16 +36,13 @@ namespace CodeRunner
             ESP_LOGI(TAG, "Language is not implemented yet");
         }
 
-        ret |= SetIsRunning(false);
-
         return ret;
     }
 
     esp_err_t CodeRunController::RunCodeFile(std::string path, CodeLanguage language, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
-
-        ret |= SetIsRunning(true);
+        SetIsRunning(true);
 
         switch (language)
         {
@@ -52,21 +53,18 @@ namespace CodeRunner
             ESP_LOGI(TAG, "Language is not implemented yet");
         }
 
-        ret |= SetIsRunning(false);
-
         return ret;
     }
 
-    esp_err_t CodeRunController::SetIsRunning(bool is_running)
+    void CodeRunController::SetIsRunning(bool is_running)
     {
-        if (xSemaphoreTake(xIsRunningMutex, portMAX_DELAY) == pdPASS)
+        while (xSemaphoreTake(xIsRunningMutex, portMAX_DELAY) != pdPASS)
         {
-            CodeRunController::is_running = is_running;
-            xSemaphoreGive(xIsRunningMutex);
-            return ESP_OK;
+            vTaskDelay(pdMS_TO_TICKS(1));
         }
 
-        return ESP_FAIL;
+        CodeRunController::is_running = is_running;
+        xSemaphoreGive(xIsRunningMutex);
     }
 
     bool CodeRunController::IsRunning()
@@ -84,16 +82,15 @@ namespace CodeRunner
         return is_running;
     }
 
-    esp_err_t CodeRunController::SetIsWaitingInput(bool is_waiting_input)
+    void CodeRunController::SetIsWaitingInput(bool is_waiting_input)
     {
-        if (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) == pdPASS)
+        while (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) != pdPASS)
         {
-            CodeRunController::is_waiting_input = is_waiting_input;
-            xSemaphoreGive(xIsWaitingInputMutex);
-            return ESP_OK;
+            vTaskDelay(pdMS_TO_TICKS(1));
         }
 
-        return ESP_FAIL;
+        CodeRunController::is_waiting_input = is_waiting_input;
+        xSemaphoreGive(xIsWaitingInputMutex);
     }
 
     bool CodeRunController::IsWaitingInput()
@@ -109,5 +106,31 @@ namespace CodeRunner
         xSemaphoreGive(xIsWaitingInputMutex);
 
         return is_waiting_input;
+    }
+
+    void CodeRunController::SetIsWaitingOutput(bool is_waiting_output)
+    {
+        while (xSemaphoreTake(xIsWaitingOutputMutex, portMAX_DELAY) != pdPASS)
+        {
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }
+
+        CodeRunController::is_waiting_output = is_waiting_output;
+        xSemaphoreGive(xIsWaitingOutputMutex);
+    }
+
+    bool CodeRunController::IsWaitingOutput()
+    {
+        bool is_waiting_output{};
+
+        while (xSemaphoreTake(xIsWaitingOutputMutex, portMAX_DELAY) != pdPASS)
+        {
+            vTaskDelay(pdMS_TO_TICKS(1));
+        }
+
+        is_waiting_output = CodeRunController::is_waiting_output;
+        xSemaphoreGive(xIsWaitingOutputMutex);
+
+        return is_waiting_output;
     }
 }

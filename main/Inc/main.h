@@ -3,6 +3,7 @@
 #include <memory>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "esp_task_wdt.h"
 
 #include "keyboard.h"
 #include "sd.h"
@@ -57,5 +58,6 @@ namespace Main
         void SendCodeOutput(const char *output);
         void SendCodeError(const char *traceback);
         void SendCodeSuccess();
+        void DisplayCodeLog(bool is_end = true);
     };
 }
