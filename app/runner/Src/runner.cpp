@@ -1,5 +1,6 @@
 #include "runner.h"
 #include "lua-runner.h"
+#include "python-runner.h"
 
 static const char *TAG = "CodeRunner";
 
@@ -31,6 +32,9 @@ namespace CodeRunner
         {
         case CodeLanguage::Lua:
             ret |= LuaRunController::RunCodeString(code.c_str(), traceback, traceback_len);
+            break;
+        case CodeLanguage::Python:
+            ret |= PythonRunController::RunCodeString(code.c_str(), traceback, traceback_len);
             break;
         default:
             ESP_LOGI(TAG, "Language is not implemented yet");

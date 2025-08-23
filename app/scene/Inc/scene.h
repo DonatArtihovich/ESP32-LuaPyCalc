@@ -62,9 +62,10 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "for i = 1, 97 do\n"
-            "  print(\"Number\", i)\n"
-            "end"};
+            // "for i = 1, 97 do\n"
+            "print(\"Number\")"
+            // "end"
+        };
         Cursor cursor{};
         uint8_t stage{};
 

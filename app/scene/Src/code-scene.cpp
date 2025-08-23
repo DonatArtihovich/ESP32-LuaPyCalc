@@ -98,11 +98,11 @@ namespace Scene
                     }
                 }
             }
-            else if (focused->label.contains("< Esc"))
+            else if (focused->label.find("< Esc") != std::string::npos)
             {
                 return Escape();
             }
-            else if (focused->label.contains("Run"))
+            else if (focused->label.find("Run") != std::string::npos)
             {
                 RunCode();
             }

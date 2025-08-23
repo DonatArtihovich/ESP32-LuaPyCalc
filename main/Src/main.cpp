@@ -410,6 +410,7 @@ namespace Main
 
 extern "C" void app_main(void)
 {
+    esp_log_level_set("*", ESP_LOG_INFO);
     Main::Main App{};
     App.Setup();
 

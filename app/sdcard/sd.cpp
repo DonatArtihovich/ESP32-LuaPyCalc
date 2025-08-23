@@ -14,10 +14,9 @@ namespace SD
             .format_if_mount_failed = true,
             .max_files = 4,
             .allocation_unit_size = 16 * 1024,
-            .use_one_fat = false,
         };
 
-        sd_spi_host = SDSPI_HOST_DEFAULT();
+        // sd_spi_host = SDSPI_HOST_DEFAULT();
 
         spi_bus_config_t bus_cfg = {
             .mosi_io_num = _mosi,

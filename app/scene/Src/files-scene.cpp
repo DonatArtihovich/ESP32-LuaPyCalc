@@ -176,23 +176,23 @@ namespace Scene
 
             auto &modal = modals[stage];
 
-            if (focused->label.contains("Cancel"))
+            if (focused->label.find("Cancel") != std::string::npos)
             {
                 modal.Cancel();
             }
-            else if (focused->label.contains("Ok"))
+            else if (focused->label.find("Ok") != std::string::npos)
             {
                 modal.Ok();
             }
             else if (IsStage(FilesSceneStage::CreateChooseModalStage))
             {
-                if (focused->label.contains("File") ||
-                    focused->label.contains("Directory"))
+                if (focused->label.find("File") != std::string::npos ||
+                    focused->label.find("Directory") != std::string::npos)
                 {
                     GetStageModal(FilesSceneStage::CreateModalStage).data =
-                        focused->label.contains("File")
-                            ? "file"
-                            : "directory";
+                        ((focused->label.find("File") != std::string::npos)
+                             ? "file"
+                             : "directory");
 
                     OpenStageModal(FilesSceneStage::CreateModalStage);
                 }
@@ -221,19 +221,19 @@ namespace Scene
                 OpenFile(filename.c_str());
             }
         }
-        else if (focused->label.contains("^ Up"))
+        else if (focused->label.find("^ Up") != std::string::npos)
         {
             ScrollContent(Direction::Up, true, directory_lines_scroll);
         }
-        else if (focused->label.contains("Save"))
+        else if (focused->label.find("Save") != std::string::npos)
         {
             SaveFile();
         }
-        else if (focused->label.contains("Create"))
+        else if (focused->label.find("Create") != std::string::npos)
         {
             OpenStageModal(FilesSceneStage::CreateChooseModalStage);
         }
-        else if (focused->label.contains("< Esc"))
+        else if (focused->label.find("< Esc") != std::string::npos)
         {
             return Escape();
         }
@@ -722,11 +722,11 @@ namespace Scene
             auto &label{(GetStageModal().ui.end() - 1)->label};
             bool enter{};
 
-            if (isalnum(value) || allowed_digits.contains(value))
+            if (isalnum(value) || allowed_digits.find(value) != std::string::npos)
             {
                 if (label.size() < max_filename_size ||
                     (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
-                     label.contains('.')))
+                     label.find('.') != std::string::npos))
                 {
                     enter = true;
                 }

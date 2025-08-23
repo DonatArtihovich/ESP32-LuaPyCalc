@@ -20,7 +20,7 @@ namespace SD
     class SDCard
     {
         gpio_num_t _miso, _mosi, _clk, _cs;
-        sdmmc_host_t sd_spi_host;
+        sdmmc_host_t sd_spi_host{(sdmmc_host_t)SDSPI_HOST_DEFAULT()};
         char _mount_path[50] = {0};
 
     public:
