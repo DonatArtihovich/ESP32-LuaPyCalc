@@ -27,6 +27,7 @@ namespace CodeRunner
     {
         esp_err_t ret{ESP_OK};
         SetIsRunning(true);
+        esp_task_wdt_deinit();
 
         switch (language)
         {
@@ -39,6 +40,12 @@ namespace CodeRunner
         default:
             ESP_LOGI(TAG, "Language is not implemented yet");
         }
+
+        esp_task_wdt_config_t wdt_conf{
+            .timeout_ms = 5,
+            .trigger_panic = true,
+        };
+        esp_task_wdt_init(&wdt_conf);
 
         return ret;
     }

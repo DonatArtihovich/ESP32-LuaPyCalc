@@ -2,6 +2,7 @@
 #include "esp_cpu.h"
 #include "py/stackctrl.h"
 #include "mpthreadport.h"
+#include "unistd.h"
 
 static const char *TAG = "PythonRunController";
 

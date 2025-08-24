@@ -142,18 +142,6 @@ namespace Main
         vTaskDelete(NULL);
     }
 
-    static void TaskRunnerWatchdogResetting(void *arg)
-    {
-        while (1)
-        {
-            if (CodeRunController::IsRunning())
-            {
-                esp_task_wdt_reset();
-            }
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-        }
-    }
-
     Main::Main() : scene{new Scene::StartScene{display}} {}
 
     void Main::Setup()
@@ -370,9 +358,6 @@ namespace Main
                 tasks.push_back(tsk);
             }
         };
-
-        xTaskCreate(TaskRunnerWatchdogResetting, "TWDT Reset", 2048, 0, 11, &xTaskRunnerWatchdogResetting);
-        tsk_check(xTaskRunnerWatchdogResetting);
 
         xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO);
         tsk_check(xTaskRunnerIO);
