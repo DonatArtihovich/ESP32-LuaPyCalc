@@ -12,8 +12,7 @@ namespace CodeRunner
     class PythonRunController
     {
         // static int python_input_impl();
-        // static void python_get_traceback(char *traceback, size_t traceback_len, size_t depth = 2);
-
+        static void upy_get_traceback(nlr_buf_t *nlr, char *traceback, size_t traceback_len); //, size_t depth = 2);
         static void setup_python();
 
     public:

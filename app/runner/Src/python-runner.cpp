@@ -110,46 +110,21 @@ namespace CodeRunner
         if (nlr_push(&nlr) == 0)
         {
             mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, code, strlen(code), 0);
-            qstr source_name = lex->source_name;
             mp_parse_tree_t parse_tree = mp_parse(lex, MP_PARSE_FILE_INPUT);
-            mp_obj_t module_fun = mp_compile(&parse_tree, source_name, true);
+            mp_obj_t module_fun = mp_compile(&parse_tree, lex->source_name, true);
 
             mp_call_function_0(module_fun);
             nlr_pop();
         }
         else
         {
-            mp_obj_t exc = (mp_obj_t)nlr.ret_val;
-
-            size_t n;
-            size_t *items;
-            mp_obj_exception_get_traceback(exc, &n, &items);
-
-            if (n == 0 || items == NULL)
-            {
-                ESP_LOGE(TAG, "Python Error");
-                snprintf(traceback, traceback_len, "%s", "Python Error");
-                return ESP_FAIL;
-            }
-
-            snprintf(traceback, traceback_len, "%s", "Traceback (most recent call last):\n");
-
-            char line_buf[36] = {0};
-            for (size_t i = 0; i < n; i += 3)
-            {
-                const char *file = qstr_str(items[i]);
-                size_t line = items[i + 1];
-
-                snprintf(line_buf, sizeof(line_buf), "  File \"%s\", line %zu\n", file, line);
-                strncat(traceback, line_buf, traceback_len);
-                memset(line_buf, 0, sizeof(line_buf));
-            }
+            ESP_LOGE(TAG, "Python Error");
+            upy_get_traceback(&nlr, traceback, traceback_len);
+            ret = ESP_FAIL;
         }
 
         mp_deinit();
         gc_sweep_all();
-
-        ESP_LOGI(TAG, "Python Run FInished");
         return ret;
     }
 
@@ -157,8 +132,82 @@ namespace CodeRunner
     {
         esp_err_t ret{ESP_OK};
         ESP_LOGI(TAG, "Run Python File: %s", code);
+        setup_python();
 
+        nlr_buf_t nlr;
+        if (nlr_push(&nlr) == 0)
+        {
+            mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, code, strlen(code), 0);
+            mp_parse_tree_t parse_tree = mp_parse(lex, MP_PARSE_FILE_INPUT);
+            mp_obj_t module_fun = mp_compile(&parse_tree, lex->source_name, true);
+
+            mp_call_function_0(module_fun);
+            nlr_pop();
+        }
+        else
+        {
+            upy_get_traceback(&nlr, traceback, traceback_len);
+            ret = ESP_FAIL;
+        }
+
+        mp_deinit();
+        gc_sweep_all();
         return ret;
+    }
+
+    void PythonRunController::upy_get_traceback(nlr_buf_t *nlr, char *traceback, size_t traceback_len)
+    {
+        mp_obj_t exc = (mp_obj_t)nlr->ret_val;
+        size_t n;
+        size_t *items;
+        mp_obj_exception_get_traceback(exc, &n, &items);
+
+        if (n == 0 || items == NULL)
+        {
+            snprintf(traceback, traceback_len, "%s", "Python Error.\n");
+            return;
+        }
+
+        snprintf(traceback, traceback_len, "%s", "Traceback (most recent call last):\n");
+
+        char line_buf[36] = {0};
+        for (size_t i = 0; i < n; i += 3)
+        {
+            const char *file = qstr_str(items[i]);
+            size_t line = items[i + 1];
+
+            snprintf(line_buf, sizeof(line_buf), "  File \"%s\", line %zu\n", file, line);
+            strncat(traceback, line_buf, traceback_len);
+            memset(line_buf, 0, sizeof(line_buf));
+        }
+
+        const char *exc_type = qstr_str(mp_obj_get_type(exc)->name);
+        const char *exc_msg = NULL;
+
+        mp_obj_t exc_val = mp_obj_exception_get_value(exc);
+        if (mp_obj_is_type(exc_val, &mp_type_tuple))
+        {
+            mp_obj_tuple_t *args = (mp_obj_tuple_t *)MP_OBJ_TO_PTR(exc_val);
+            if (args->len > 0 && mp_obj_is_str(args->items[0]))
+            {
+                exc_msg = mp_obj_str_get_str(args->items[0]);
+            }
+        }
+
+        if (exc_msg)
+        {
+            snprintf(
+                traceback + strlen(traceback),
+                traceback_len - strlen(traceback),
+                "%s: %s\n", exc_type, exc_msg);
+        }
+        else
+        {
+            snprintf(
+                traceback + strlen(traceback),
+                traceback_len - strlen(traceback),
+                "%s\n", exc_type);
+        }
     }
 
     const char *PythonRunController::upy_obj_to_string(mp_obj_t obj)
