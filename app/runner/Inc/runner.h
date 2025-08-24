@@ -11,6 +11,11 @@
 #include "freertos/queue.h"
 #include "freertos/semphr.h"
 
+extern QueueHandle_t xQueueRunnerStdout;
+extern QueueHandle_t xQueueRunnerStdin;
+
+extern SemaphoreHandle_t xDisplayingSemaphore;
+
 namespace CodeRunner
 {
     enum class CodeLanguage

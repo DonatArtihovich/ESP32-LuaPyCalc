@@ -31,7 +31,7 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
             {
-                while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+                while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
                 {
                     vTaskDelay(pdMS_TO_TICKS(1));
                 }
@@ -77,9 +77,11 @@ namespace Main
                         traceback, sizeof(traceback));
                 }
 
+                ESP_LOGI(TAG, "Code run ret: %d", ret);
+
                 if (ret != ESP_OK)
                 {
-                    while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+                    while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
                     {
                         vTaskDelay(pdMS_TO_TICKS(1));
                     }
@@ -96,7 +98,7 @@ namespace Main
                 }
                 else
                 {
-                    while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+                    while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
                     {
                         vTaskDelay(pdMS_TO_TICKS(1));
                     }
@@ -105,6 +107,7 @@ namespace Main
                     {
                         vTaskDelay(pdMS_TO_TICKS(1));
                     }
+                    ESP_LOGI(TAG, "Is not waiting output");
 
                     App->SendCodeSuccess();
                     App->DisplayCodeLog();
@@ -401,7 +404,7 @@ extern "C" void app_main(void)
 
     while (1)
     {
-        while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }

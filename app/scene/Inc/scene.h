@@ -62,9 +62,15 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "for i = 1, 1000 do\n"
-            "    print(i)\n"
-            "end"};
+            "for i in range(200):\n"
+            "    print(list(map(lambda x: x * x, list(sorted(list(filter(lambda x: x % 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])), reverse=True)))))\n"
+            "    "
+            // "print(\"Hello world!\")"
+            // "print(sorted(list([1, 2, 3, 4, 5, 6]), reverse=True))"
+            // "for i = 1, 1000 do\n"
+            // "    print(i)\n"
+            // "end"
+        };
         Cursor cursor{};
         uint8_t stage{};
 

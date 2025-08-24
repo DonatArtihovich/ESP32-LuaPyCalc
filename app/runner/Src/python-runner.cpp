@@ -1,30 +1,110 @@
 #include "python-runner.h"
-#include "esp_cpu.h"
-#include "py/stackctrl.h"
-#include "mpthreadport.h"
-#include "unistd.h"
 
 static const char *TAG = "PythonRunController";
 
 #define HEAP_SIZE (16 * 1024) // 16 KB heap, adjust as needed
 static char heap[HEAP_SIZE] = {0};
 
+using CodeRunner::PythonRunController;
+
+extern "C" mp_obj_t upy_print_impl(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
+{
+    const char *sep = " ";
+    const char *end = "\n";
+
+    if (kw_args != NULL)
+    {
+        for (size_t i{}; i < kw_args->used; i++)
+        {
+            mp_map_elem_t *elem = &kw_args->table[i];
+            if (mp_obj_is_qstr(elem->key))
+            {
+                qstr key = mp_obj_str_get_qstr(elem->key);
+                if (key == MP_QSTR_sep)
+                {
+                    sep = mp_obj_str_get_str(elem->value);
+                }
+                else if (key == MP_QSTR_end)
+                {
+                    end = mp_obj_str_get_str(elem->value);
+                }
+            }
+        }
+    }
+
+    for (size_t i = 0; i < n_args; i++)
+    {
+        if (i > 0)
+        {
+            CodeRunner::CodeRunController::SetIsWaitingOutput(true);
+            xQueueSend(xQueueRunnerStdout, sep, portMAX_DELAY);
+        }
+
+        CodeRunner::CodeRunController::SetIsWaitingOutput(true);
+        if (mp_obj_is_str(pos_args[i]))
+        {
+            xQueueSend(xQueueRunnerStdout, mp_obj_str_get_str(pos_args[i]), portMAX_DELAY);
+        }
+        else
+        {
+            xQueueSend(xQueueRunnerStdout, PythonRunController::upy_obj_to_string(pos_args[i]), portMAX_DELAY);
+        }
+    }
+
+    CodeRunner::CodeRunController::SetIsWaitingOutput(true);
+    xQueueSend(xQueueRunnerStdout, end, portMAX_DELAY);
+
+    return mp_const_none;
+}
+
 namespace CodeRunner
 {
-
-    esp_err_t PythonRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
+    void PythonRunController::setup_python()
     {
-        esp_err_t ret{ESP_OK};
-
         mp_thread_init(pxTaskGetStackStart(NULL), 10240 / sizeof(uintptr_t));
         volatile int stack_dummy;
         mp_stack_set_top((void *)&stack_dummy);
-        mp_stack_set_limit(10240);
         mp_stack_ctrl_init();
         mp_stack_set_limit(10240);
         gc_init(heap, heap + HEAP_SIZE);
         mp_init();
-        mp_stack_ctrl_init();
+
+        mp_obj_dict_t *mp_globals = mp_globals_get();
+        mp_obj_dict_t *mp_locals = mp_locals_get();
+        if (!mp_globals)
+        {
+            mp_globals = (mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_obj_new_dict(0));
+        }
+
+        if (!mp_locals)
+        {
+            mp_locals = (mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_obj_new_dict(0));
+        }
+
+        if (mp_locals)
+        {
+            mp_locals_set((mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_locals));
+        }
+        else
+        {
+            ESP_LOGE(TAG, "mp_locals is null");
+        }
+
+        if (mp_globals)
+        {
+            mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_print), (mp_obj_t)&micropython_print_obj);
+            mp_globals_set((mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_globals));
+        }
+        else
+        {
+            ESP_LOGE(TAG, "mp_globals is null");
+        }
+    }
+
+    esp_err_t PythonRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
+    {
+        esp_err_t ret{ESP_OK};
+        setup_python();
 
         nlr_buf_t nlr;
         if (nlr_push(&nlr) == 0)
@@ -79,5 +159,23 @@ namespace CodeRunner
         ESP_LOGI(TAG, "Run Python File: %s", code);
 
         return ret;
+    }
+
+    const char *PythonRunController::upy_obj_to_string(mp_obj_t obj)
+    {
+        static char buffer[128] = {0};
+
+        mp_print_t print;
+        print.data = buffer;
+        print.print_strn = [](void *data, const char *str, size_t len)
+        {
+            char *buf = (char *)data;
+            strncat(buf, str, 128);
+        };
+
+        memset(buffer, 0, sizeof(buffer));
+
+        mp_obj_print_helper(&print, obj, PRINT_STR);
+        return buffer;
     }
 }

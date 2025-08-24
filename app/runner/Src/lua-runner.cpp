@@ -2,11 +2,6 @@
 
 static const char *TAG = "LuaRunController";
 
-extern QueueHandle_t xQueueRunnerStdout;
-extern QueueHandle_t xQueueRunnerStdin;
-
-extern SemaphoreHandle_t xDisplayingSemaphore;
-
 namespace CodeRunner
 {
 
@@ -113,15 +108,17 @@ namespace CodeRunner
 
                 size_t log_buffer_len = strlen(log_buffer);
 
-                CodeRunController::SetIsWaitingOutput(true);
                 if (log_buffer_len < 63)
                 {
                     log_buffer[log_buffer_len] = i < n ? '\t' : '\n';
+                    CodeRunController::SetIsWaitingOutput(true);
                     xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
                 }
                 else
                 {
+                    CodeRunController::SetIsWaitingOutput(true);
                     xQueueSend(xQueueRunnerStdout, log_buffer, portMAX_DELAY);
+                    CodeRunController::SetIsWaitingOutput(true);
                     xQueueSend(xQueueRunnerStdout, i < n ? "\t" : "\n", portMAX_DELAY);
                 }
                 memset(log_buffer, 0, sizeof(log_buffer));
