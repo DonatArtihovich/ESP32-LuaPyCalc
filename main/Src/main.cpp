@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../Inc/main.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "App";
@@ -59,7 +59,7 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
             {
-                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
+                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data, processing.is_file);
 
                 esp_err_t ret{ESP_OK};
                 if (processing.is_file)
@@ -377,7 +377,7 @@ namespace Main
         xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO);
         tsk_check(xTaskRunnerIO);
 
-        xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, this, 9, &xTaskRunnerProcessing);
+        xTaskCreate(TaskRunnerProcessing, "Code Processing", 10 * 1024, this, 9, &xTaskRunnerProcessing);
         tsk_check(xTaskRunnerProcessing);
 
         xTaskCreate(TaskRunnerDisplaying, "Code Log Displaying", 2048, this, 8, &xTaskRunnerDisplaying);

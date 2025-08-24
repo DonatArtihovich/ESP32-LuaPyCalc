@@ -981,9 +981,11 @@ namespace Scene
         std::string file_path{curr_directory + (*ui)[0].label};
         CodeRunner::CodeProcess process{
             .language = runner_language,
-            .data = file_path,
+            .data = new char[file_path.size() + 1]{0},
             .is_file = true,
         };
+
+        strncpy(process.data, file_path.c_str(), file_path.size() + 1);
 
         OpenStageModal(FilesSceneStage::CodeRunModalStage);
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);

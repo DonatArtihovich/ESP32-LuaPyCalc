@@ -23,7 +23,7 @@ namespace CodeRunner
     struct CodeProcess
     {
         CodeLanguage language;
-        std::string data;
+        char *data;
         bool is_file{};
     };
 
@@ -34,8 +34,8 @@ namespace CodeRunner
         static bool is_waiting_output;
 
     public:
-        static esp_err_t RunCodeString(std::string code, CodeLanguage language, char *traceback, size_t traceback_len);
-        static esp_err_t RunCodeFile(std::string path, CodeLanguage language, char *traceback, size_t traceback_len);
+        static esp_err_t RunCodeString(const char *code, CodeLanguage language, char *traceback, size_t traceback_len);
+        static esp_err_t RunCodeFile(const char *path, CodeLanguage language, char *traceback, size_t traceback_len);
 
         static void SetIsRunning(bool is_running);
         static bool IsRunning();

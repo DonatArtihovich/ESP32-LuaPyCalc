@@ -262,9 +262,11 @@ namespace Scene
 
         CodeRunner::CodeProcess process{
             .language = runner_language,
-            .data = code,
+            .data = new char[code.size() + 1]{0},
             .is_file = false,
         };
+
+        strncpy(process.data, code.c_str(), code.size() + 1);
 
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
         ESP_LOGI(TAG, "Send processing code item");

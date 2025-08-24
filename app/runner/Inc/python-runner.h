@@ -6,10 +6,9 @@ extern "C"
 {
 #include "py/compile.h"
 #include "py/runtime.h"
-#include "py/repl.h"
 #include "py/gc.h"
 #include "py/mperrno.h"
-#include "py/mphal.h"
+#include "py/stackctrl.h"
 }
 
 namespace CodeRunner
