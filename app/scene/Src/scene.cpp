@@ -1542,16 +1542,28 @@ namespace Scene
 
         ESP_LOGE(TAG, "Code error: %s", traceback);
 
-        size_t len = strlen(traceback);
-        size_t line_len = GetLineLength();
+        std::string traceback_str{traceback};
+        size_t max_line_len = GetLineLength();
         UiStringItem error_line{"", Color::Red, GetContentUiStart()->font, false};
 
-        char label[line_len + 1] = {0};
-        for (const char *p{traceback}; p < traceback + len; p += line_len)
+        size_t index = 0;
+        size_t find_n{std::string::npos};
+
+        while (index < traceback_str.length())
         {
-            snprintf(label, line_len + 1, p);
-            error_line.label = label;
-            ui->push_back(error_line);
+            find_n = traceback_str.find('\n', index);
+            if (find_n != std::string::npos && find_n - index < max_line_len)
+            {
+                error_line.label = traceback_str.substr(index, find_n - index + 1);
+                ui->push_back(error_line);
+                index = find_n + 1;
+            }
+            else
+            {
+                error_line.label = traceback_str.substr(index, max_line_len);
+                ui->push_back(error_line);
+                index += max_line_len;
+            }
         }
 
         ScrollToEnd();

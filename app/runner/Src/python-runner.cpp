@@ -118,7 +118,6 @@ namespace CodeRunner
         }
         else
         {
-            ESP_LOGE(TAG, "Python Error");
             upy_get_traceback(&nlr, traceback, traceback_len);
             ret = ESP_FAIL;
         }
@@ -155,9 +154,16 @@ namespace CodeRunner
         return ret;
     }
 
+    struct TracebackBuffer
+    {
+        char *buffer;
+        size_t max;
+    };
+
     void PythonRunController::upy_get_traceback(nlr_buf_t *nlr, char *traceback, size_t traceback_len)
     {
         mp_obj_t exc = (mp_obj_t)nlr->ret_val;
+
         size_t n;
         size_t *items;
         mp_obj_exception_get_traceback(exc, &n, &items);
@@ -181,33 +187,20 @@ namespace CodeRunner
             memset(line_buf, 0, sizeof(line_buf));
         }
 
-        const char *exc_type = qstr_str(mp_obj_get_type(exc)->name);
-        const char *exc_msg = NULL;
+        TracebackBuffer tb = {
+            .buffer = traceback + strlen(traceback),
+            .max = traceback_len,
+        };
 
-        mp_obj_t exc_val = mp_obj_exception_get_value(exc);
-        if (mp_obj_is_type(exc_val, &mp_type_tuple))
+        mp_print_t print;
+        print.data = &tb;
+        print.print_strn = [](void *data, const char *str, size_t len)
         {
-            mp_obj_tuple_t *args = (mp_obj_tuple_t *)MP_OBJ_TO_PTR(exc_val);
-            if (args->len > 0 && mp_obj_is_str(args->items[0]))
-            {
-                exc_msg = mp_obj_str_get_str(args->items[0]);
-            }
-        }
+            TracebackBuffer *tb = static_cast<TracebackBuffer *>(data);
+            strncat(tb->buffer, str, tb->max - strlen(tb->buffer));
+        };
 
-        if (exc_msg)
-        {
-            snprintf(
-                traceback + strlen(traceback),
-                traceback_len - strlen(traceback),
-                "%s: %s\n", exc_type, exc_msg);
-        }
-        else
-        {
-            snprintf(
-                traceback + strlen(traceback),
-                traceback_len - strlen(traceback),
-                "%s\n", exc_type);
-        }
+        mp_obj_exception_print(&print, exc, PRINT_EXC);
     }
 
     const char *PythonRunController::upy_obj_to_string(mp_obj_t obj)
