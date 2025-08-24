@@ -134,11 +134,13 @@ namespace Main
                     vTaskDelay(pdMS_TO_TICKS(1));
                 }
 
-                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
+                while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
                 {
-                    App->DisplayCodeLog(false);
-                    xSemaphoreGive(xAppMutex);
+                    vTaskDelay(pdMS_TO_TICKS(1));
                 }
+
+                App->DisplayCodeLog(false);
+                xSemaphoreGive(xAppMutex);
             }
         }
 

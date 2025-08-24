@@ -69,7 +69,7 @@ namespace CodeRunner
 
     void CodeRunController::SetIsRunning(bool is_running)
     {
-        while (xSemaphoreTake(xIsRunningMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xIsRunningMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }
@@ -82,7 +82,7 @@ namespace CodeRunner
     {
         bool is_running{};
 
-        while (xSemaphoreTake(xIsRunningMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xIsRunningMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }
@@ -95,7 +95,7 @@ namespace CodeRunner
 
     void CodeRunController::SetIsWaitingInput(bool is_waiting_input)
     {
-        while (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xIsWaitingInputMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }
@@ -108,7 +108,7 @@ namespace CodeRunner
     {
         bool is_waiting_input{};
 
-        while (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xIsWaitingInputMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }
@@ -121,7 +121,7 @@ namespace CodeRunner
 
     void CodeRunController::SetIsWaitingOutput(bool is_waiting_output)
     {
-        while (xSemaphoreTake(xIsWaitingOutputMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xIsWaitingOutputMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }
@@ -134,7 +134,7 @@ namespace CodeRunner
     {
         bool is_waiting_output{};
 
-        while (xSemaphoreTake(xIsWaitingOutputMutex, portMAX_DELAY) != pdPASS)
+        while (xSemaphoreTake(xIsWaitingOutputMutex, pdMS_TO_TICKS(100)) != pdPASS)
         {
             vTaskDelay(pdMS_TO_TICKS(1));
         }
