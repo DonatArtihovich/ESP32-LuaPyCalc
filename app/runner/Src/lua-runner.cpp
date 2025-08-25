@@ -134,17 +134,29 @@ namespace CodeRunner
         ESP_LOGI(TAG, "Is waiting input: true");
         xSemaphoreGive(xDisplayingSemaphore);
 
-        std::string io_buff{};
+        char *io_buff = (char *)luaM_malloc_(L, 256 * sizeof(char), LUA_TSTRING);
         char ch = 0;
+        size_t index{};
         while (xQueueReceive(xQueueRunnerStdin, &ch, portMAX_DELAY) == pdPASS &&
                ch != '\n')
         {
-            io_buff.push_back(ch);
+            if (ch == '\b')
+            {
+                if (index > 0)
+                {
+                    index--;
+                }
+            }
+            else
+            {
+                io_buff[index++] = ch;
+            }
         }
+        io_buff[index] = '\0';
 
-        if (io_buff.size() || ch == '\n')
+        if (index || ch == '\n')
         {
-            lua_pushstring(L, io_buff.c_str());
+            lua_pushstring(L, io_buff);
         }
         else
         {

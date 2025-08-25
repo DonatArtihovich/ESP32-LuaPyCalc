@@ -62,8 +62,8 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "name = input('Enter your name: ')\n"
-            "print('You entered: ', name)"
+            // "name = input('Enter your name: ')\n"
+            "print('You entered: ', io.read('*l'))"
             // "for i in range(200):\n"
             // "    print(list(map(lambda x: x * x, list(sorted(list(filter(lambda x: x % 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])), reverse=True)))))\n"
             // "    "
@@ -75,6 +75,8 @@ namespace Scene
         };
         Cursor cursor{};
         uint8_t stage{};
+
+        size_t stdin_entered{};
 
     protected:
         DisplayController &display;

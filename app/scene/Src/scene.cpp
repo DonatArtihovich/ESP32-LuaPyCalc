@@ -19,6 +19,10 @@ namespace Scene
             if (modal.Value)
             {
                 modal.Value(value, is_ctrl_pressed);
+                if (IsCodeRunning() && value != '\b')
+                {
+                    stdin_entered++;
+                }
             }
 
             return;
@@ -26,7 +30,7 @@ namespace Scene
 
         if (IsCursorControlling())
         {
-            if (!is_ctrl_pressed)
+            if (!is_ctrl_pressed && value != '\b')
             {
                 CursorInsertChars(std::string(1, value), GetLinesScroll());
             }
@@ -231,7 +235,16 @@ namespace Scene
     void Scene::Delete()
     {
         ESP_LOGI(TAG, "Delete pressed.");
-        if (IsCursorControlling())
+        if (IsCodeRunning())
+        {
+            if (CodeRunController::IsWaitingInput() && stdin_entered > 0)
+            {
+                Value('\b');
+                CursorDeleteChars(1, GetLinesScroll());
+                stdin_entered--;
+            }
+        }
+        else if (IsCursorControlling())
         {
             CursorDeleteChars(1, GetLinesScroll());
         }
@@ -1494,7 +1507,7 @@ namespace Scene
         {
             if (CodeRunController::IsWaitingInput())
             {
-                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS)
+                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS && value != '\b')
                 {
                     CursorInsertChars(std::string(1, value));
                 }

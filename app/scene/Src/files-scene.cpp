@@ -291,9 +291,6 @@ namespace Scene
 
     void FilesScene::Delete()
     {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-            return;
-
         if (IsStage(FilesSceneStage::FileOpenStage) &&
             IsCursorControlling() &&
             !(*ui)[3].label.size())

@@ -86,7 +86,17 @@ extern "C" mp_obj_t upy_input_impl(size_t n_args, const mp_obj_t *pos_args)
     char c{};
     while (index < 256 && xQueueReceive(xQueueRunnerStdin, &c, portMAX_DELAY) == pdPASS && c != '\n')
     {
-        buf[index++] = c;
+        if (c == '\b')
+        {
+            if (index > 0)
+            {
+                index--;
+            }
+        }
+        else
+        {
+            buf[index++] = c;
+        }
     }
     buf[index] = '\0';
 
