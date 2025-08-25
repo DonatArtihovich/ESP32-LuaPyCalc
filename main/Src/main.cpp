@@ -31,9 +31,10 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
             {
-                while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
                 {
-                    vTaskDelay(pdMS_TO_TICKS(1));
+                    ESP_LOGE(TAG, "Error taking xAppMutex");
+                    continue;
                 }
 
                 App->SendCodeOutput(stdout_buffer);
@@ -79,40 +80,30 @@ namespace Main
 
                 ESP_LOGI(TAG, "Code run ret: %d", ret);
 
+                while (CodeRunController::IsWaitingOutput())
+                {
+                    vTaskDelay(pdMS_TO_TICKS(1));
+                }
+
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+                {
+                    ESP_LOGE(TAG, "Error taking xAppMutex");
+                    continue;
+                }
+
                 if (ret != ESP_OK)
                 {
-                    while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
-                    while (CodeRunController::IsWaitingOutput())
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
                     App->SendCodeError(traceback);
                     App->DisplayCodeLog();
-                    xSemaphoreGive(xAppMutex);
                     memset(traceback, 0, sizeof(traceback));
                 }
                 else
                 {
-                    while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
-                    while (CodeRunController::IsWaitingOutput())
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-                    ESP_LOGI(TAG, "Is not waiting output");
-
                     App->SendCodeSuccess();
                     App->DisplayCodeLog();
-                    xSemaphoreGive(xAppMutex);
                 }
+
+                xSemaphoreGive(xAppMutex);
 
                 CodeRunController::SetIsRunning(false);
             }
@@ -134,13 +125,15 @@ namespace Main
                     vTaskDelay(pdMS_TO_TICKS(1));
                 }
 
-                while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
                 {
-                    vTaskDelay(pdMS_TO_TICKS(1));
+                    App->DisplayCodeLog(false);
+                    xSemaphoreGive(xAppMutex);
                 }
-
-                App->DisplayCodeLog(false);
-                xSemaphoreGive(xAppMutex);
+                else
+                {
+                    ESP_LOGE(TAG, "Error taking xAppMutex");
+                }
             }
         }
 
@@ -406,12 +399,14 @@ extern "C" void app_main(void)
 
     while (1)
     {
-        while (xSemaphoreTake(xAppMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            App.Tick();
+            xSemaphoreGive(xAppMutex);
         }
-
-        App.Tick();
-        xSemaphoreGive(xAppMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xAppMutex");
+        }
     }
 }

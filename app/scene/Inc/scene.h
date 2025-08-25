@@ -62,9 +62,11 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "for i in range(200):\n"
-            "    print(list(map(lambda x: x * x, list(sorted(list(filter(lambda x: x % 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])), reverse=True)))))\n"
-            "    "
+            "name = input('Enter your name: ')\n"
+            "print('You entered: ', name)"
+            // "for i in range(200):\n"
+            // "    print(list(map(lambda x: x * x, list(sorted(list(filter(lambda x: x % 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])), reverse=True)))))\n"
+            // "    "
             // "print(\"Hello world!\")"
             // "print(sorted(list([1, 2, 3, 4, 5, 6]), reverse=True))"
             // "for i = 1, 1000 do\n"

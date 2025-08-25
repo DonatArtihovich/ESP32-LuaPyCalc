@@ -69,78 +69,90 @@ namespace CodeRunner
 
     void CodeRunController::SetIsRunning(bool is_running)
     {
-        while (xSemaphoreTake(xIsRunningMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xIsRunningMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            CodeRunController::is_running = is_running;
+            xSemaphoreGive(xIsRunningMutex);
         }
-
-        CodeRunController::is_running = is_running;
-        xSemaphoreGive(xIsRunningMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xIsRunningMutex");
+        }
     }
 
     bool CodeRunController::IsRunning()
     {
         bool is_running{};
 
-        while (xSemaphoreTake(xIsRunningMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xIsRunningMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            is_running = CodeRunController::is_running;
+            xSemaphoreGive(xIsRunningMutex);
         }
-
-        is_running = CodeRunController::is_running;
-        xSemaphoreGive(xIsRunningMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xIsRunningMutex");
+        }
 
         return is_running;
     }
 
     void CodeRunController::SetIsWaitingInput(bool is_waiting_input)
     {
-        while (xSemaphoreTake(xIsWaitingInputMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            CodeRunController::is_waiting_input = is_waiting_input;
+            xSemaphoreGive(xIsWaitingInputMutex);
         }
-
-        CodeRunController::is_waiting_input = is_waiting_input;
-        xSemaphoreGive(xIsWaitingInputMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xIsWaitingInputMutex");
+        }
     }
 
     bool CodeRunController::IsWaitingInput()
     {
         bool is_waiting_input{};
 
-        while (xSemaphoreTake(xIsWaitingInputMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xIsWaitingInputMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            is_waiting_input = CodeRunController::is_waiting_input;
+            xSemaphoreGive(xIsWaitingInputMutex);
         }
-
-        is_waiting_input = CodeRunController::is_waiting_input;
-        xSemaphoreGive(xIsWaitingInputMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xIsWaitingInputMutex");
+        }
 
         return is_waiting_input;
     }
 
     void CodeRunController::SetIsWaitingOutput(bool is_waiting_output)
     {
-        while (xSemaphoreTake(xIsWaitingOutputMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xIsWaitingOutputMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            CodeRunController::is_waiting_output = is_waiting_output;
+            xSemaphoreGive(xIsWaitingOutputMutex);
         }
-
-        CodeRunController::is_waiting_output = is_waiting_output;
-        xSemaphoreGive(xIsWaitingOutputMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xIsWaitingOutputMutex");
+        }
     }
 
     bool CodeRunController::IsWaitingOutput()
     {
         bool is_waiting_output{};
 
-        while (xSemaphoreTake(xIsWaitingOutputMutex, pdMS_TO_TICKS(100)) != pdPASS)
+        if (xSemaphoreTake(xIsWaitingOutputMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            is_waiting_output = CodeRunController::is_waiting_output;
+            xSemaphoreGive(xIsWaitingOutputMutex);
         }
-
-        is_waiting_output = CodeRunController::is_waiting_output;
-        xSemaphoreGive(xIsWaitingOutputMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xIsWaitingOutputMutex");
+        }
 
         return is_waiting_output;
     }

@@ -15,8 +15,10 @@ extern "C"
 {
 #endif
     mp_obj_t upy_print_impl(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args);
+    mp_obj_t upy_input_impl(size_t n_args, const mp_obj_t *pos_args);
 
     extern const mp_obj_fun_builtin_var_t micropython_print_obj;
+    extern const mp_obj_fun_builtin_var_t micropython_input_obj;
 
 #ifdef __cplusplus
 }

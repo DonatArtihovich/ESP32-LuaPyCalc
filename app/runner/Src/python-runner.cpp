@@ -5,7 +5,7 @@ static const char *TAG = "PythonRunController";
 #define HEAP_SIZE (16 * 1024) // 16 KB heap, adjust as needed
 static char heap[HEAP_SIZE] = {0};
 
-using CodeRunner::PythonRunController;
+using CodeRunner::PythonRunController, CodeRunner::CodeRunController;
 
 extern "C" mp_obj_t upy_print_impl(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args)
 {
@@ -36,11 +36,11 @@ extern "C" mp_obj_t upy_print_impl(size_t n_args, const mp_obj_t *pos_args, mp_m
     {
         if (i > 0)
         {
-            CodeRunner::CodeRunController::SetIsWaitingOutput(true);
+            CodeRunController::SetIsWaitingOutput(true);
             xQueueSend(xQueueRunnerStdout, sep, portMAX_DELAY);
         }
 
-        CodeRunner::CodeRunController::SetIsWaitingOutput(true);
+        CodeRunController::SetIsWaitingOutput(true);
         if (mp_obj_is_str(pos_args[i]))
         {
             xQueueSend(xQueueRunnerStdout, mp_obj_str_get_str(pos_args[i]), portMAX_DELAY);
@@ -51,10 +51,48 @@ extern "C" mp_obj_t upy_print_impl(size_t n_args, const mp_obj_t *pos_args, mp_m
         }
     }
 
-    CodeRunner::CodeRunController::SetIsWaitingOutput(true);
+    CodeRunController::SetIsWaitingOutput(true);
     xQueueSend(xQueueRunnerStdout, end, portMAX_DELAY);
 
     return mp_const_none;
+}
+
+extern "C" mp_obj_t upy_input_impl(size_t n_args, const mp_obj_t *pos_args)
+{
+    const char *prompt = "";
+
+    if (n_args > 0)
+    {
+        prompt = mp_obj_str_get_str(pos_args[0]);
+    }
+
+    if (prompt[0] != '\0')
+    {
+        CodeRunController::SetIsWaitingOutput(true);
+        xQueueSend(xQueueRunnerStdout, prompt, portMAX_DELAY);
+    }
+
+    while (CodeRunController::IsWaitingOutput())
+    {
+        vTaskDelay(pdMS_TO_TICKS(1));
+    }
+
+    char *buf = m_new(char, 256);
+
+    CodeRunController::SetIsWaitingInput(true);
+    xSemaphoreGive(xDisplayingSemaphore);
+
+    size_t index{};
+    char c{};
+    while (index < 256 && xQueueReceive(xQueueRunnerStdin, &c, portMAX_DELAY) == pdPASS && c != '\n')
+    {
+        buf[index++] = c;
+    }
+    buf[index] = '\0';
+
+    ESP_LOGI(TAG, "Upy input return \"%s\"", mp_obj_str_get_str(mp_obj_new_str(buf, index)));
+    CodeRunController::SetIsWaitingInput(false);
+    return mp_obj_new_str(buf, index);
 }
 
 namespace CodeRunner
@@ -93,6 +131,7 @@ namespace CodeRunner
         if (mp_globals)
         {
             mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_print), (mp_obj_t)&micropython_print_obj);
+            mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_input), (mp_obj_t)&micropython_input_obj);
             mp_globals_set((mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_globals));
         }
         else

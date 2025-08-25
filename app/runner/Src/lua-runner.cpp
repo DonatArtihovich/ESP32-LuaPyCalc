@@ -47,7 +47,6 @@ namespace CodeRunner
 
         if (lua_ret != LUA_OK)
         {
-            ESP_LOGE(TAG, "Lua error: %d", lua_ret);
             ret = ESP_FAIL;
         }
 
