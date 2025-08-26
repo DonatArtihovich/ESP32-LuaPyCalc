@@ -17,6 +17,21 @@ namespace CodeRunner
         lua_pushcfunction(L, lua_io_read_impl);
         lua_setfield(L, -2, "read");
 
+        lua_getglobal(L, "package");
+        lua_getfield(L, -1, "path");
+        const char *current_path = lua_tostring(L, -1);
+
+        ESP_LOGI(TAG, "Lua package.path: %s", current_path);
+        lua_pushfstring(L, "%s;%s/?.lua;%s/LUA/?.lua", current_path, CONFIG_MOUNT_POINT, CONFIG_MOUNT_POINT);
+        lua_setfield(L, -3, "path");
+        lua_pop(L, 2);
+
+        // lua_getglobal(L, "package");
+        // lua_getfield(L, -1, "path");
+        // current_path = lua_tostring(L, -1);
+
+        // ESP_LOGI(TAG, "Lua new package.path: %s", current_path);
+
         return L;
     }
 
@@ -134,12 +149,91 @@ namespace CodeRunner
         ESP_LOGI(TAG, "Is waiting input: true");
         xSemaphoreGive(xDisplayingSemaphore);
 
-        char *io_buff = (char *)luaM_malloc_(L, 256 * sizeof(char), LUA_TSTRING);
+        int n = lua_gettop(L);
+        bool is_num{};
+        const char *prompt = "*l";
+        int chars_count{255};
+
+        if (n == 1)
+        {
+            if (lua_type(L, 1) == LUA_TSTRING)
+            {
+                prompt = lua_tostring(L, 1);
+                ESP_LOGI(TAG, "Prompt: %s", prompt);
+            }
+            else if (lua_type(L, 1) == LUA_TNUMBER)
+            {
+                is_num = true;
+                chars_count = lua_tonumber(L, 1);
+                ESP_LOGI(TAG, "Chars number: %d", chars_count);
+            }
+            else
+            {
+                return luaL_error(L, "invalid argument type, string expected");
+            }
+        }
+
+        size_t prompt_len = strlen(prompt);
+
+        if (strncmp(prompt, "*l", prompt_len) &&
+            strncmp(prompt, "*L", prompt_len) &&
+            strncmp(prompt, "*n", prompt_len) &&
+            strncmp(prompt, "*number", prompt_len) &&
+            strncmp(prompt, "*a", prompt_len) &&
+            strncmp(prompt, "*all", prompt_len))
+        {
+            return luaL_error(L, "invalid format string");
+        }
+
+        ESP_LOGI(TAG, "Lua input argument: %s", prompt);
+
+        char *io_buff = (char *)luaM_malloc_(L, (chars_count + 1) * sizeof(char), LUA_TSTRING);
+        memset(io_buff, 0, (chars_count + 1) * sizeof(char));
         char ch = 0;
         size_t index{};
-        while (xQueueReceive(xQueueRunnerStdin, &ch, portMAX_DELAY) == pdPASS &&
-               ch != '\n')
+        while (index < chars_count + 1 && xQueueReceive(xQueueRunnerStdin, &ch, portMAX_DELAY) == pdPASS)
         {
+            if (!is_num)
+            {
+                if (strncmp(prompt, "*l", prompt_len) == 0 ||
+                    strncmp(prompt, "*L", prompt_len) == 0)
+                {
+                    if (ch == '\n')
+                    {
+                        break;
+                    }
+                }
+                else if (strncmp(prompt, "*n", prompt_len) == 0 ||
+                         strncmp(prompt, "*number", prompt_len) == 0)
+                {
+                    if (ch == '\n')
+                    {
+                        bool is_enter_end{};
+                        for (char *p{io_buff}; *p != '\0'; p++)
+                        {
+                            if (!isspace(*p))
+                            {
+                                is_enter_end = true;
+                                break;
+                            }
+                        }
+
+                        if (is_enter_end)
+                        {
+                            break;
+                        }
+                    }
+                }
+                else if (strncmp(prompt, "*a", prompt_len) == 0 ||
+                         strncmp(prompt, "*all", prompt_len) == 0)
+                {
+                    if (ch == '\4')
+                    {
+                        break;
+                    }
+                }
+            }
+
             if (ch == '\b')
             {
                 if (index > 0)
@@ -156,7 +250,28 @@ namespace CodeRunner
 
         if (index || ch == '\n')
         {
-            lua_pushstring(L, io_buff);
+            if (strncmp(prompt, "*n", prompt_len) != 0)
+            {
+                lua_pushstring(L, io_buff);
+            }
+            else
+            {
+                for (char *p{io_buff}; *p != '\0'; p++)
+                {
+                    if (!isspace(*p))
+                    {
+                        if (isdigit(*p))
+                        {
+                            lua_pushnumber(L, atof(io_buff));
+                        }
+                        else
+                        {
+                            lua_pushnil(L);
+                        }
+                        break;
+                    }
+                }
+            }
         }
         else
         {
