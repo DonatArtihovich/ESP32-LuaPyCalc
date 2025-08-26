@@ -37,6 +37,12 @@ namespace CodeRunner
 
     esp_err_t LuaRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
     {
+        if (!strlen(code))
+        {
+            snprintf(traceback, traceback_len, "Failed to read code.");
+            return ESP_FAIL;
+        }
+
         esp_err_t ret{ESP_OK};
         ESP_LOGI(TAG, "Run Lua code string...");
 

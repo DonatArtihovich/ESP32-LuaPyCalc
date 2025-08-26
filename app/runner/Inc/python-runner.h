@@ -7,6 +7,8 @@ extern "C"
 #include "python-bindings.h"
 }
 
+#include <fstream>
+
 namespace CodeRunner
 {
     class PythonRunController

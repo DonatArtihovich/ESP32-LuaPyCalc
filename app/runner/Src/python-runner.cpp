@@ -122,6 +122,9 @@ namespace CodeRunner
         gc_init(heap, heap + HEAP_SIZE);
         mp_init();
 
+        mp_obj_list_init((mp_obj_list_t *)MP_OBJ_TO_PTR(mp_sys_path), 0);
+        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR("/sdcard"));
+
         mp_obj_dict_t *mp_globals = mp_globals_get();
         mp_obj_dict_t *mp_locals = mp_locals_get();
         if (!mp_globals)
@@ -147,6 +150,14 @@ namespace CodeRunner
         {
             mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_print), (mp_obj_t)&micropython_print_obj);
             mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_input), (mp_obj_t)&micropython_input_obj);
+
+            // mp_obj_t builtins = mp_import_name(MP_QSTR_builtins, mp_const_none, MP_OBJ_NEW_SMALL_INT(0));
+            // mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR("__builtins__"), builtins);
+
+            // mp_obj_t import_func = mp_load_attr(builtins, (qstr)MP_OBJ_NEW_QSTR(MP_QSTR___import__));
+            // mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR("import"), import_func);
+            // mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_sys), mp_import_name(MP_QSTR_sys, mp_const_none, MP_OBJ_NEW_SMALL_INT(0)));
+
             mp_globals_set((mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_globals));
         }
         else
@@ -157,6 +168,12 @@ namespace CodeRunner
 
     esp_err_t PythonRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
     {
+        if (!strlen(code))
+        {
+            snprintf(traceback, traceback_len, "Failed to read code.");
+            return ESP_FAIL;
+        }
+
         esp_err_t ret{ESP_OK};
         setup_python();
 
@@ -165,7 +182,7 @@ namespace CodeRunner
         {
             mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, code, strlen(code), 0);
             mp_parse_tree_t parse_tree = mp_parse(lex, MP_PARSE_FILE_INPUT);
-            mp_obj_t module_fun = mp_compile(&parse_tree, lex->source_name, true);
+            mp_obj_t module_fun = mp_compile(&parse_tree, lex->source_name, false);
 
             mp_call_function_0(module_fun);
             nlr_pop();
@@ -181,30 +198,26 @@ namespace CodeRunner
         return ret;
     }
 
-    esp_err_t PythonRunController::RunCodeFile(const char *code, char *traceback, size_t traceback_len)
+    esp_err_t PythonRunController::RunCodeFile(const char *path, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
-        ESP_LOGI(TAG, "Run Python File: %s", code);
-        setup_python();
+        ESP_LOGI(TAG, "Run Python File: %s", path);
+        std::string code{};
 
-        nlr_buf_t nlr;
-        if (nlr_push(&nlr) == 0)
-        {
-            mp_lexer_t *lex = mp_lexer_new_from_str_len(MP_QSTR__lt_stdin_gt_, code, strlen(code), 0);
-            mp_parse_tree_t parse_tree = mp_parse(lex, MP_PARSE_FILE_INPUT);
-            mp_obj_t module_fun = mp_compile(&parse_tree, lex->source_name, true);
+        std::ifstream file(path);
+        std::string curr{};
 
-            mp_call_function_0(module_fun);
-            nlr_pop();
-        }
-        else
+        while (std::getline(file, curr))
         {
-            upy_get_traceback(&nlr, traceback, traceback_len);
-            ret = ESP_FAIL;
+            code += curr;
+            code.push_back('\n');
         }
 
-        mp_deinit();
-        gc_sweep_all();
+        file.close();
+
+        ESP_LOGI(TAG, "Read python code: %s", code.c_str());
+
+        ret |= RunCodeString(code.c_str(), traceback, traceback_len);
         return ret;
     }
 

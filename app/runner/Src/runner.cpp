@@ -60,6 +60,9 @@ namespace CodeRunner
         case CodeLanguage::Lua:
             ret |= LuaRunController::RunCodeFile(path, traceback, traceback_len);
             break;
+        case CodeLanguage::Python:
+            ret |= PythonRunController::RunCodeFile(path, traceback, traceback_len);
+            break;
         default:
             ESP_LOGI(TAG, "Language is not implemented yet");
         }
