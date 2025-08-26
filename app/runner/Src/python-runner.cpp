@@ -63,6 +63,11 @@ extern "C" mp_obj_t upy_input_impl(size_t n_args, const mp_obj_t *pos_args)
 
     if (n_args > 0)
     {
+        if (!mp_obj_is_str(pos_args[0]))
+        {
+            mp_raise_TypeError("string expected");
+        }
+
         prompt = mp_obj_str_get_str(pos_args[0]);
     }
 
