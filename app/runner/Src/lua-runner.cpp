@@ -5,7 +5,7 @@ static const char *TAG = "LuaRunController";
 namespace CodeRunner
 {
 
-    lua_State *LuaRunController::setup_lua()
+    lua_State *LuaRunController::setup_lua(const char *module_dir)
     {
         lua_State *L = luaL_newstate();
         luaL_openlibs(L);
@@ -21,47 +21,29 @@ namespace CodeRunner
         lua_getfield(L, -1, "path");
         const char *current_path = lua_tostring(L, -1);
 
-        ESP_LOGI(TAG, "Lua package.path: %s", current_path);
-        lua_pushfstring(L, "%s;%s/?.lua;%s/LUA/?.lua", current_path, CONFIG_MOUNT_POINT, CONFIG_MOUNT_POINT);
+        lua_pushfstring(L, "%s;%s/?.lua;%s/?.lua", current_path, CONFIG_MOUNT_POINT, module_dir);
         lua_setfield(L, -3, "path");
         lua_pop(L, 2);
-
-        // lua_getglobal(L, "package");
-        // lua_getfield(L, -1, "path");
-        // current_path = lua_tostring(L, -1);
-
-        // ESP_LOGI(TAG, "Lua new package.path: %s", current_path);
 
         return L;
     }
 
     esp_err_t LuaRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
     {
-        if (!strlen(code))
-        {
-            snprintf(traceback, traceback_len, "Failed to read code.");
-            return ESP_FAIL;
-        }
-
         esp_err_t ret{ESP_OK};
         ESP_LOGI(TAG, "Run Lua code string...");
 
         lua_State *L{setup_lua()};
-        int lua_ret = LUA_OK; // luaL_dostring(L, code);
+        int lua_ret = LUA_OK;
 
-        if ((lua_ret = luaL_loadstring(L, code)) != LUA_OK)
-        {
-            snprintf(traceback, traceback_len, lua_tostring(L, -1));
-            lua_pop(L, 1); // delete err msg
-        }
-        else
+        if ((lua_ret = luaL_loadstring(L, code)) == LUA_OK)
         {
             lua_ret = lua_pcall(L, 0, LUA_MULTRET, 0);
+        }
 
-            if (lua_ret != LUA_OK)
-            {
-                lua_get_traceback(L, traceback, traceback_len, 2);
-            }
+        if (lua_ret != LUA_OK)
+        {
+            lua_get_traceback(L, traceback, traceback_len);
         }
 
         lua_close(L);
@@ -79,29 +61,24 @@ namespace CodeRunner
         esp_err_t ret{ESP_OK};
         ESP_LOGI(TAG, "Run Lua code file %s...", path);
 
-        lua_State *L{setup_lua()};
+        std::string module_dir = std::string(path).substr(0, std::string(path).find_last_of('/'));
+        lua_State *L{setup_lua(module_dir.c_str())};
         int lua_ret = LUA_OK;
 
-        if ((lua_ret = luaL_loadfile(L, path)) != LUA_OK)
-        {
-            snprintf(traceback, traceback_len, lua_tostring(L, -1));
-            lua_pop(L, 1); // delete err msg
-        }
-        else
+        if ((lua_ret = luaL_loadfile(L, path)) == LUA_OK)
         {
             lua_ret = lua_pcall(L, 0, LUA_MULTRET, 0);
+        }
 
-            if (lua_ret != LUA_OK)
-            {
-                lua_get_traceback(L, traceback, traceback_len, 2);
-            }
+        if (lua_ret != LUA_OK)
+        {
+            lua_get_traceback(L, traceback, traceback_len);
         }
 
         lua_close(L);
 
         if (lua_ret != LUA_OK)
         {
-            ESP_LOGE(TAG, "Lua error: %d", lua_ret);
             ret = ESP_FAIL;
         }
 
@@ -290,26 +267,18 @@ namespace CodeRunner
         return 1;
     }
 
-    void LuaRunController::lua_get_traceback(lua_State *L, char *traceback, size_t traceback_len, size_t depth)
+    void LuaRunController::lua_get_traceback(lua_State *L, char *traceback, size_t traceback_len)
     {
-        lua_getglobal(L, "debug"); // get traceback:
-        lua_getfield(L, -1, "traceback");
-        lua_pushvalue(L, -3);      // copy error msg
-        lua_pushinteger(L, depth); // stack trace depth
-
-        lua_call(L, 2, 1); // debug.traceback(err)
-
-        const char *tr = lua_tostring(L, 1);
-        if (tr != NULL)
+        const char *err = lua_tostring(L, -1);
+        if (err && err[0] != '\0')
         {
-            ESP_LOGI(TAG, "traceback_len: %d", traceback_len);
-            snprintf(traceback, traceback_len, tr);
-            lua_pop(L, 2); // delete err msg and traceback
+            snprintf(traceback, traceback_len, err);
         }
         else
         {
-            snprintf(traceback, traceback_len, "Runtime error.");
-            lua_pop(L, 2); // delete err msg and traceback
+            snprintf(traceback, traceback_len, "Undefined Error.");
         }
+
+        lua_pop(L, 1);
     }
 }
