@@ -66,6 +66,11 @@ namespace Scene
                 RunFile();
                 enter = false;
             }
+            else if ((value == 's' || value == 'S') && is_ctrl_pressed)
+            {
+                SaveFile();
+                enter = false;
+            }
             else if (!(*ui)[3].label.size() && IsCursorControlling())
             {
                 ToggleSaveButton(true, true);
@@ -380,7 +385,7 @@ namespace Scene
             (*ui)[save_index].label = "Save";
             (*ui)[save_index].focusable = true;
         }
-        else
+        else if ((*ui)[save_index].focused)
         {
             ChangeItemFocus(&(*ui)[save_index], false);
             (*ui)[save_index].focusable = false;
