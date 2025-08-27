@@ -20,7 +20,7 @@ namespace Scene
         std::map<std::string, CodeRunner::CodeLanguage> runner_languages{
             {"Lua", CodeLanguage::Lua},
             {"Python", CodeLanguage::Python},
-            {"Ruby", CodeLanguage::Ruby},
+            // {"Ruby", CodeLanguage::Ruby},
         };
 
         void RenderContent() override;

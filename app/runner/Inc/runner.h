@@ -24,7 +24,7 @@ namespace CodeRunner
         Text,
         Lua,
         Python,
-        Ruby
+        // Ruby
     };
 
     struct CodeProcess

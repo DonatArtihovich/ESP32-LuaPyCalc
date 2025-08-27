@@ -961,16 +961,16 @@ namespace Scene
         {
             runner_language = CodeLanguage::Python;
         }
-        else if (extension == ".rb")
-        {
-            runner_language = CodeLanguage::Ruby;
-        }
+        // else if (extension == ".rb")
+        // {
+        //     runner_language = CodeLanguage::Ruby;
+        // }
         else
         {
             runner_language = CodeLanguage::Text;
         }
 
-        const char *arr[]{"Text", "Lua", "Python", "Ruby"};
+        const char *arr[]{"Text", "Lua", "Python" /*, "Ruby" */};
         ESP_LOGI(TAG, "Detected language: %s", arr[(int)runner_language]);
     }
 
