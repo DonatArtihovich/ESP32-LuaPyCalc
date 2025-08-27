@@ -80,6 +80,7 @@ namespace Keyboard
         gpio_num_t _clk, _sipo_lh, _sipo_ds, _piso_lh, _piso_ds;
         static const std::map<Key, std::array<char, 2>> symbol_keys;
         static const std::map<Key, char> letter_keys;
+        static bool is_caps;
 
     public:
         KeyboardController(
@@ -92,5 +93,7 @@ namespace Keyboard
         esp_err_t Init();
         static bool IsKeyPressed(Key key);
         static char GetKeyValue(Key value_key);
+
+        static void ToggleCaps();
     };
 }

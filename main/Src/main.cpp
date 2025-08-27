@@ -163,7 +163,7 @@ namespace Main
     void Main::Tick()
     {
         using Keyboard::Key, Scene::Direction, Keyboard::KeyboardController;
-        Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left};
+        Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left, Key::Caps};
         Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
 
         for (auto key : controllers)
@@ -199,6 +199,10 @@ namespace Main
                 case Key::Left:
                     ESP_LOGD(TAG, "Left pressed.");
                     scene->Arrow(Direction::Left);
+                    break;
+                case Key::Caps:
+                    ESP_LOGD(TAG, "CapsLock pressed");
+                    KeyboardController::ToggleCaps();
                     break;
                 default:
                     break;
