@@ -1505,13 +1505,26 @@ namespace Scene
             }
         };
 
-        modal.Value = [this](char value, bool _)
+        modal.Value = [this](char value, bool is_ctrl)
         {
             if (CodeRunController::IsWaitingInput())
             {
-                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS && value != '\b')
+                std::string not_displaying{"\b\4"};
+                if ((value == 'd' || value == 'D') && is_ctrl)
                 {
-                    CursorInsertChars(std::string(1, value));
+                    value = '\4';
+                }
+
+                if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS)
+                {
+                    if (not_displaying.find(value) == std::string::npos)
+                    {
+                        CursorInsertChars(std::string(1, value));
+                    }
+                    else if (value == '\4')
+                    {
+                        CursorInsertChars(std::string(1, '\n'));
+                    }
                 }
             }
         };

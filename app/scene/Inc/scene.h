@@ -64,8 +64,9 @@ namespace Scene
         std::string clipboard{
             // "from random import randint\n"
             // "print(randint(0, 10))\n"
-            "import os\n"
-            "print(os.listdir('/sdcard/py'))\n"};
+            // "import os\n"
+            // "print(os.listdir('/sdcard/py'))\n"
+            "print(input(\"Enter str:\"))"};
         Cursor cursor{};
         uint8_t stage{};
 

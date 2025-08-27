@@ -176,6 +176,11 @@ namespace CodeRunner
         size_t index{};
         while (index < chars_count + 1 && xQueueReceive(xQueueRunnerStdin, &ch, portMAX_DELAY) == pdPASS)
         {
+            if (ch == '\4')
+            {
+                break;
+            }
+
             if (!is_num)
             {
                 if (strncmp(prompt, "*l", prompt_len) == 0 ||
@@ -205,14 +210,6 @@ namespace CodeRunner
                         {
                             break;
                         }
-                    }
-                }
-                else if (strncmp(prompt, "*a", prompt_len) == 0 ||
-                         strncmp(prompt, "*all", prompt_len) == 0)
-                {
-                    if (ch == '\4')
-                    {
-                        break;
                     }
                 }
             }
