@@ -123,7 +123,10 @@ namespace CodeRunner
         mp_init();
 
         mp_obj_list_init((mp_obj_list_t *)MP_OBJ_TO_PTR(mp_sys_path), 0);
-        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR("/sdcard"));
+        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(qstr_from_str("")));
+        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(qstr_from_str("/")));
+        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(qstr_from_str("/sdcard")));
+        mp_obj_list_append(mp_sys_path, MP_OBJ_NEW_QSTR(qstr_from_str("/lib")));
 
         mp_obj_dict_t *mp_globals = mp_globals_get();
         mp_obj_dict_t *mp_locals = mp_locals_get();
@@ -151,12 +154,10 @@ namespace CodeRunner
             mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_print), (mp_obj_t)&micropython_print_obj);
             mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_input), (mp_obj_t)&micropython_input_obj);
 
-            // mp_obj_t builtins = mp_import_name(MP_QSTR_builtins, mp_const_none, MP_OBJ_NEW_SMALL_INT(0));
-            // mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR("__builtins__"), builtins);
-
-            // mp_obj_t import_func = mp_load_attr(builtins, (qstr)MP_OBJ_NEW_QSTR(MP_QSTR___import__));
-            // mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR("import"), import_func);
-            // mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_sys), mp_import_name(MP_QSTR_sys, mp_const_none, MP_OBJ_NEW_SMALL_INT(0)));
+            mp_obj_t builtins = mp_import_name(MP_QSTR_builtins, mp_const_none, MP_OBJ_NEW_SMALL_INT(0));
+            mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR("__builtins__"), builtins);
+            mp_obj_dict_store(mp_globals, MP_OBJ_NEW_QSTR(MP_QSTR_sys),
+                              mp_import_name(MP_QSTR_sys, mp_const_none, MP_OBJ_NEW_SMALL_INT(0)));
 
             mp_globals_set((mp_obj_dict_t *)MP_OBJ_TO_PTR(mp_globals));
         }
@@ -178,7 +179,16 @@ namespace CodeRunner
             mp_parse_tree_t parse_tree = mp_parse(lex, MP_PARSE_FILE_INPUT);
             mp_obj_t module_fun = mp_compile(&parse_tree, lex->source_name, false);
 
-            mp_call_function_0(module_fun);
+            if (mp_obj_is_exception_instance(module_fun))
+            {
+                mp_obj_print_exception(&mp_plat_print, module_fun);
+                snprintf(traceback, traceback_len, "Compile error");
+                ret = ESP_FAIL;
+            }
+            else
+            {
+                mp_call_function_0(module_fun);
+            }
             nlr_pop();
         }
         else

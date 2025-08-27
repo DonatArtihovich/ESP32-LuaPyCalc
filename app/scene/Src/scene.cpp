@@ -1612,12 +1612,12 @@ namespace Scene
             RenderCursor();
         }
 
-        for (auto it{GetContentUiStart()}; it < ui->end(); it++)
-        {
-            ESP_LOGW(TAG, "After Display: %s, displayable: %d, x: %d, y: %d",
-                     it->label.c_str(),
-                     it->displayable, it->x, it->y);
-        }
+        // for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+        // {
+        //     ESP_LOGW(TAG, "After Display: %s, displayable: %d, x: %d, y: %d",
+        //              it->label.c_str(),
+        //              it->displayable, it->x, it->y);
+        // }
     }
 
     bool Scene::IsCodeRunning()

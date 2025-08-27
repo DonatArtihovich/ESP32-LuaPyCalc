@@ -62,24 +62,10 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "require 'lua/mod/f'\n"
-            "print('hello from ff')\n"
-            "print(linee)\n"
-            // "name = input('Enter your name: ')\n"
-            // "print('Your name: ', name)\n"
-            // "i = io.read('*n')\n"
-            // "print('You entered: ', i, ' ', type(i))\n"
-            "error('custom err')\n"
-            // "require 'f'\n"
-            // "for i in range(200):\n"
-            // "    print(list(map(lambda x: x * x, list(sorted(list(filter(lambda x: x % 2, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])), reverse=True)))))\n"
-            // "    "
-            // "print(\"Hello world!\")"
-            // "print(sorted(list([1, 2, 3, 4, 5, 6]), reverse=True))"
-            // "for i = 1, 1000 do\n"
-            // "    print(i)\n"
-            // "end"
-        };
+            // "from random import randint\n"
+            // "print(randint(0, 10))\n"
+            "import os\n"
+            "print(os.listdir('/sdcard/py'))\n"};
         Cursor cursor{};
         uint8_t stage{};
 
