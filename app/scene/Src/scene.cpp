@@ -41,7 +41,8 @@ namespace Scene
         }
     }
 
-    uint8_t Scene::Focus(Direction direction)
+    uint8_t Scene::Focus(Direction direction,
+                         std::function<bool(UiStringItem *last_f, UiStringItem *new_f)> add_cond)
     {
         auto last_focused = GetFocused();
 
@@ -56,7 +57,7 @@ namespace Scene
         switch (direction)
         {
         case Direction::Up:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 bool main_cond{item.y > last_focused->y &&
                                item.focusable &&
@@ -64,12 +65,16 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.y < new_focused->y))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
             break;
         case Direction::Right:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 uint8_t fw;
                 Font::GetFontx(last_focused->font, 0, &fw, 0);
@@ -79,12 +84,16 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.x < new_focused->x))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
             break;
         case Direction::Bottom:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 bool main_cond{item.y < last_focused->y &&
                                item.focusable &&
@@ -92,12 +101,16 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.y > new_focused->y))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
             break;
         case Direction::Left:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 bool main_cond{item.x < last_focused->x &&
                                item.focusable &&
@@ -105,6 +118,10 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.x > new_focused->x))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
@@ -1636,5 +1653,29 @@ namespace Scene
     bool Scene::IsCodeRunning()
     {
         return false;
+    }
+
+    void Scene::Tab()
+    {
+        ESP_LOGI(TAG, "Tab pressed.");
+
+        if (IsCursorControlling())
+        {
+            Value('\t');
+            return;
+        }
+
+        std::function<bool(UiStringItem *, UiStringItem *)> right_add_cond{
+            [](UiStringItem *last_f, UiStringItem *new_f)
+            {
+                uint8_t fh{};
+                Font::GetFontx(last_f->font, 0, 0, &fh);
+                return new_f->y >= last_f->y - fh;
+            }};
+
+        if (!Scene::Focus(Direction::Right, right_add_cond))
+        {
+            Scene::Focus(Direction::Bottom);
+        }
     }
 }

@@ -21,13 +21,14 @@ namespace Keyboard
         Shift, // (o1, i0)
         Caps,
         Space,
+        Tab,
         // -----Numbers-----
         NumOne,       // 1 !
         NumTwo,       // 2 @
         NumThree,     // 3 #
         NumFour,      // 4 $
-        NumFive,      // 5 %
-        NumSix,       // 6 ^ (o2, i0)
+        NumFive,      // 5 % (o2, i0)
+        NumSix,       // 6 ^
         NumSeven,     // 7 &
         NumEight,     // 8 *
         NumNine,      // 9 (
@@ -35,41 +36,41 @@ namespace Keyboard
                       // -----Signs-----
         Minus,        // -
         Plus,         // +=
-        LeftBracket,  // [{
-        RightBracket, // ]} (o3, i0)
+        LeftBracket,  // [{ (o3, i0)
+        RightBracket, // ]}
         Slash,        // \|
         Semicolon,    // ;:
         Quote,        // '"
         Question,     // /?
         Point,        // .>
         Comma,        // ,<
-        Backticks,    // `~
+        Backticks,    // `~ (o4, i0)
                       // -----Letters-----
-        LetterQ,      // qQ (o4, i0)
+        LetterQ,      // qQ
         LetterW,      // wW
         LetterE,      // eE
         LetterR,      // rR
         LetterT,      // tT
         LetterY,      // yY
         LetterU,      // uU
-        LetterI,      // iI
-        LetterO,      // oO (o5, i0)
+        LetterI,      // iI (o5, i0)
+        LetterO,      // oO
         LetterP,      // pP
         LetterA,      // aA
         LetterS,      // sS
         LetterD,      // dD
         LetterF,      // fF
         LetterG,      // gG
-        LetterH,      // hH
-        LetterJ,      // jJ (o6, i0)
+        LetterH,      // hH (o6, i0)
+        LetterJ,      // jJ
         LetterK,      // kK
         LetterL,      // lL
         LetterZ,      // zZ
         LetterX,      // xX
         LetterC,      // cC
         LetterV,      // vV
-        LetterB,      // bB
-        LetterN,      // nN (o7, i0)
+        LetterB,      // bB (o7, i0)
+        LetterN,      // nN
         LetterM,      // mM
     };
 

@@ -72,19 +72,19 @@ namespace SD
         return result;
     }
 
-    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, uint8_t seek_point)
+    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, std::ios_base::seekdir seek_point)
     {
         esp_err_t ret = ESP_FAIL;
-        FILE *file = fopen(path, "w");
-        fseek(file, pos, seek_point);
 
-        if (file != NULL)
+        std::ofstream file(path, std::ios::out);
+        if (file.is_open())
         {
-            fputs(buff, file);
+            file.seekp(pos, seek_point);
+            file << buff;
+            file.close();
             ret = ESP_OK;
         }
 
-        fclose(file);
         return ret;
     }
 

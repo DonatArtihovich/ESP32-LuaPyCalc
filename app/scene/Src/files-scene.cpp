@@ -319,9 +319,9 @@ namespace Scene
         }
     }
 
-    uint8_t FilesScene::Focus(Direction direction)
+    uint8_t FilesScene::Focus(Direction direction, std::function<bool(UiStringItem *, UiStringItem *)> add_cond)
     {
-        if (!Scene::Focus(direction))
+        if (!Scene::Focus(direction, add_cond))
         {
             ESP_LOGI(TAG, "Basic focus not found");
             if (direction == Direction::Bottom)
