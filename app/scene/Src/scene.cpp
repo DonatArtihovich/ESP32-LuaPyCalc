@@ -19,6 +19,10 @@ namespace Scene
             if (modal.Value)
             {
                 modal.Value(value, is_ctrl_pressed);
+                if (IsCodeRunning() && value != '\b')
+                {
+                    stdin_entered++;
+                }
             }
 
             return;
@@ -26,7 +30,7 @@ namespace Scene
 
         if (IsCursorControlling())
         {
-            if (!is_ctrl_pressed)
+            if (!is_ctrl_pressed && value != '\b')
             {
                 CursorInsertChars(std::string(1, value), GetLinesScroll());
             }
@@ -37,7 +41,8 @@ namespace Scene
         }
     }
 
-    uint8_t Scene::Focus(Direction direction)
+    uint8_t Scene::Focus(Direction direction,
+                         std::function<bool(UiStringItem *last_f, UiStringItem *new_f)> add_cond)
     {
         auto last_focused = GetFocused();
 
@@ -52,7 +57,7 @@ namespace Scene
         switch (direction)
         {
         case Direction::Up:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 bool main_cond{item.y > last_focused->y &&
                                item.focusable &&
@@ -60,12 +65,16 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.y < new_focused->y))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
             break;
         case Direction::Right:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 uint8_t fw;
                 Font::GetFontx(last_focused->font, 0, &fw, 0);
@@ -75,12 +84,16 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.x < new_focused->x))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
             break;
         case Direction::Bottom:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 bool main_cond{item.y < last_focused->y &&
                                item.focusable &&
@@ -88,12 +101,16 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.y > new_focused->y))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
             break;
         case Direction::Left:
-            fe_cb = [&new_focused, &last_focused](auto &item)
+            fe_cb = [&new_focused, &last_focused, &add_cond](auto &item)
             {
                 bool main_cond{item.x < last_focused->x &&
                                item.focusable &&
@@ -101,6 +118,10 @@ namespace Scene
 
                 if ((!new_focused && main_cond) || (main_cond && item.x > new_focused->x))
                 {
+                    if (add_cond && !add_cond(&item, &*last_focused))
+                    {
+                        return;
+                    }
                     new_focused = &item;
                 }
             };
@@ -231,7 +252,16 @@ namespace Scene
     void Scene::Delete()
     {
         ESP_LOGI(TAG, "Delete pressed.");
-        if (IsCursorControlling())
+        if (IsCodeRunning())
+        {
+            if (CodeRunController::IsWaitingInput() && stdin_entered > 0)
+            {
+                Value('\b');
+                CursorDeleteChars(1, GetLinesScroll());
+                stdin_entered--;
+            }
+        }
+        else if (IsCursorControlling())
         {
             CursorDeleteChars(1, GetLinesScroll());
         }
@@ -1481,22 +1511,37 @@ namespace Scene
             ESP_LOGI(TAG, "direction %d", (int)direction);
             if (direction == Direction::Up || direction == Direction::Bottom)
             {
-                ScrollContent(direction, false, GetLinesScroll());
-                RenderModalContent();
-                if (!(ui->end() - 1)->displayable)
+                if (ScrollContent(direction, false, GetLinesScroll()) > 0)
                 {
-                    RenderUiListEnding("more log lines...");
+                    RenderModalContent();
+                    if (!(ui->end() - 1)->displayable)
+                    {
+                        RenderUiListEnding("more log lines...");
+                    }
                 }
             }
         };
 
-        modal.Value = [this](char value, bool _)
+        modal.Value = [this](char value, bool is_ctrl)
         {
             if (CodeRunController::IsWaitingInput())
             {
+                std::string not_displaying{"\b\4"};
+                if ((value == 'd' || value == 'D') && is_ctrl)
+                {
+                    value = '\4';
+                }
+
                 if (xQueueSend(xQueueRunnerStdin, &value, portMAX_DELAY) == pdPASS)
                 {
-                    CursorInsertChars(std::string(1, value));
+                    if (not_displaying.find(value) == std::string::npos)
+                    {
+                        CursorInsertChars(std::string(1, value));
+                    }
+                    else if (value == '\4')
+                    {
+                        CursorInsertChars(std::string(1, '\n'));
+                    }
                 }
             }
         };
@@ -1542,16 +1587,28 @@ namespace Scene
 
         ESP_LOGE(TAG, "Code error: %s", traceback);
 
-        size_t len = strlen(traceback);
-        size_t line_len = GetLineLength();
+        std::string traceback_str{traceback};
+        size_t max_line_len = GetLineLength();
         UiStringItem error_line{"", Color::Red, GetContentUiStart()->font, false};
 
-        char label[line_len + 1] = {0};
-        for (const char *p{traceback}; p < traceback + len; p += line_len)
+        size_t index = 0;
+        size_t find_n{std::string::npos};
+
+        while (index < traceback_str.length())
         {
-            snprintf(label, line_len + 1, p);
-            error_line.label = label;
-            ui->push_back(error_line);
+            find_n = traceback_str.find('\n', index);
+            if (find_n != std::string::npos && find_n - index < max_line_len)
+            {
+                error_line.label = traceback_str.substr(index, find_n - index + 1);
+                ui->push_back(error_line);
+                index = find_n + 1;
+            }
+            else
+            {
+                error_line.label = traceback_str.substr(index, max_line_len);
+                ui->push_back(error_line);
+                index += max_line_len;
+            }
         }
 
         ScrollToEnd();
@@ -1596,5 +1653,29 @@ namespace Scene
     bool Scene::IsCodeRunning()
     {
         return false;
+    }
+
+    void Scene::Tab()
+    {
+        ESP_LOGI(TAG, "Tab pressed.");
+
+        if (IsCursorControlling())
+        {
+            Value('\t');
+            return;
+        }
+
+        std::function<bool(UiStringItem *, UiStringItem *)> right_add_cond{
+            [](UiStringItem *last_f, UiStringItem *new_f)
+            {
+                uint8_t fh{};
+                Font::GetFontx(last_f->font, 0, 0, &fh);
+                return new_f->y >= last_f->y - fh;
+            }};
+
+        if (!Scene::Focus(Direction::Right, right_add_cond))
+        {
+            Scene::Focus(Direction::Bottom);
+        }
     }
 }

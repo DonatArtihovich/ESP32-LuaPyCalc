@@ -169,12 +169,12 @@ namespace Display
         {
             if (!it->displayable)
             {
-                ESP_LOGI(TAG, "Item not displayable, %s", it->label.c_str());
+                ESP_LOGD(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
             else
             {
-                ESP_LOGI(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
+                ESP_LOGD(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
             }
 
             Font::GetFontx(it->font, 0, &fw, &fh);

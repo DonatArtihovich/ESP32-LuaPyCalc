@@ -66,6 +66,11 @@ namespace Scene
                 RunFile();
                 enter = false;
             }
+            else if ((value == 's' || value == 'S') && is_ctrl_pressed)
+            {
+                SaveFile();
+                enter = false;
+            }
             else if (!(*ui)[3].label.size() && IsCursorControlling())
             {
                 ToggleSaveButton(true, true);
@@ -176,23 +181,23 @@ namespace Scene
 
             auto &modal = modals[stage];
 
-            if (focused->label.contains("Cancel"))
+            if (focused->label.find("Cancel") != std::string::npos)
             {
                 modal.Cancel();
             }
-            else if (focused->label.contains("Ok"))
+            else if (focused->label.find("Ok") != std::string::npos)
             {
                 modal.Ok();
             }
             else if (IsStage(FilesSceneStage::CreateChooseModalStage))
             {
-                if (focused->label.contains("File") ||
-                    focused->label.contains("Directory"))
+                if (focused->label.find("File") != std::string::npos ||
+                    focused->label.find("Directory") != std::string::npos)
                 {
                     GetStageModal(FilesSceneStage::CreateModalStage).data =
-                        focused->label.contains("File")
-                            ? "file"
-                            : "directory";
+                        ((focused->label.find("File") != std::string::npos)
+                             ? "file"
+                             : "directory");
 
                     OpenStageModal(FilesSceneStage::CreateModalStage);
                 }
@@ -221,19 +226,19 @@ namespace Scene
                 OpenFile(filename.c_str());
             }
         }
-        else if (focused->label.contains("^ Up"))
+        else if (focused->label.find("^ Up") != std::string::npos)
         {
             ScrollContent(Direction::Up, true, directory_lines_scroll);
         }
-        else if (focused->label.contains("Save"))
+        else if (focused->label.find("Save") != std::string::npos)
         {
             SaveFile();
         }
-        else if (focused->label.contains("Create"))
+        else if (focused->label.find("Create") != std::string::npos)
         {
             OpenStageModal(FilesSceneStage::CreateChooseModalStage);
         }
-        else if (focused->label.contains("< Esc"))
+        else if (focused->label.find("< Esc") != std::string::npos)
         {
             return Escape();
         }
@@ -291,9 +296,6 @@ namespace Scene
 
     void FilesScene::Delete()
     {
-        if (IsStage(FilesSceneStage::CodeRunModalStage))
-            return;
-
         if (IsStage(FilesSceneStage::FileOpenStage) &&
             IsCursorControlling() &&
             !(*ui)[3].label.size())
@@ -317,9 +319,9 @@ namespace Scene
         }
     }
 
-    uint8_t FilesScene::Focus(Direction direction)
+    uint8_t FilesScene::Focus(Direction direction, std::function<bool(UiStringItem *, UiStringItem *)> add_cond)
     {
-        if (!Scene::Focus(direction))
+        if (!Scene::Focus(direction, add_cond))
         {
             ESP_LOGI(TAG, "Basic focus not found");
             if (direction == Direction::Bottom)
@@ -383,7 +385,7 @@ namespace Scene
             (*ui)[save_index].label = "Save";
             (*ui)[save_index].focusable = true;
         }
-        else
+        else if ((*ui)[save_index].focused)
         {
             ChangeItemFocus(&(*ui)[save_index], false);
             (*ui)[save_index].focusable = false;
@@ -722,11 +724,11 @@ namespace Scene
             auto &label{(GetStageModal().ui.end() - 1)->label};
             bool enter{};
 
-            if (isalnum(value) || allowed_digits.contains(value))
+            if (isalnum(value) || allowed_digits.find(value) != std::string::npos)
             {
                 if (label.size() < max_filename_size ||
                     (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
-                     label.contains('.')))
+                     label.find('.') != std::string::npos))
                 {
                     enter = true;
                 }
@@ -959,16 +961,16 @@ namespace Scene
         {
             runner_language = CodeLanguage::Python;
         }
-        else if (extension == ".rb")
-        {
-            runner_language = CodeLanguage::Ruby;
-        }
+        // else if (extension == ".rb")
+        // {
+        //     runner_language = CodeLanguage::Ruby;
+        // }
         else
         {
             runner_language = CodeLanguage::Text;
         }
 
-        const char *arr[]{"Text", "Lua", "Python", "Ruby"};
+        const char *arr[]{"Text", "Lua", "Python" /*, "Ruby" */};
         ESP_LOGI(TAG, "Detected language: %s", arr[(int)runner_language]);
     }
 
@@ -981,9 +983,11 @@ namespace Scene
         std::string file_path{curr_directory + (*ui)[0].label};
         CodeRunner::CodeProcess process{
             .language = runner_language,
-            .data = file_path,
+            .data = new char[file_path.size() + 1]{0},
             .is_file = true,
         };
+
+        strncpy(process.data, file_path.c_str(), file_path.size() + 1);
 
         OpenStageModal(FilesSceneStage::CodeRunModalStage);
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);

@@ -55,7 +55,7 @@ namespace Scene
         size_t GetContentUiStartIndex(uint8_t stage) override;
         size_t GetLineLength() override;
 
-        uint8_t Focus(Direction direction) override;
+        uint8_t Focus(Direction direction, std::function<bool(UiStringItem *, UiStringItem *)> = nullptr) override;
         uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1) override;
 
         void LeaveModalControlling(

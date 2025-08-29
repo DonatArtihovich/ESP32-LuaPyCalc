@@ -1,4 +1,14 @@
 dependencies:
+  espressif/mdns:
+    component_hash: 46ee81d32fbf850462d8af1e83303389602f6a6a9eddd2a55104cb4c063858ed
+    dependencies:
+    - name: idf
+      require: private
+      version: '>=5.0'
+    source:
+      registry_url: https://components.espressif.com
+      type: service
+    version: 1.1.0
   georgik/lua:
     component_hash: 10698fd2d729b63cca8b882e219c3fa3bd8a9adea26f814f2febb624d0385c23
     dependencies:
@@ -12,10 +22,37 @@ dependencies:
   idf:
     source:
       type: idf
-    version: 5.4.1
+    version: 5.0.5
+  tomasweij/micropython-helper:
+    component_hash: a3924ff20ba6c99f6e4a5d5a6dcc8f2e75b21cb61bf194a43567d90cbcadaec5
+    dependencies:
+    - name: espressif/esp_tinyusb
+      registry_url: https://components.espressif.com
+      require: private
+      rules:
+      - if: target in [esp32s2, esp32s3]
+      version: ~1.0.0
+    - name: espressif/mdns
+      registry_url: https://components.espressif.com
+      require: private
+      version: ~1.1.0
+    - name: idf
+      require: private
+      version: '>=5.0.4'
+    source:
+      registry_url: https://components.espressif.com/
+      type: service
+    targets:
+    - esp32
+    - esp32c3
+    - esp32s2
+    - esp32s3
+    - esp32c6
+    version: 1.22.15
 direct_dependencies:
 - georgik/lua
 - idf
-manifest_hash: b0e03b537f313a41185a0bfd0c8c71d757bf277f9da6b0a1172c7eb2d2ffd257
+- tomasweij/micropython-helper
+manifest_hash: 437c00898623a248680806e5db0c0a92a34be513160f033f58c288602f99c52a
 target: esp32
 version: 2.0.0

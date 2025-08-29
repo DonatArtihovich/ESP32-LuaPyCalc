@@ -20,7 +20,7 @@ namespace SD
     class SDCard
     {
         gpio_num_t _miso, _mosi, _clk, _cs;
-        sdmmc_host_t sd_spi_host;
+        sdmmc_host_t sd_spi_host{(sdmmc_host_t)SDSPI_HOST_DEFAULT()};
         char _mount_path[50] = {0};
 
     public:
@@ -31,7 +31,7 @@ namespace SD
         esp_err_t Unmount();
 
         size_t ReadFile(const char *path, char *buff, size_t len, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
-        esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
+        esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, std::ios_base::seekdir seek_point = std::ios_base::beg);
         std::vector<std::string> ReadDirectory(const char *path);
 
         esp_err_t CreateDirectory(const char *path);

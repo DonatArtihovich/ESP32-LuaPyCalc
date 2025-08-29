@@ -21,13 +21,14 @@ namespace Keyboard
         Shift, // (o1, i0)
         Caps,
         Space,
+        Tab,
         // -----Numbers-----
         NumOne,       // 1 !
         NumTwo,       // 2 @
         NumThree,     // 3 #
         NumFour,      // 4 $
-        NumFive,      // 5 %
-        NumSix,       // 6 ^ (o2, i0)
+        NumFive,      // 5 % (o2, i0)
+        NumSix,       // 6 ^
         NumSeven,     // 7 &
         NumEight,     // 8 *
         NumNine,      // 9 (
@@ -35,41 +36,41 @@ namespace Keyboard
                       // -----Signs-----
         Minus,        // -
         Plus,         // +=
-        LeftBracket,  // [{
-        RightBracket, // ]} (o3, i0)
+        LeftBracket,  // [{ (o3, i0)
+        RightBracket, // ]}
         Slash,        // \|
         Semicolon,    // ;:
         Quote,        // '"
         Question,     // /?
         Point,        // .>
         Comma,        // ,<
-        Backticks,    // `~
+        Backticks,    // `~ (o4, i0)
                       // -----Letters-----
-        LetterQ,      // qQ (o4, i0)
+        LetterQ,      // qQ
         LetterW,      // wW
         LetterE,      // eE
         LetterR,      // rR
         LetterT,      // tT
         LetterY,      // yY
         LetterU,      // uU
-        LetterI,      // iI
-        LetterO,      // oO (o5, i0)
+        LetterI,      // iI (o5, i0)
+        LetterO,      // oO
         LetterP,      // pP
         LetterA,      // aA
         LetterS,      // sS
         LetterD,      // dD
         LetterF,      // fF
         LetterG,      // gG
-        LetterH,      // hH
-        LetterJ,      // jJ (o6, i0)
+        LetterH,      // hH (o6, i0)
+        LetterJ,      // jJ
         LetterK,      // kK
         LetterL,      // lL
         LetterZ,      // zZ
         LetterX,      // xX
         LetterC,      // cC
         LetterV,      // vV
-        LetterB,      // bB
-        LetterN,      // nN (o7, i0)
+        LetterB,      // bB (o7, i0)
+        LetterN,      // nN
         LetterM,      // mM
     };
 
@@ -80,6 +81,7 @@ namespace Keyboard
         gpio_num_t _clk, _sipo_lh, _sipo_ds, _piso_lh, _piso_ds;
         static const std::map<Key, std::array<char, 2>> symbol_keys;
         static const std::map<Key, char> letter_keys;
+        static bool is_caps;
 
     public:
         KeyboardController(
@@ -92,5 +94,7 @@ namespace Keyboard
         esp_err_t Init();
         static bool IsKeyPressed(Key key);
         static char GetKeyValue(Key value_key);
+
+        static void ToggleCaps();
     };
 }

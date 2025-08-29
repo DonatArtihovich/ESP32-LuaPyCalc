@@ -62,11 +62,15 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            "for i = 1, 97 do\n"
-            "  print(\"Number\", i)\n"
-            "end"};
+            // "from random import randint\n"
+            // "print(randint(0, 10))\n"
+            // "import os\n"
+            // "print(os.listdir('/sdcard/py'))\n"
+            "print(input(\"Enter str:\"))"};
         Cursor cursor{};
         uint8_t stage{};
+
+        size_t stdin_entered{};
 
     protected:
         DisplayController &display;
@@ -173,7 +177,7 @@ namespace Scene
 
         void ChangeItemFocus(UiStringItem *item, bool focus, bool rerender = false);
         virtual void ChangeHeader(std::string header, bool rerender = false);
-        virtual uint8_t Focus(Direction direction);
+        virtual uint8_t Focus(Direction direction, std::function<bool(UiStringItem *last_f, UiStringItem *new_f)> add_cond = nullptr);
         void RenderUiListEnding(const char *end_label = "more items");
 
         virtual void RenderAll();
@@ -196,6 +200,7 @@ namespace Scene
         virtual SceneId Escape();
         virtual void Delete();
         virtual void Value(char value);
+        virtual void Tab();
 
         virtual void SendCodeOutput(const char *output);
         virtual void SendCodeError(const char *traceback);
