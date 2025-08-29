@@ -62,6 +62,8 @@ namespace Keyboard
         {Key::LetterM, 'm'},
     };
 
+    bool KeyboardController::is_caps{};
+
     KeyboardController::KeyboardController(
         gpio_num_t _clk,
         gpio_num_t sipo_lh,
@@ -108,13 +110,18 @@ namespace Keyboard
         {
             ch = letter_keys.at(value_key);
 
-            if (is_shift_pressed)
+            if (is_shift_pressed || is_caps)
             {
                 ch = toupper(ch);
             }
         }
 
         return ch;
+    }
+
+    void KeyboardController::ToggleCaps()
+    {
+        is_caps = !is_caps;
     }
 }
 

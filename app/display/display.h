@@ -1,11 +1,11 @@
 #pragma once
 #include "st7789v.h"
 #include "fontx.h"
-#include "esp_vfs.h"
 #include "esp_spiffs.h"
 #include "esp_log.h"
 #include <vector>
 #include <string>
+#include <cstring>
 
 using Fontx::Font, Fontx::FontxFile, LCD::Color;
 

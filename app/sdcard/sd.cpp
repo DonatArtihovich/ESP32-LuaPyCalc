@@ -14,10 +14,9 @@ namespace SD
             .format_if_mount_failed = true,
             .max_files = 4,
             .allocation_unit_size = 16 * 1024,
-            .use_one_fat = false,
         };
 
-        sd_spi_host = SDSPI_HOST_DEFAULT();
+        // sd_spi_host = SDSPI_HOST_DEFAULT();
 
         spi_bus_config_t bus_cfg = {
             .mosi_io_num = _mosi,
@@ -73,19 +72,19 @@ namespace SD
         return result;
     }
 
-    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, uint8_t seek_point)
+    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, std::ios_base::seekdir seek_point)
     {
         esp_err_t ret = ESP_FAIL;
-        FILE *file = fopen(path, "w");
-        fseek(file, pos, seek_point);
 
-        if (file != NULL)
+        std::ofstream file(path, std::ios::out);
+        if (file.is_open())
         {
-            fputs(buff, file);
+            file.seekp(pos, seek_point);
+            file << buff;
+            file.close();
             ret = ESP_OK;
         }
 
-        fclose(file);
         return ret;
     }
 

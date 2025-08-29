@@ -26,15 +26,15 @@ namespace Scene
         if (focused != ui->end())
         {
             display.Clear(Color::Black);
-            if (focused->label.contains("Files"))
+            if (focused->label.find("Files") != std::string::npos)
             {
                 return SceneId::FilesScene;
             }
-            else if (focused->label.contains("Code"))
+            else if (focused->label.find("Code") != std::string::npos)
             {
                 return SceneId::CodeScene;
             }
-            else if (focused->label.contains("Settings"))
+            else if (focused->label.find("Settings") != std::string::npos)
             {
                 return SceneId::SettingsScene;
             }

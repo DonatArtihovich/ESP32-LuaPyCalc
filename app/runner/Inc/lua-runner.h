@@ -7,6 +7,7 @@ extern "C"
 #include "lua.h"
 #include "lualib.h"
 #include "lauxlib.h"
+#include "lmem.h"
 }
 
 namespace CodeRunner
@@ -15,9 +16,9 @@ namespace CodeRunner
     {
         static int lua_print_impl(lua_State *L);
         static int lua_io_read_impl(lua_State *L);
-        static void lua_get_traceback(lua_State *L, char *traceback, size_t traceback_len, size_t depth = 2);
+        static void lua_get_traceback(lua_State *L, char *traceback, size_t traceback_len);
 
-        static lua_State *setup_lua();
+        static lua_State *setup_lua(const char *module_dir = CONFIG_MOUNT_POINT);
 
     public:
         static esp_err_t RunCodeString(const char *code, char *traceback, size_t traceback_len);

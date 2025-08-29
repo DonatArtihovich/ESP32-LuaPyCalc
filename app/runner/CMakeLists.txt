@@ -1,5 +1,5 @@
 idf_component_register(
-    SRCS "./Src/runner.cpp" "./Src/lua-runner.cpp"
+    SRCS "./Src/runner.cpp" "./Src/lua-runner.cpp" "./Src/python-runner.cpp" "./Src/python-bindings.c"
     INCLUDE_DIRS "Inc"
-    REQUIRES "lua"
+    REQUIRES "lua" "micropython-helper"
 )

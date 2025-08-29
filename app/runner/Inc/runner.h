@@ -5,9 +5,17 @@
 
 #include "esp_log.h"
 #include "esp_err.h"
+#include "esp_task_wdt.h"
+#include "sdkconfig.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
+#include "freertos/semphr.h"
+
+extern QueueHandle_t xQueueRunnerStdout;
+extern QueueHandle_t xQueueRunnerStdin;
+
+extern SemaphoreHandle_t xDisplayingSemaphore;
 
 namespace CodeRunner
 {
@@ -16,13 +24,13 @@ namespace CodeRunner
         Text,
         Lua,
         Python,
-        Ruby
+        // Ruby
     };
 
     struct CodeProcess
     {
         CodeLanguage language;
-        std::string data;
+        char *data;
         bool is_file{};
     };
 
@@ -33,8 +41,8 @@ namespace CodeRunner
         static bool is_waiting_output;
 
     public:
-        static esp_err_t RunCodeString(std::string code, CodeLanguage language, char *traceback, size_t traceback_len);
-        static esp_err_t RunCodeFile(std::string path, CodeLanguage language, char *traceback, size_t traceback_len);
+        static esp_err_t RunCodeString(const char *code, CodeLanguage language, char *traceback, size_t traceback_len);
+        static esp_err_t RunCodeFile(const char *path, CodeLanguage language, char *traceback, size_t traceback_len);
 
         static void SetIsRunning(bool is_running);
         static bool IsRunning();

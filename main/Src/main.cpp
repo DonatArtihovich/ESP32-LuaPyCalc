@@ -1,4 +1,4 @@
-#include "main.h"
+#include "../Inc/main.h"
 #include "sdkconfig.h"
 
 static const char *TAG = "App";
@@ -31,9 +31,10 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerStdout, stdout_buffer, portMAX_DELAY) == pdPASS)
             {
-                while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
                 {
-                    vTaskDelay(pdMS_TO_TICKS(1));
+                    ESP_LOGE(TAG, "Error taking xAppMutex");
+                    continue;
                 }
 
                 App->SendCodeOutput(stdout_buffer);
@@ -59,7 +60,7 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
             {
-                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data.c_str(), processing.is_file);
+                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data, processing.is_file);
 
                 esp_err_t ret{ESP_OK};
                 if (processing.is_file)
@@ -77,39 +78,32 @@ namespace Main
                         traceback, sizeof(traceback));
                 }
 
+                ESP_LOGI(TAG, "Code run ret: %d", ret);
+
+                while (CodeRunController::IsWaitingOutput())
+                {
+                    vTaskDelay(pdMS_TO_TICKS(1));
+                }
+
+                if (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+                {
+                    ESP_LOGE(TAG, "Error taking xAppMutex");
+                    continue;
+                }
+
                 if (ret != ESP_OK)
                 {
-                    while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
-                    while (CodeRunController::IsWaitingOutput())
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
                     App->SendCodeError(traceback);
                     App->DisplayCodeLog();
-                    xSemaphoreGive(xAppMutex);
                     memset(traceback, 0, sizeof(traceback));
                 }
                 else
                 {
-                    while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
-                    while (CodeRunController::IsWaitingOutput())
-                    {
-                        vTaskDelay(pdMS_TO_TICKS(1));
-                    }
-
                     App->SendCodeSuccess();
                     App->DisplayCodeLog();
-                    xSemaphoreGive(xAppMutex);
                 }
+
+                xSemaphoreGive(xAppMutex);
 
                 CodeRunController::SetIsRunning(false);
             }
@@ -136,22 +130,14 @@ namespace Main
                     App->DisplayCodeLog(false);
                     xSemaphoreGive(xAppMutex);
                 }
+                else
+                {
+                    ESP_LOGE(TAG, "Error taking xAppMutex");
+                }
             }
         }
 
         vTaskDelete(NULL);
-    }
-
-    static void TaskRunnerWatchdogResetting(void *arg)
-    {
-        while (1)
-        {
-            if (CodeRunController::IsRunning())
-            {
-                esp_task_wdt_reset();
-            }
-            vTaskDelay(2000 / portTICK_PERIOD_MS);
-        }
     }
 
     Main::Main() : scene{new Scene::StartScene{display}} {}
@@ -177,7 +163,7 @@ namespace Main
     void Main::Tick()
     {
         using Keyboard::Key, Scene::Direction, Keyboard::KeyboardController;
-        Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left};
+        Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left, Key::Caps, Key::Tab};
         Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
 
         for (auto key : controllers)
@@ -213,6 +199,14 @@ namespace Main
                 case Key::Left:
                     ESP_LOGD(TAG, "Left pressed.");
                     scene->Arrow(Direction::Left);
+                    break;
+                case Key::Tab:
+                    ESP_LOGD(TAG, "Tab pressed.");
+                    scene->Tab();
+                    break;
+                case Key::Caps:
+                    ESP_LOGD(TAG, "CapsLock pressed");
+                    KeyboardController::ToggleCaps();
                     break;
                 default:
                     break;
@@ -371,13 +365,10 @@ namespace Main
             }
         };
 
-        xTaskCreate(TaskRunnerWatchdogResetting, "TWDT Reset", 2048, 0, 11, &xTaskRunnerWatchdogResetting);
-        tsk_check(xTaskRunnerWatchdogResetting);
-
         xTaskCreate(TaskRunnerIO, "Code IO", 4096, this, 10, &xTaskRunnerIO);
         tsk_check(xTaskRunnerIO);
 
-        xTaskCreate(TaskRunnerProcessing, "Code Processing", 4096, this, 9, &xTaskRunnerProcessing);
+        xTaskCreate(TaskRunnerProcessing, "Code Processing", 10 * 1024, this, 9, &xTaskRunnerProcessing);
         tsk_check(xTaskRunnerProcessing);
 
         xTaskCreate(TaskRunnerDisplaying, "Code Log Displaying", 2048, this, 8, &xTaskRunnerDisplaying);
@@ -410,17 +401,20 @@ namespace Main
 
 extern "C" void app_main(void)
 {
+    esp_log_level_set("*", ESP_LOG_INFO);
     Main::Main App{};
     App.Setup();
 
     while (1)
     {
-        while (xSemaphoreTake(xAppMutex, portMAX_DELAY) != pdPASS)
+        if (xSemaphoreTake(xAppMutex, portMAX_DELAY) == pdPASS)
         {
-            vTaskDelay(pdMS_TO_TICKS(1));
+            App.Tick();
+            xSemaphoreGive(xAppMutex);
         }
-
-        App.Tick();
-        xSemaphoreGive(xAppMutex);
+        else
+        {
+            ESP_LOGE(TAG, "Error taking xAppMutex");
+        }
     }
 }
