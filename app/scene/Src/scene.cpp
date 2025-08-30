@@ -149,14 +149,16 @@ namespace Scene
         if (!item->focusable || item->focused == focus)
             return;
 
+        auto &theme{Settings::Settings::GetTheme()};
+
         item->focused = focus;
         if (focus)
         {
-            item->backgroundColor = Color::Blue;
+            item->backgroundColor = theme.Colors.FocusedBackgroundColor;
         }
         else if (rerender)
         {
-            item->backgroundColor = Color::Black;
+            item->backgroundColor = theme.Colors.MainBackgroundColor;
         }
         else
         {
@@ -314,7 +316,7 @@ namespace Scene
 
     void Scene::RenderContent()
     {
-        ClearContent(Color::Black);
+        ClearContent(Settings::Settings::GetTheme().Colors.MainBackgroundColor);
         display.DrawStringItems(ui->begin() + content_ui_start,
                                 ui->end(),
                                 10,
@@ -324,6 +326,7 @@ namespace Scene
 
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after, uint8_t start_x)
     {
+        auto &theme{Settings::Settings::GetTheme()};
         uint8_t fw, fh;
         size_t lines_per_page{GetLinesPerPageCount()};
         auto first_displaying = std::find_if(
@@ -350,7 +353,7 @@ namespace Scene
 
             UiStringItem &first_line_item{*(first_displaying + first_line)};
 
-            display.Clear(Color::Black,
+            display.Clear(theme.Colors.MainBackgroundColor,
                           lines_start_x + start_x * fw,
                           clear_end_y,
                           display.GetWidth(),
@@ -369,7 +372,7 @@ namespace Scene
             first_line++;
         }
 
-        display.Clear(Color::Black, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
+        display.Clear(theme.Colors.MainBackgroundColor, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
 
         auto first_render_line{first_displaying + first_line};
         auto render_end{first_displaying + last_line + 1};
@@ -423,7 +426,7 @@ namespace Scene
         uint16_t x, y;
         GetCursorXY(&x, &y, cursor_x, cursor_y);
 
-        display.Clear(Color::Black, x, y, x + cursor.width, y + cursor.height);
+        display.Clear(Settings::Settings::GetTheme().Colors.MainBackgroundColor, x, y, x + cursor.width, y + cursor.height);
         y -= 2;
 
         if (line != nullptr)
@@ -1251,7 +1254,7 @@ namespace Scene
 
     void Scene::RenderModal()
     {
-        display.Clear(Color::Black);
+        display.Clear(Settings::Settings::GetTheme().Colors.MainBackgroundColor);
         std::for_each(
             ui->begin(),
             ui->end(),
@@ -1266,7 +1269,7 @@ namespace Scene
 
     void Scene::RenderModalContent()
     {
-        display.Clear(Color::Black, 10, 0, display.GetWidth(), display.GetHeight() - 35);
+        display.Clear(Settings::Settings::GetTheme().Colors.MainBackgroundColor, 10, 0, display.GetWidth(), display.GetHeight() - 35);
         display.DrawStringItems(GetContentUiStart(),
                                 ui->end(),
                                 10,
@@ -1345,7 +1348,7 @@ namespace Scene
 
     void Scene::AddModalLabel(std::string modal_label, Modal &modal)
     {
-        UiStringItem label_item{"", Color::White, display.fx24G, false};
+        UiStringItem label_item{"", Settings::Settings::GetTheme().Colors.MainTextColor, display.fx24G, false};
         display.SetPosition(&label_item, Position::NotSpecified, Position::End);
 
         uint8_t fw{}, fh{};
@@ -1459,11 +1462,12 @@ namespace Scene
     void Scene::InitCodeRunModal(uint8_t code_run_stage)
     {
         Modal modal{};
+        auto &theme{Settings::Settings::GetTheme()};
 
-        modal.ui.push_back(UiStringItem{"Running...", Color::White, display.fx32L, false});
+        modal.ui.push_back(UiStringItem{"Running...", theme.Colors.MainTextColor, display.fx32L, false});
         display.SetPosition(&modal.ui[0], Position::Center, Position::End);
 
-        modal.PreEnter = [this, code_run_stage]()
+        modal.PreEnter = [this, code_run_stage, &theme]()
         {
             Modal &modal{GetStageModal(code_run_stage)};
 
@@ -1473,7 +1477,7 @@ namespace Scene
 
             CursorInit(display.fx16G);
 
-            modal.ui.push_back(UiStringItem{"", Color::White, display.fx16G, false});
+            modal.ui.push_back(UiStringItem{"", theme.Colors.MainTextColor, display.fx16G, false});
             modal.ui[1].x = 10;
             modal.ui[1].y = display.GetHeight() - 60;
 
@@ -1589,7 +1593,8 @@ namespace Scene
 
         std::string traceback_str{traceback};
         size_t max_line_len = GetLineLength();
-        UiStringItem error_line{"", Color::Red, GetContentUiStart()->font, false};
+        UiStringItem error_line{"", Settings::Settings::GetTheme().Colors.CodeErrorColor,
+                                GetContentUiStart()->font, false};
 
         size_t index = 0;
         size_t find_n{std::string::npos};
@@ -1622,7 +1627,7 @@ namespace Scene
 
         ESP_LOGI(TAG, "Code Successfully executed.");
 
-        UiStringItem end_item{"Successfully executed.", Color::Green, GetContentUiStart()->font, false};
+        UiStringItem end_item{"Successfully executed.", Settings::Settings::GetTheme().Colors.CodeSuccessColor, GetContentUiStart()->font, false};
         ui->push_back(end_item);
 
         ScrollToEnd();

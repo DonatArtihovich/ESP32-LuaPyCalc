@@ -14,17 +14,19 @@ namespace Scene
         content_ui_start = 3;
         InitModals();
 
-        ui->push_back(UiStringItem{"Code", Color::White, display.fx32L, false});
+        auto &theme{Settings::Settings::GetTheme()};
+
+        ui->push_back(UiStringItem{"Code", theme.Colors.MainTextColor, display.fx32L, false});
         display.SetPosition(&*(ui->end() - 1), Position::Center, Position::End);
 
-        ui->push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
+        ui->push_back(UiStringItem{"< Esc", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(ui->end() - 1), Position::Start, Position::End);
         ChangeItemFocus(&*(ui->end() - 1), true);
 
-        ui->push_back(UiStringItem{"Run", Color::White, display.fx24G});
+        ui->push_back(UiStringItem{"Run", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
 
-        ui->push_back(UiStringItem{"", Color::White, display.fx16G, false});
+        ui->push_back(UiStringItem{"", theme.Colors.MainTextColor, display.fx16G, false});
 
         CursorInit(display.fx16G);
         OpenStageModal(CodeSceneStage::LanguageChooseModalStage);
@@ -70,11 +72,7 @@ namespace Scene
         }
         else
         {
-            auto focused{std::find_if(
-                ui->begin(),
-                ui->end(),
-                [](auto &item)
-                { return item.focused; })};
+            auto focused{GetFocused()};
 
             if (focused == ui->end())
             {
@@ -180,8 +178,9 @@ namespace Scene
     void CodeScene::InitLanguageChooseModal()
     {
         Modal modal;
+        auto &theme{Settings::Settings::GetTheme()};
 
-        modal.ui.push_back(UiStringItem{"Choose language:", Color::White, display.fx24G, false});
+        modal.ui.push_back(UiStringItem{"Choose language:", theme.Colors.MainTextColor, display.fx24G, false});
         display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::End);
 
         uint8_t fw, fh;
@@ -189,7 +188,7 @@ namespace Scene
 
         for (auto &[key, _] : runner_languages)
         {
-            modal.ui.push_back(UiStringItem{key, Color::White, display.fx24G});
+            modal.ui.push_back(UiStringItem{key, theme.Colors.MainTextColor, display.fx24G});
         }
 
         size_t langs_start_index{GetContentUiStartIndex((uint8_t)CodeSceneStage::LanguageChooseModalStage)};
