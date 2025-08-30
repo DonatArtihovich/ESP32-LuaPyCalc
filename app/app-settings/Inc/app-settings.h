@@ -37,8 +37,10 @@ namespace Settings
     class Settings
     {
         static const std::map<Themes, Theme> themes;
+        static Themes current_theme;
 
     public:
         static const Theme &GetTheme();
+        static void SetTheme(Themes theme);
     };
 }

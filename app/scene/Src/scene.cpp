@@ -155,14 +155,20 @@ namespace Scene
         if (focus)
         {
             item->backgroundColor = theme.Colors.FocusedBackgroundColor;
-        }
-        else if (rerender)
-        {
-            item->backgroundColor = theme.Colors.MainBackgroundColor;
+            item->color = theme.Colors.FocusedTextColor;
         }
         else
         {
-            item->backgroundColor = Color::None;
+            item->color = theme.Colors.MainTextColor;
+
+            if (rerender)
+            {
+                item->backgroundColor = theme.Colors.MainBackgroundColor;
+            }
+            else
+            {
+                item->backgroundColor = Color::None;
+            }
         }
 
         if (rerender)
@@ -1038,6 +1044,11 @@ namespace Scene
 
     void Scene::CursorAppendLine(const char *label, Color color)
     {
+        if (color == Color::None)
+        {
+            color = Settings::Settings::GetTheme().Colors.MainTextColor;
+        }
+
         UiStringItem last_line{label, color, (ui->end() - 1)->font, false};
         uint8_t fw, fh;
         Font::GetFontx((ui->end() - 1)->font, 0, &fw, &fh);
@@ -1411,11 +1422,21 @@ namespace Scene
 
     void Scene::ClearHeader(Color color)
     {
+        if (color == Color::None)
+        {
+            color = Settings::Settings::GetTheme().Colors.MainBackgroundColor;
+        }
+
         display.Clear(color, 0, display.GetHeight() - 60, display.GetWidth(), display.GetHeight());
     }
 
     void Scene::ClearContent(Color color)
     {
+        if (color == Color::None)
+        {
+            color = Settings::Settings::GetTheme().Colors.MainBackgroundColor;
+        }
+
         display.Clear(color, 0, 0, 0, display.GetHeight() - 35);
     }
 

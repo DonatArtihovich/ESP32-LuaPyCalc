@@ -18,21 +18,7 @@ namespace Scene
         content_ui_start = 2;
         SetStage(SettingsSceneStage::SettingsStage);
         InitModals();
-        auto &theme{Settings::Settings::GetTheme()};
-
-        ui->push_back(
-            Display::UiStringItem{"Settings", theme.Colors.MainTextColor, display.fx32L, false});
-        display.SetPosition(&(*ui)[0], Position::Center, Position::End);
-
-        ui->push_back(UiStringItem{"< Esc", theme.Colors.MainTextColor, display.fx24G});
-        display.SetPosition(&*(ui->end() - 1), Position::Start, Position::End);
-
-        ui->push_back(
-            Display::UiStringItem{"Theme         ", theme.Colors.MainTextColor, display.fx24G});
-        ui->push_back(
-            Display::UiStringItem{"Files Sorting ", theme.Colors.MainTextColor, display.fx24G});
-
-        ChangeItemFocus(&(*ui)[1], true);
+        InitUI();
         RenderAll();
     }
 
@@ -67,6 +53,43 @@ namespace Scene
             if (IsStage(SettingsSceneStage::ThemeSettingsModalStage))
             {
                 ESP_LOGI(TAG, "New theme: %s", focused->label.c_str());
+                std::string focused_label{focused->label};
+                if (focused_label.find("Default") != std::string::npos)
+                {
+                    Settings::Settings::SetTheme(Settings::Themes::Default);
+                }
+                else if (focused_label.find("Light") != std::string::npos)
+                {
+                    Settings::Settings::SetTheme(Settings::Themes::Light);
+                }
+                else if (focused_label.find("Green") != std::string::npos)
+                {
+                    Settings::Settings::SetTheme(Settings::Themes::Green);
+                }
+                else
+                {
+                    return SceneId::CurrentScene;
+                }
+
+                LeaveModalControlling(SettingsSceneStage::SettingsStage, false);
+                ui->erase(ui->begin(), ui->end());
+                InitModals();
+                InitUI();
+                OpenStageModal(SettingsSceneStage::ThemeSettingsModalStage);
+
+                auto focused{GetFocused()};
+                if (focused != ui->end() && focused->label != focused_label)
+                {
+                    for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+                    {
+                        if (it->label == focused_label)
+                        {
+                            ChangeItemFocus(&*focused, false, true);
+                            ChangeItemFocus(&*it, true, true);
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -118,5 +141,24 @@ namespace Scene
         };
 
         AddStageModal((uint8_t)SettingsSceneStage::ThemeSettingsModalStage, modal);
+    }
+
+    void SettingsScene::InitUI()
+    {
+        auto &theme{Settings::Settings::GetTheme()};
+
+        ui->push_back(
+            Display::UiStringItem{"Settings", theme.Colors.MainTextColor, display.fx32L, false});
+        display.SetPosition(&(*ui)[0], Position::Center, Position::End);
+
+        ui->push_back(UiStringItem{"< Esc", theme.Colors.MainTextColor, display.fx24G});
+        display.SetPosition(&*(ui->end() - 1), Position::Start, Position::End);
+
+        ui->push_back(
+            Display::UiStringItem{"Theme         ", theme.Colors.MainTextColor, display.fx24G});
+        ui->push_back(
+            Display::UiStringItem{"Files Sorting ", theme.Colors.MainTextColor, display.fx24G});
+
+        ChangeItemFocus(&(*ui)[1], true);
     }
 }

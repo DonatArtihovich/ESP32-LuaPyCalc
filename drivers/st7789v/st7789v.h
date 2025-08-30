@@ -33,6 +33,8 @@ namespace LCD
         Yellow = (uint16_t)rgb565(255, 255, 0),  // 0xFFE0
         Cyan = (uint16_t)rgb565(0, 156, 209),    // 0x04FA
         Purple = (uint16_t)rgb565(128, 0, 128),  // 0x8010
+        DarkGreen = (uint16_t)rgb565(0, 100, 0),
+        DarkYellow = (uint16_t)rgb565(213, 182, 10),
         None,
     };
 

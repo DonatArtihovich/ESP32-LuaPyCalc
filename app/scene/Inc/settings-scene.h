@@ -8,6 +8,7 @@ namespace Scene
     {
         void InitModals() override;
         void InitThemeSettingsModal();
+        void InitUI();
 
     public:
         SettingsScene(DisplayController &display);
