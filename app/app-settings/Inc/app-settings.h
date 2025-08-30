@@ -13,6 +13,13 @@ using LCD::Color;
 
 namespace Settings
 {
+    enum Themes
+    {
+        Default,
+        Light,
+        Green,
+    };
+
     struct ThemeColors
     {
         Color MainBackgroundColor,
@@ -28,14 +35,8 @@ namespace Settings
 
     struct Theme
     {
+        Themes key;
         ThemeColors Colors;
-    };
-
-    enum Themes
-    {
-        Default,
-        Light,
-        Green,
     };
 
     class Settings

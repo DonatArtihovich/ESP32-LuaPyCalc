@@ -53,43 +53,18 @@ namespace Scene
             if (IsStage(SettingsSceneStage::ThemeSettingsModalStage))
             {
                 ESP_LOGI(TAG, "New theme: %s", focused->label.c_str());
-                std::string focused_label{focused->label};
-                if (focused_label.find("Default") != std::string::npos)
-                {
-                    Settings::Settings::SetTheme(Settings::Themes::Default);
-                }
-                else if (focused_label.find("Light") != std::string::npos)
-                {
-                    Settings::Settings::SetTheme(Settings::Themes::Light);
-                }
-                else if (focused_label.find("Green") != std::string::npos)
-                {
-                    Settings::Settings::SetTheme(Settings::Themes::Green);
-                }
-                else
-                {
-                    return SceneId::CurrentScene;
-                }
+                std::string theme_labels[]{"Default", "Light", "Green"};
 
-                LeaveModalControlling(SettingsSceneStage::SettingsStage, false);
-                ui->erase(ui->begin(), ui->end());
-                InitModals();
-                InitUI();
-                OpenStageModal(SettingsSceneStage::ThemeSettingsModalStage);
-
-                auto focused{GetFocused()};
-                if (focused != ui->end() && focused->label != focused_label)
+                for (size_t i{}; i < sizeof(theme_labels) / sizeof(*theme_labels); i++)
                 {
-                    for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+                    if (focused->label.find(theme_labels[i]) != std::string::npos)
                     {
-                        if (it->label == focused_label)
-                        {
-                            ChangeItemFocus(&*focused, false, true);
-                            ChangeItemFocus(&*it, true, true);
-                            break;
-                        }
+                        SetTheme((Settings::Themes)i);
+                        break;
                     }
                 }
+
+                return SceneId::CurrentScene;
             }
         }
 
@@ -117,7 +92,6 @@ namespace Scene
         display.SetPosition(&modal.ui[1], Position::Start, Position::End);
 
         modal.ui.push_back(Display::UiStringItem{"Default", theme.Colors.MainTextColor, display.fx24G});
-        ChangeItemFocus(&*(modal.ui.end() - 1), true);
         modal.ui.push_back(Display::UiStringItem{"Light", theme.Colors.MainTextColor, display.fx24G});
         modal.ui.push_back(Display::UiStringItem{"Green", theme.Colors.MainTextColor, display.fx24G});
 
@@ -126,7 +100,7 @@ namespace Scene
         modal.PreEnter = [this]()
         {
             Modal &modal{GetStageModal(SettingsSceneStage::ThemeSettingsModalStage)};
-            ChangeItemFocus(&modal.ui[2], true);
+            ChangeItemFocus(&modal.ui[2 + (int)Settings::Settings::GetTheme().key], true);
         };
 
         modal.PreLeave = [this]()
@@ -160,5 +134,15 @@ namespace Scene
             Display::UiStringItem{"Files Sorting ", theme.Colors.MainTextColor, display.fx24G});
 
         ChangeItemFocus(&(*ui)[1], true);
+    }
+
+    void SettingsScene::SetTheme(Settings::Themes theme)
+    {
+        Settings::Settings::SetTheme(theme);
+        LeaveModalControlling(SettingsSceneStage::SettingsStage, false);
+        ui->erase(ui->begin(), ui->end());
+        InitModals();
+        InitUI();
+        OpenStageModal(SettingsSceneStage::ThemeSettingsModalStage);
     }
 }

@@ -6,41 +6,39 @@ namespace Settings
 {
     const std::map<Themes, Theme> Settings::themes{
         {Themes::Default,
-         {{
-             Color::Black, // MainBackgroundColor
-             Color::White, // SecondaryBackgroundColor
-             Color::Blue,  // FocusedBackgroundColor
-             Color::White, // MainTextColor
-             Color::Black, // SecondaryTextColor
-             Color::White, // FocusedTextColor
-             Color::White, // CursorColor
-             Color::Red,   // CodeErrorColor
-             Color::Green, // CodeSuccessColor
-         }}},
-        {Themes::Light,
-         {{
-             Color::White, // MainBackgroundColor
-             Color::Black, // SecondaryBackgroundColor
-             Color::Blue,  // FocusedBackgroundColor
-             Color::Black, // MainTextColor
-             Color::White, // SecondaryTextColor
-             Color::White, // FocusedTextColor
-             Color::Black, // CursorColor
-             Color::Red,   // CodeErrorColor
-             Color::Green, // CodeSuccessColor
-         }}},
-        {Themes::Green,
-         {{
-             Color::DarkGreen,  // MainBackgroundColor
-             Color::White,      // SecondaryBackgroundColor
-             Color::DarkYellow, // FocusedBackgroundColor
-             Color::White,      // MainTextColor
-             Color::Black,      // SecondaryTextColor
-             Color::White,      // FocusedTextColor
-             Color::White,      // CursorColor
-             Color::Red,        // CodeErrorColor
-             Color::Green,      // CodeSuccessColor
-         }}},
+         {Themes::Default, {
+                               Color::Black, // MainBackgroundColor
+                               Color::White, // SecondaryBackgroundColor
+                               Color::Blue,  // FocusedBackgroundColor
+                               Color::White, // MainTextColor
+                               Color::Black, // SecondaryTextColor
+                               Color::White, // FocusedTextColor
+                               Color::White, // CursorColor
+                               Color::Red,   // CodeErrorColor
+                               Color::Green, // CodeSuccessColor
+                           }}},
+        {Themes::Light, {Themes::Light, {
+                                            Color::White, // MainBackgroundColor
+                                            Color::Black, // SecondaryBackgroundColor
+                                            Color::Blue,  // FocusedBackgroundColor
+                                            Color::Black, // MainTextColor
+                                            Color::White, // SecondaryTextColor
+                                            Color::White, // FocusedTextColor
+                                            Color::Black, // CursorColor
+                                            Color::Red,   // CodeErrorColor
+                                            Color::Green, // CodeSuccessColor
+                                        }}},
+        {Themes::Green, {Themes::Green, {
+                                            Color::DarkGreen,  // MainBackgroundColor
+                                            Color::White,      // SecondaryBackgroundColor
+                                            Color::DarkYellow, // FocusedBackgroundColor
+                                            Color::White,      // MainTextColor
+                                            Color::Black,      // SecondaryTextColor
+                                            Color::White,      // FocusedTextColor
+                                            Color::White,      // CursorColor
+                                            Color::Red,        // CodeErrorColor
+                                            Color::Green,      // CodeSuccessColor
+                                        }}},
     };
 
     Themes Settings::current_theme{Themes::Default};
