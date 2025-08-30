@@ -144,6 +144,7 @@ namespace Main
 
     void Main::Setup()
     {
+        ESP_ERROR_CHECK(Settings::Settings::Init());
         ESP_ERROR_CHECK(keyboard.Init());
         ESP_ERROR_CHECK(display.Init());
         ESP_ERROR_CHECK(InitCodeRunner());

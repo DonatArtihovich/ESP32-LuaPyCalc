@@ -1,5 +1,7 @@
 #include "app-settings.h"
 
+static const char *TAG = "Settings";
+
 namespace Settings
 {
     const std::map<Themes, Theme> Settings::themes{
@@ -42,6 +44,21 @@ namespace Settings
     };
 
     Themes Settings::current_theme{Themes::Default};
+    nvs_handle_t Settings::nvs_handle{};
+
+    esp_err_t Settings::Init()
+    {
+        esp_err_t ret = nvs_flash_init();
+        if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+        {
+            ESP_ERROR_CHECK(nvs_flash_erase());
+            ret = nvs_flash_init();
+        }
+
+        ret |= RestoreSettings();
+
+        return ret;
+    }
 
     const Theme &Settings::GetTheme()
     {
@@ -56,5 +73,49 @@ namespace Settings
     void Settings::SetTheme(Themes theme)
     {
         current_theme = theme;
+        SaveSettings();
+    }
+
+    esp_err_t Settings::RestoreSettings()
+    {
+        esp_err_t ret{nvs_open("settings", NVS_READONLY, &nvs_handle)};
+        if (ret == ESP_OK)
+        {
+            int8_t buffer{};
+            ret = nvs_get_i8(nvs_handle, "theme", &buffer);
+            if (ret == ESP_OK)
+            {
+                ESP_LOGI(TAG, "Read theme from NVS: %d", buffer);
+                current_theme = (Themes)buffer;
+                return ret;
+            }
+
+            nvs_close(nvs_handle);
+        }
+
+        if (ret == ESP_ERR_NVS_NOT_FOUND)
+        {
+            return SaveSettings();
+        }
+
+        return ret;
+    }
+
+    esp_err_t Settings::SaveSettings()
+    {
+        esp_err_t ret{nvs_open("settings", NVS_READWRITE, &nvs_handle)};
+        if (ret == ESP_OK)
+        {
+            ret = nvs_set_i8(nvs_handle, "theme", (int8_t)current_theme);
+            if (ret == ESP_OK)
+            {
+                ESP_LOGI(TAG, "Save theme into NVS: %d", current_theme);
+                return ret;
+            }
+
+            nvs_close(nvs_handle);
+        }
+
+        return ret;
     }
 }

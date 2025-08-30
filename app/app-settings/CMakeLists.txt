@@ -1,5 +1,5 @@
 idf_component_register(
     SRCS "./Src/app-settings.cpp"
     INCLUDE_DIRS "." "Inc"
-    REQUIRES "st7789v"
+    REQUIRES "st7789v" "nvs_flash"
 )
