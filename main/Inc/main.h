@@ -13,6 +13,7 @@
 #include "start-scene.h"
 #include "files-scene.h"
 #include "code-scene.h"
+#include "settings-scene.h"
 
 #include "runner.h"
 

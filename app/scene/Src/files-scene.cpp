@@ -14,20 +14,22 @@ namespace Scene
         content_ui_start = 4;
         InitModals();
 
-        ui->push_back(UiStringItem{"  Files   ", Color::White, display.fx32L, false});
+        auto &theme{Settings::Settings::GetTheme()};
+
+        ui->push_back(UiStringItem{"  Files   ", theme.Colors.MainTextColor, display.fx32L, false});
         display.SetPosition(&*(ui->end() - 1), Position::Center, Position::End);
 
-        ui->push_back(UiStringItem{"< Esc", Color::White, display.fx24G});
+        ui->push_back(UiStringItem{"< Esc", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(ui->end() - 1), Position::Start, Position::End);
 
-        ui->push_back(UiStringItem{"Create", Color::White, display.fx24G}); // [Create] button
+        ui->push_back(UiStringItem{"Create", theme.Colors.MainTextColor, display.fx24G}); // [Create] button
         display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
 
-        ui->push_back(UiStringItem{"Save", Color::White, display.fx24G, false}); // [Save] button
+        ui->push_back(UiStringItem{"Save", theme.Colors.MainTextColor, display.fx24G, false}); // [Save] button
         display.SetPosition(&*(ui->end() - 1), Position::End, Position::End);
         (ui->end() - 1)->label.clear();
 
-        ui->push_back(UiStringItem{"", Color::White, display.fx24M, false}); // [^ Up] button
+        ui->push_back(UiStringItem{"", theme.Colors.MainTextColor, display.fx24M, false}); // [^ Up] button
 
         if (ReadDirectory())
         {
@@ -86,22 +88,25 @@ namespace Scene
     size_t FilesScene::ReadDirectory()
     {
         std::vector<std::string> files{sdcard.ReadDirectory(curr_directory.c_str())};
+        auto &theme{Settings::Settings::GetTheme()};
         ui->erase(GetContentUiStart(), ui->end());
 
         if (!curr_directory.ends_with("sdcard"))
         {
-            ui->push_back(UiStringItem{"..", Color::White, display.fx16G});
+            ui->push_back(UiStringItem{"..", theme.Colors.MainTextColor, display.fx16G});
         }
         if (!files.size())
         {
-            ui->push_back(UiStringItem{"No files found", Color::White, display.fx16G, false});
+            ui->push_back(UiStringItem{"No files found", theme.Colors.MainTextColor, display.fx16G, false});
         }
         else
         {
             for (auto &file : files)
             {
-                ui->push_back(UiStringItem{file.c_str(), Color::White, display.fx16G});
+                ui->push_back(UiStringItem{file.c_str(), theme.Colors.MainTextColor, display.fx16G});
             }
+
+            SortFiles();
         }
 
         return files.size();
@@ -109,9 +114,11 @@ namespace Scene
 
     void FilesScene::ReadFile(std::string path)
     {
+        auto &theme{Settings::Settings::GetTheme()};
         char buff[file_line_length + 1] = {0};
         uint32_t seek_pos{0};
         int read = 0;
+
         while ((read = sdcard.ReadFile(
                     path.c_str(),
                     buff,
@@ -120,7 +127,7 @@ namespace Scene
         {
             ui->push_back(UiStringItem{
                 buff,
-                Color::White,
+                theme.Colors.MainTextColor,
                 display.fx16G,
                 false,
             });
@@ -132,7 +139,7 @@ namespace Scene
         {
             ui->push_back(UiStringItem{
                 "",
-                Color::White,
+                theme.Colors.MainTextColor,
                 display.fx16G,
                 false,
             });
@@ -396,7 +403,7 @@ namespace Scene
         {
             if (!mode)
             {
-                (*ui)[save_index].backgroundColor = Color::Black;
+                (*ui)[save_index].backgroundColor = Settings::Settings::GetTheme().Colors.MainBackgroundColor;
                 (*ui)[save_index].label = std::string((*ui)[save_index].label.size(), ' ');
                 display.DrawStringItem(&(*ui)[save_index]);
                 (*ui)[save_index].label.clear();
@@ -585,12 +592,13 @@ namespace Scene
     void FilesScene::InitDeleteModal()
     {
         Modal modal{};
+        auto &theme{Settings::Settings::GetTheme()};
 
-        modal.ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Ok", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::Start, Position::Start);
         ChangeItemFocus(&*(modal.ui.end() - 1), true);
 
-        modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Cancel", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
 
         modal.PreEnter = [this]()
@@ -619,20 +627,22 @@ namespace Scene
     void FilesScene::InitCreateChooseModal()
     {
         Modal modal{};
-        modal.ui.push_back(UiStringItem{"Create", Color::White, display.fx24G, false});
+        auto &theme{Settings::Settings::GetTheme()};
+
+        modal.ui.push_back(UiStringItem{"Create", theme.Colors.MainTextColor, display.fx24G, false});
         display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::End);
 
-        modal.ui.push_back(UiStringItem{"File", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"File", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::Center, Position::Center);
 
         uint8_t fw, fh;
         Font::GetFontx(display.fx24G, 0, &fw, &fh);
 
-        modal.ui.push_back(UiStringItem{"Directory", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Directory", theme.Colors.MainTextColor, display.fx24G});
         (modal.ui.end() - 1)->y = (modal.ui.end() - 2)->y - fh;
         display.SetPosition(&*(modal.ui.end() - 1), Position::Center);
 
-        modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Cancel", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
 
         modal.PreEnter = [this]()
@@ -654,14 +664,15 @@ namespace Scene
     void FilesScene::InitCreateModal()
     {
         Modal modal{};
+        auto &theme{Settings::Settings::GetTheme()};
 
-        modal.ui.push_back(UiStringItem{"Ok", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Ok", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::Start, Position::Start);
 
-        modal.ui.push_back(UiStringItem{"Cancel", Color::White, display.fx24G});
+        modal.ui.push_back(UiStringItem{"Cancel", theme.Colors.MainTextColor, display.fx24G});
         display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
 
-        modal.ui.push_back(UiStringItem{"", Color::White, display.fx24G, false});
+        modal.ui.push_back(UiStringItem{"", theme.Colors.MainTextColor, display.fx24G, false});
         (modal.ui.end() - 1)->x = 70;
         display.SetPosition(&*(modal.ui.end() - 1), Position::NotSpecified, Position::Center);
 
@@ -901,7 +912,7 @@ namespace Scene
         }
 
         std::transform(filename.begin(), filename.end(), filename.begin(), toupper);
-        UiStringItem new_line{filename, Color::White, display.fx16G};
+        UiStringItem new_line{filename, Settings::Settings::GetTheme().Colors.MainTextColor, display.fx16G};
 
         size_t displayable_count{static_cast<size_t>(
             std::count_if(
@@ -921,6 +932,7 @@ namespace Scene
         }
 
         main_ui.push_back(new_line);
+
         return true;
     }
 
@@ -996,5 +1008,69 @@ namespace Scene
     bool FilesScene::IsCodeRunning()
     {
         return IsStage(FilesSceneStage::CodeRunModalStage);
+    }
+
+    void FilesScene::SortFiles()
+    {
+        using Settings::FilesSortingModes;
+        FilesSortingModes mode{Settings::Settings::GetFilesSortingMode()};
+        ESP_LOGI(TAG, "Sorting files %d...", (int)mode);
+
+        std::function<bool(UiStringItem & a, UiStringItem & b)> sort_cb{};
+
+        if (mode == FilesSortingModes::AlphabetAscending ||
+            mode == FilesSortingModes::AlphabetDescending)
+        {
+            if (mode == FilesSortingModes::AlphabetAscending)
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label < b.label; };
+            }
+            else
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label > b.label; };
+            }
+
+            std::sort(GetContentUiStart(), ui->end(), sort_cb);
+        }
+        else
+        {
+            std::function<bool(std::string & str)> is_first_part{};
+            if (mode == FilesSortingModes::FilesFirstAlphabetAscending ||
+                mode == FilesSortingModes::FilesFirstAlphabetDescending)
+            {
+                is_first_part = [](std::string &str)
+                {
+                    return !str.ends_with('/');
+                };
+            }
+            else
+            {
+                is_first_part = [](std::string &str)
+                {
+                    return str.ends_with('/');
+                };
+            }
+
+            auto second_part_begin{std::partition(GetContentUiStart(), ui->end(),
+                                                  [&is_first_part](auto &item)
+                                                  { return is_first_part(item.label); })};
+
+            if (mode == FilesSortingModes::FilesFirstAlphabetDescending ||
+                mode == FilesSortingModes::DirectoriesFirstAlphabetDescending)
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label > b.label; };
+            }
+            else
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label < b.label; };
+            }
+
+            std::sort(GetContentUiStart(), second_part_begin, sort_cb);
+            std::sort(second_part_begin, ui->end(), sort_cb);
+        }
     }
 }

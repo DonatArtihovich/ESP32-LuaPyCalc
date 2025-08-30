@@ -79,6 +79,8 @@ namespace Scene
         void ToggleCreateButton(bool mode, bool rerender = false);
         bool IsCodeRunning() override;
 
+        void SortFiles();
+
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;
