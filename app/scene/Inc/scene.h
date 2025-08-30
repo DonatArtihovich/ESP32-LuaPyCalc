@@ -99,7 +99,7 @@ namespace Scene
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars, size_t scrolling = 0, bool rerender = true);
         void CursorPaste();
-        void CursorAppendLine(const char *label = "", Color color = Color::White);
+        void CursorAppendLine(const char *label = "", Color color = Color::None);
         void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
 
         virtual void InitModals();
@@ -189,8 +189,8 @@ namespace Scene
 
         void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false, uint8_t start_x = 0);
 
-        virtual void ClearHeader(Color color = Color::Black);
-        virtual void ClearContent(Color color = Color::Black);
+        virtual void ClearHeader(Color color = Color::None);
+        virtual void ClearContent(Color color = Color::None);
 
     public:
         Scene(DisplayController &display);

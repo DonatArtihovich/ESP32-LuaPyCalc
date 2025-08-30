@@ -241,7 +241,7 @@ namespace Display
 
     void DisplayController::DrawCursor(uint16_t x, uint16_t y, uint8_t width, uint8_t height)
     {
-        lcd.DrawFillRect(y, x, y + height, x + width, Color::White);
+        lcd.DrawFillRect(y, x, y + height, x + width, Settings::Settings::GetTheme().Colors.CursorColor);
     }
 
     void DisplayController::DrawListEndingLabel(
@@ -256,12 +256,14 @@ namespace Display
 
         uint16_t item_x{line_before->x}, item_y{static_cast<uint16_t>(line_before->y - fh)};
 
+        auto &theme{Settings::Settings::GetTheme()};
+
         lcd.DrawFillRect(item_y, item_x,
                          item_y + fh,
                          item_x + strlen(label) * fw,
-                         Color::White);
+                         theme.Colors.SecondaryBackgroundColor);
 
-        lcd.DrawString(fx16G, item_y, item_x, (uint8_t *)label, Color::Black);
+        lcd.DrawString(fx16G, item_y, item_x, (uint8_t *)label, theme.Colors.SecondaryTextColor);
     }
 
     void DisplayController::SetPosition(UiStringItem *item, Position hp, Position vp)

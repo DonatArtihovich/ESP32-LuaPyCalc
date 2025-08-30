@@ -7,6 +7,8 @@
 #include <string>
 #include <cstring>
 
+#include "app-settings.h"
+
 using Fontx::Font, Fontx::FontxFile, LCD::Color;
 
 namespace Display

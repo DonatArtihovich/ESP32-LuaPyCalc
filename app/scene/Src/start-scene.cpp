@@ -6,14 +6,16 @@ namespace Scene
 
     void StartScene::Init()
     {
+        auto &theme{Settings::Settings::GetTheme()};
+
         ui->push_back(
-            Display::UiStringItem{"Menu", Color::White, display.fx32L, false});
+            Display::UiStringItem{"Menu", theme.Colors.MainTextColor, display.fx32L, false});
         ui->push_back(
-            Display::UiStringItem{"> Files     ", Color::White, display.fx24G});
+            Display::UiStringItem{"> Files     ", theme.Colors.MainTextColor, display.fx24G});
         ui->push_back(
-            Display::UiStringItem{"> Code      ", Color::White, display.fx24G});
+            Display::UiStringItem{"> Code      ", theme.Colors.MainTextColor, display.fx24G});
         ui->push_back(
-            Display::UiStringItem{"> Settings  ", Color::White, display.fx24G});
+            Display::UiStringItem{"> Settings  ", theme.Colors.MainTextColor, display.fx24G});
 
         ChangeItemFocus(&(*ui)[1], true);
         RenderAll();
@@ -25,7 +27,7 @@ namespace Scene
 
         if (focused != ui->end())
         {
-            display.Clear(Color::Black);
+            display.Clear(Settings::Settings::GetTheme().Colors.MainBackgroundColor);
             if (focused->label.find("Files") != std::string::npos)
             {
                 return SceneId::FilesScene;
