@@ -105,6 +105,8 @@ namespace Scene
             {
                 ui->push_back(UiStringItem{file.c_str(), theme.Colors.MainTextColor, display.fx16G});
             }
+
+            SortFiles();
         }
 
         return files.size();
@@ -930,6 +932,7 @@ namespace Scene
         }
 
         main_ui.push_back(new_line);
+
         return true;
     }
 
@@ -1005,5 +1008,69 @@ namespace Scene
     bool FilesScene::IsCodeRunning()
     {
         return IsStage(FilesSceneStage::CodeRunModalStage);
+    }
+
+    void FilesScene::SortFiles()
+    {
+        using Settings::FilesSortingModes;
+        FilesSortingModes mode{Settings::Settings::GetFilesSortingMode()};
+        ESP_LOGI(TAG, "Sorting files %d...", (int)mode);
+
+        std::function<bool(UiStringItem & a, UiStringItem & b)> sort_cb{};
+
+        if (mode == FilesSortingModes::AlphabetAscending ||
+            mode == FilesSortingModes::AlphabetDescending)
+        {
+            if (mode == FilesSortingModes::AlphabetAscending)
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label < b.label; };
+            }
+            else
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label > b.label; };
+            }
+
+            std::sort(GetContentUiStart(), ui->end(), sort_cb);
+        }
+        else
+        {
+            std::function<bool(std::string & str)> is_first_part{};
+            if (mode == FilesSortingModes::FilesFirstAlphabetAscending ||
+                mode == FilesSortingModes::FilesFirstAlphabetDescending)
+            {
+                is_first_part = [](std::string &str)
+                {
+                    return !str.ends_with('/');
+                };
+            }
+            else
+            {
+                is_first_part = [](std::string &str)
+                {
+                    return str.ends_with('/');
+                };
+            }
+
+            auto second_part_begin{std::partition(GetContentUiStart(), ui->end(),
+                                                  [&is_first_part](auto &item)
+                                                  { return is_first_part(item.label); })};
+
+            if (mode == FilesSortingModes::FilesFirstAlphabetDescending ||
+                mode == FilesSortingModes::DirectoriesFirstAlphabetDescending)
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label > b.label; };
+            }
+            else
+            {
+                sort_cb = [](UiStringItem &a, UiStringItem &b)
+                { return a.label < b.label; };
+            }
+
+            std::sort(GetContentUiStart(), second_part_begin, sort_cb);
+            std::sort(second_part_begin, ui->end(), sort_cb);
+        }
     }
 }

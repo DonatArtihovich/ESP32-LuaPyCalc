@@ -8,6 +8,7 @@ namespace Scene
     {
         void InitModals() override;
         void InitThemeSettingsModal();
+        void InitFilesSortingSettingsModal();
         void InitUI();
         void SetTheme(Settings::Themes theme);
 
