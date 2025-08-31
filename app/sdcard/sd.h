@@ -38,6 +38,7 @@ namespace SD
         esp_err_t CreateFile(const char *path);
         esp_err_t RemoveDirectory(const char *path);
         esp_err_t RemoveFile(const char *path);
+        esp_err_t RenameFile(const char *path, const char *new_path);
         bool IsDirectory(const char *path);
     };
 }
