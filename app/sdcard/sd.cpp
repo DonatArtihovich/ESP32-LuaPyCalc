@@ -211,4 +211,18 @@ namespace SD
 
         return ESP_FAIL;
     }
+
+    esp_err_t SDCard::RenameFile(const char *path, const char *new_path)
+    {
+        ESP_LOGI(TAG, "Rename file %s to %s", path, new_path);
+        std::error_code ec{};
+        std::filesystem::rename(path, new_path, ec);
+
+        if (!ec)
+        {
+            return ESP_OK;
+        }
+
+        return ESP_FAIL;
+    }
 }

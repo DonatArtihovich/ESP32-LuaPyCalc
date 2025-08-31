@@ -78,6 +78,20 @@ namespace Scene
                 ToggleSaveButton(true, true);
             }
         }
+        else if (stage == FilesSceneStage::DirectoryStage)
+        {
+            if ((value == 'r' || value == 'R') && is_ctrl_pressed)
+            {
+                auto focused{GetFocused()};
+                if (focused != ui->end() &&
+                    focused - ui->begin() >=
+                        GetContentUiStartIndex(GetStage()))
+                {
+                    OpenStageModal(FilesSceneStage::RenameModalStage);
+                }
+                enter = false;
+            }
+        }
 
         if (enter)
         {
@@ -272,7 +286,8 @@ namespace Scene
 
             FilesSceneStage stage{GetStage<FilesSceneStage>()};
 
-            if (stage == FilesSceneStage::CreateModalStage)
+            if (stage == FilesSceneStage::CreateModalStage ||
+                stage == FilesSceneStage::RenameModalStage)
             {
                 if (IsCursorControlling())
                 {
@@ -281,7 +296,14 @@ namespace Scene
                 }
                 else
                 {
-                    LeaveModalControlling((uint8_t)FilesSceneStage::CreateChooseModalStage);
+                    if (stage == FilesSceneStage::CreateModalStage)
+                    {
+                        LeaveModalControlling((uint8_t)FilesSceneStage::CreateChooseModalStage);
+                    }
+                    else
+                    {
+                        LeaveModalControlling();
+                    }
                 }
             }
             else if (stage == FilesSceneStage::CodeRunModalStage)
@@ -477,7 +499,8 @@ namespace Scene
     size_t FilesScene::GetContentUiStartIndex(uint8_t stg)
     {
         FilesSceneStage stage{stg};
-        if (stage == FilesSceneStage::CreateModalStage)
+        if (stage == FilesSceneStage::CreateModalStage ||
+            stage == FilesSceneStage::RenameModalStage)
         {
             return ui->end() - 1 - ui->begin();
         }
@@ -577,6 +600,7 @@ namespace Scene
         InitDeleteModal();
         InitCreateChooseModal();
         InitCreateModal();
+        InitRenameModal();
 
         for (auto &[key, modal] : modals)
         {
@@ -731,28 +755,7 @@ namespace Scene
             if (!IsCursorControlling())
                 return;
 
-            std::string allowed_digits{"_-"};
-            auto &label{(GetStageModal().ui.end() - 1)->label};
-            bool enter{};
-
-            if (isalnum(value) || allowed_digits.find(value) != std::string::npos)
-            {
-                if (label.size() < max_filename_size ||
-                    (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
-                     label.find('.') != std::string::npos))
-                {
-                    enter = true;
-                }
-            }
-            else if (value == '.')
-            {
-                if (label.size() < (max_filename_size + max_filename_ext_size + 1))
-                {
-                    enter = true;
-                }
-            }
-
-            if (enter)
+            if (IsValidCharForFilename(value))
             {
                 CursorInsertChars(std::string(1, value), GetLinesScroll());
             }
@@ -1072,5 +1075,187 @@ namespace Scene
             std::sort(GetContentUiStart(), second_part_begin, sort_cb);
             std::sort(second_part_begin, ui->end(), sort_cb);
         }
+    }
+
+    void FilesScene::InitRenameModal()
+    {
+        Modal modal{};
+        auto &theme{Settings::Settings::GetTheme()};
+
+        modal.ui.push_back(UiStringItem{"Ok", theme.Colors.MainTextColor, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::Start, Position::Start);
+
+        modal.ui.push_back(UiStringItem{"Cancel", theme.Colors.MainTextColor, display.fx24G});
+        display.SetPosition(&*(modal.ui.end() - 1), Position::End, Position::Start);
+
+        modal.ui.push_back(UiStringItem{"", theme.Colors.MainTextColor, display.fx24G, false});
+        (modal.ui.end() - 1)->x = 70;
+        display.SetPosition(&*(modal.ui.end() - 1), Position::NotSpecified, Position::Center);
+
+        modal.PreEnter = [this]()
+        {
+            SetupRenameModal();
+        };
+
+        modal.PreLeave = [this]()
+        {
+            ui->erase(ui->begin(), ui->end() - 3);
+            auto focused{GetFocused()};
+
+            if (focused != ui->end())
+                ChangeItemFocus(&(*focused), false);
+
+            Modal &modal{GetStageModal()};
+            modal.data.clear();
+            (modal.ui.end() - 1)->label.clear();
+        };
+
+        modal.Arrow = [this](Direction direction)
+        {
+            if (!IsCursorControlling() && direction == Direction::Up)
+            {
+                SetCursorControlling(true);
+                auto focused{GetFocused()};
+
+                if (focused != ui->end())
+                {
+                    ChangeItemFocus(&*focused, false, true);
+                }
+            }
+            else if (IsCursorControlling())
+            {
+
+                if (direction == Direction::Left ||
+                    direction == Direction::Right)
+                {
+                    MoveCursor(direction);
+                }
+                else if (direction == Direction::Bottom)
+                {
+                    SetCursorControlling(false);
+                    ChangeItemFocus(&*(ui->end() - 3), true, true);
+                }
+            }
+            else
+            {
+                Scene::Focus(direction);
+            }
+        };
+
+        modal.Value = [this](char value, bool is_ctrl_pressed)
+        {
+            if (!IsCursorControlling())
+                return;
+
+            if (IsValidCharForFilename(value))
+            {
+                CursorInsertChars(std::string(1, value), GetLinesScroll());
+            }
+        };
+
+        modal.Ok = [this]()
+        {
+            Modal &modal = GetStageModal();
+
+            if (RenameFile((modal.ui.end() - 1)->label, modal.data == "directory"))
+            {
+                LeaveModalControlling();
+            }
+        };
+
+        AddStageModal(FilesSceneStage::RenameModalStage, modal);
+    }
+
+    void FilesScene::SetupRenameModal()
+    {
+        auto &modal = GetStageModal(FilesSceneStage::RenameModalStage);
+        auto focused{GetFocused()};
+        if (focused == ui->end())
+        {
+            ESP_LOGE(TAG, "Focused not found.");
+            return;
+        }
+
+        modal.ui[2].label = focused->label;
+        if (modal.ui[2].label.ends_with('/'))
+        {
+            modal.ui[2].label.erase(modal.ui[2].label.end() - 1);
+        }
+        display.SetPosition(&modal.ui[2], Position::Center);
+        std::string path{curr_directory + "/" + focused->label};
+
+        if (sdcard.IsDirectory(path.c_str()))
+        {
+            modal.data = "directory";
+            AddModalLabel("Enter new directory name:", modal);
+        }
+        else
+        {
+            modal.data = "file";
+            AddModalLabel("Enter new file name:", modal);
+        }
+
+        CursorInit(display.fx24G, modal.ui[modal.ui.size() - 1].label.length(), 0);
+        SetCursorControlling(true);
+    }
+
+    bool FilesScene::IsValidCharForFilename(char ch)
+    {
+        std::string allowed_digits{"_-"};
+        auto &label{(GetStageModal().ui.end() - 1)->label};
+        bool ret{};
+
+        if (isalnum(ch) || allowed_digits.find(ch) != std::string::npos)
+        {
+            if (label.size() < max_filename_size ||
+                (label.size() < (max_filename_size + max_filename_ext_size + 1) &&
+                 label.find('.') != std::string::npos))
+            {
+                ret = true;
+            }
+        }
+        else if (ch == '.')
+        {
+            if (label.size() < (max_filename_size + max_filename_ext_size + 1))
+            {
+                ret = true;
+            }
+        }
+
+        return ret;
+    }
+
+    bool FilesScene::RenameFile(std::string new_name, bool is_directory)
+    {
+        std::string path{curr_directory + "/"};
+        auto focused{GetFocused(main_ui.begin(), main_ui.end())};
+        if (focused == main_ui.end())
+        {
+            return false;
+        }
+
+        std::string old_name{focused->label};
+        if (old_name.ends_with("/"))
+        {
+            old_name.erase(old_name.end() - 1);
+        }
+
+        if (new_name.ends_with("/"))
+        {
+            new_name.erase(new_name.end() - 1);
+        }
+
+        if (ESP_OK == sdcard.RenameFile((path + old_name).c_str(), (path + new_name).c_str()))
+        {
+            focused->label = new_name;
+            if (is_directory)
+            {
+                focused->label += "/";
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }
