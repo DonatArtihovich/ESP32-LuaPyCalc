@@ -797,12 +797,9 @@ namespace Scene
                 [](auto &item)
                 { return item.displayable; });
 
-            ESP_LOGI(TAG, "Displayable count: %d, lines_per_page - 1(%d)", displayable_count, lines_per_page);
-
             if (displayable_count < lines_per_page)
             {
                 auto end{it + lines_per_page - displayable_count};
-                ESP_LOGI(TAG, "Aligning end: %s", end->label.c_str());
 
                 for (; it < ui->rend() - GetContentUiStartIndex() && it < end; it++)
                 {
