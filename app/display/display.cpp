@@ -15,6 +15,7 @@ namespace Display
     {
         id = UiStringItem::lastId++;
         this->label = label;
+        this->label.reserve(40);
         this->x = x;
         this->y = y;
         this->color = color;

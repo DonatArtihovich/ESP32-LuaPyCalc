@@ -1115,22 +1115,14 @@ namespace Scene
                 last_insert_y++;
             }
 
-            int size = chars.size();
-
+            size_t line_length{GetLineLength()};
             UiStringItem &line{(*ui)[line_index]};
 
-            size_t line_length{GetLineLength()};
-
+            int size = chars.size();
             if (line.label.size() + size > line_length)
             {
-                size = line_length - line.label.size();
-            }
-
-            if (size == 0)
-            {
-                size_t count{line.label.size() - insert_x};
-                chars.append(line.label, line.label.size() - count);
-                line.label.erase(line.label.size() - count);
+                chars.append(line.label, insert_x);
+                line.label.erase(insert_x);
 
                 size = line_length - line.label.size();
             }
@@ -1195,9 +1187,27 @@ namespace Scene
                                          : last_insert_y - first_insert_y;
         }
 
+        first_displaying_index += scrolled_count;
         for (int i{}; i < inserting_len; i++)
         {
-            scrolled_count += MoveCursor(Direction::Right, false, cursor_scrolling_count);
+            size_t scrolled = MoveCursor(Direction::Right, false, cursor_scrolling_count);
+            scrolled_count += scrolled;
+            if (scrolled)
+            {
+                first_displaying_index += scrolled;
+                if (first_displaying_index < ui->size())
+                {
+                    size_t fd_label_size{(*ui)[first_displaying_index].label.size()};
+                    for (int i{}; i < fd_label_size; i++)
+                    {
+                        MoveCursor(Direction::Right, false, cursor_scrolling_count);
+                    }
+                }
+                else
+                {
+                    ESP_LOGE(TAG, "First displaying not found.");
+                }
+            }
         }
 
         if (rerender)
@@ -1578,6 +1588,8 @@ namespace Scene
     {
         if (clipboard.size())
         {
+            ESP_LOGI(TAG, "Ctrl + V");
+            ESP_LOGI(TAG, "CursorInsertChars(clipboard, GetLinesScroll(%d))", GetLinesScroll());
             CursorInsertChars(clipboard, GetLinesScroll());
         }
     }
