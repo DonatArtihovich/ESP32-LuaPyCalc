@@ -15,6 +15,7 @@ namespace Scene
         DeleteModalStage,
         CreateChooseModalStage,
         CreateModalStage,
+        RenameModalStage,
         CodeRunModalStage,
     };
 
@@ -47,6 +48,7 @@ namespace Scene
 
         void DeleteFile(std::string filename);
         bool CreateFile(std::string filename, bool is_directory);
+        bool RenameFile(std::string new_name, bool is_directory);
 
         bool IsHomeStage(uint8_t stage) override;
 
@@ -67,10 +69,14 @@ namespace Scene
         void InitDeleteModal();
         void InitCreateChooseModal();
         void InitCreateModal();
+        void InitRenameModal();
+
+        bool IsValidCharForFilename(char ch);
 
         void SetupDeleteModal();
         void SetupCreateChooseModal();
         void SetupCreateModal();
+        void SetupRenameModal();
 
         void RenderContent() override;
 

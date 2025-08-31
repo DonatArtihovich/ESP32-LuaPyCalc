@@ -461,7 +461,8 @@ namespace Scene
 
         uint16_t cursor_x{}, cursor_y{};
         GetCursorXY(&cursor_x, &cursor_y);
-        ESP_LOGD(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
+        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
+        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor_x, cursor_y);
 
         display.DrawCursor(
             cursor_x,
@@ -1241,11 +1242,6 @@ namespace Scene
         }
 
         SpawnCursor(-1, -1, false, rerender);
-
-        for (auto it{GetContentUiStart()}; it < ui->end(); it++)
-        {
-            ESP_LOGW(TAG, "UI line after insert: %s, displayable: %d", it->label.c_str(), it->displayable);
-        }
     }
 
     void Scene::CursorInit(FontxFile *font, uint8_t x, uint8_t y)
@@ -1396,12 +1392,6 @@ namespace Scene
                 word.clear();
             }
         }
-
-        std::for_each(
-            label_words.begin(),
-            label_words.end(),
-            [](auto &word)
-            { printf("%s\n", word.c_str()); });
 
         size_t line_num{0};
         for (int i{}; i < label_words.size(); i++)
