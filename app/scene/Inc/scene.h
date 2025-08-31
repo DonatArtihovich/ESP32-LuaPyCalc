@@ -62,11 +62,15 @@ namespace Scene
     {
         bool is_cursor_controlling{};
         std::string clipboard{
-            // "from random import randint\n"
-            // "print(randint(0, 10))\n"
-            // "import os\n"
-            // "print(os.listdir('/sdcard/py'))\n"
-            "print(input(\"Enter str:\"))"};
+            "from random import randint\n"
+            "print(randint(0, 10))\n"
+            "import os\n"
+            "print(os.listdir('/sdcard/py'))\n"
+            "print(input(\"Enter str:\"))"
+            "import sys\n"
+            "print(sys.path)\n"
+            "for l in sys.path:\n"
+            "    print(type(l), ' ', l)"};
         Cursor cursor{};
         uint8_t stage{};
 
