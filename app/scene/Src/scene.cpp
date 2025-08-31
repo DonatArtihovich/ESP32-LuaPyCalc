@@ -797,9 +797,12 @@ namespace Scene
                 [](auto &item)
                 { return item.displayable; });
 
-            if (displayable_count < lines_per_page - 1)
+            ESP_LOGI(TAG, "Displayable count: %d, lines_per_page - 1(%d)", displayable_count, lines_per_page);
+
+            if (displayable_count < lines_per_page)
             {
-                auto end{it + lines_per_page - displayable_count - 1};
+                auto end{it + lines_per_page - displayable_count};
+                ESP_LOGI(TAG, "Aligning end: %s", end->label.c_str());
 
                 for (; it < ui->rend() - GetContentUiStartIndex() && it < end; it++)
                 {
@@ -808,7 +811,7 @@ namespace Scene
                 }
 
                 for (it = ui->rend() - GetContentUiStartIndex() - displayable_count - 1;
-                     displayable_count < lines_per_page - 1 &&
+                     displayable_count < lines_per_page &&
                      it > ui->rbegin();
                      it--)
                 {
@@ -1241,6 +1244,11 @@ namespace Scene
         }
 
         SpawnCursor(-1, -1, false, rerender);
+
+        for (auto it{GetContentUiStart()}; it < ui->end(); it++)
+        {
+            ESP_LOGW(TAG, "UI line after insert: %s, displayable: %d", it->label.c_str(), it->displayable);
+        }
     }
 
     void Scene::CursorInit(FontxFile *font, uint8_t x, uint8_t y)
