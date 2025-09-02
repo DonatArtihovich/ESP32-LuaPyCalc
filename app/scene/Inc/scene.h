@@ -58,6 +58,12 @@ namespace Scene
         std::function<void(char, bool)> Value{};
     };
 
+    struct Selected
+    {
+        size_t start_x{}, start_y{}, end_x{}, end_y{};
+        bool is_selected;
+    };
+
     class Scene
     {
         bool is_cursor_controlling{};
@@ -72,6 +78,7 @@ namespace Scene
             "for l in sys.path:\n"
             "    print(type(l), ' ', l)"};
         Cursor cursor{};
+        Selected selected{};
         uint8_t stage{};
 
         size_t stdin_entered{};
@@ -91,7 +98,10 @@ namespace Scene
         virtual void EnterModalControlling();
         virtual void LeaveModalControlling(uint8_t stage, bool rerender = true);
         void GetCursorXY(uint16_t *ret_x, uint16_t *ret_y, int16_t x = -1, int16_t y = -1);
+        void GetSelectingXY(uint16_t &ret_sx, uint16_t &ret_sy, uint16_t &ret_ex, uint16_t &ret_ey,
+                            uint8_t line_sx, uint8_t line_sy, uint8_t line_ex, uint8_t line_ey);
         void ClearCursor(UiStringItem *line = nullptr, int16_t x = -1, int16_t y = -1);
+        void UpdateSelecting(int8_t offset_y = 0);
         void SpawnCursor(int16_t cursor_x = -1, int16_t cursor_y = -1, bool clearing = true, bool rerender = true);
         size_t MoveCursor(Direction direction, bool rerender = true, size_t scrolling = 0);
         virtual uint8_t ScrollContent(Direction direction, bool rerender = true, uint8_t count = 1);
@@ -190,11 +200,17 @@ namespace Scene
         virtual void RenderModal();
         virtual void RenderModalContent();
         void RenderCursor();
+        void RenderSelecting(uint8_t offset = 0);
+        void RenderSelectedLines(uint8_t start_y, uint8_t end_y, uint8_t start_x, int8_t offset_y = 0);
 
         void RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after = false, uint8_t start_x = 0);
 
         virtual void ClearHeader(Color color = Color::None);
         virtual void ClearContent(Color color = Color::None);
+
+        void Select(Direction direction, bool rerender = true);
+        void ResetSelecting(bool rerender = true, int8_t offset_y = 0);
+        bool GetSelectedLines(size_t &start_y, size_t &end_y, size_t &start_x);
 
     public:
         Scene(DisplayController &display);

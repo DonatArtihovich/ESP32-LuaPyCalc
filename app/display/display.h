@@ -89,6 +89,7 @@ namespace Display
                                  const char *end_label = "more items...");
 
         void DrawCursor(uint16_t x, uint16_t y, uint8_t width = 10, uint8_t height = 15);
+        void DrawSelecting(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y);
         uint16_t GetWidth();
         uint16_t GetHeight();
     };

@@ -303,4 +303,9 @@ namespace Display
             break;
         }
     }
+
+    void DisplayController::DrawSelecting(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y)
+    {
+        lcd.DrawFillRect(start_y, start_x, end_y, end_x, Settings::Settings::GetTheme().Colors.SelectingColor);
+    }
 }

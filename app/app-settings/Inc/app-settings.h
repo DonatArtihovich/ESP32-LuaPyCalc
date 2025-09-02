@@ -30,7 +30,8 @@ namespace Settings
             FocusedTextColor,
             CursorColor,
             CodeErrorColor,
-            CodeSuccessColor;
+            CodeSuccessColor,
+            SelectingColor;
     };
 
     struct Theme

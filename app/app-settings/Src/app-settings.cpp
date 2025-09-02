@@ -16,6 +16,7 @@ namespace Settings
                                Color::White, // CursorColor
                                Color::Red,   // CodeErrorColor
                                Color::Green, // CodeSuccessColor
+                               Color::Blue,  // SelectingColor
                            }}},
         {Themes::Light, {Themes::Light, {
                                             Color::White, // MainBackgroundColor
@@ -27,6 +28,7 @@ namespace Settings
                                             Color::Black, // CursorColor
                                             Color::Red,   // CodeErrorColor
                                             Color::Green, // CodeSuccessColor
+                                            Color::Blue,  // SelectingColor
                                         }}},
         {Themes::Green, {Themes::Green, {
                                             Color::DarkGreen,  // MainBackgroundColor
@@ -38,6 +40,7 @@ namespace Settings
                                             Color::White,      // CursorColor
                                             Color::Red,        // CodeErrorColor
                                             Color::Green,      // CodeSuccessColor
+                                            Color::DarkYellow, // SelectingColor
                                         }}},
     };
 

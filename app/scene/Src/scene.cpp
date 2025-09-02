@@ -1,5 +1,7 @@
 #include "scene.h"
 
+#include <inttypes.h>
+
 static const char *TAG = "Scene";
 
 extern QueueHandle_t xQueueRunnerStdin;
@@ -30,6 +32,11 @@ namespace Scene
 
         if (IsCursorControlling())
         {
+            if (selected.is_selected)
+            {
+                ResetSelecting();
+            }
+
             if (!is_ctrl_pressed && value != '\b')
             {
                 CursorInsertChars(std::string(1, value), GetLinesScroll());
@@ -209,6 +216,45 @@ namespace Scene
 
         if (IsCursorControlling())
         {
+            if ((KeyboardController::IsKeyPressed(Keyboard::Key::Shift) &&
+                 KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)) ||
+                selected.is_selected)
+            {
+                auto ui_start{GetContentUiStart()};
+                auto first_displayable{std::find_if(
+                    ui_start,
+                    ui->end(),
+                    [](auto &item)
+                    { return item.displayable; })};
+
+                auto last_displayable{std::find_if(
+                                          first_displayable,
+                                          ui->end(),
+                                          [](auto &item)
+                                          { return !item.displayable; }) -
+                                      1};
+
+                bool scroll_up{first_displayable != ui->end() &&
+                               first_displayable != ui_start &&
+                               cursor.y == 0 &&
+                               direction == Direction::Up};
+                bool scroll_down{last_displayable != ui->end() &&
+                                 last_displayable != ui->end() - 1 && cursor.y == GetLinesPerPageCount() - 1 &&
+                                 direction == Direction::Bottom};
+
+                bool scroll{scroll_up || scroll_down};
+
+                if (KeyboardController::IsKeyPressed(Keyboard::Key::Shift) &&
+                    KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl))
+                {
+                    Select(direction, !scroll);
+                }
+                else if (selected.is_selected)
+                {
+                    ResetSelecting(!scroll);
+                }
+            }
+
             MoveCursor(direction, true, GetLinesScroll());
             return;
         }
@@ -283,6 +329,10 @@ namespace Scene
     void Scene::SetCursorControlling(bool cursor_controlling)
     {
         is_cursor_controlling = cursor_controlling;
+        if (!cursor_controlling && selected.is_selected)
+        {
+            ResetSelecting();
+        }
     }
 
     std::vector<UiStringItem>::iterator Scene::GetContentUiStart()
@@ -323,15 +373,22 @@ namespace Scene
     void Scene::RenderContent()
     {
         ClearContent(Settings::Settings::GetTheme().Colors.MainBackgroundColor);
+
         display.DrawStringItems(ui->begin() + content_ui_start,
                                 ui->end(),
                                 10,
                                 display.GetHeight() - 60,
                                 GetLinesPerPageCount());
+
+        if (selected.is_selected)
+        {
+            UpdateSelecting();
+        }
     }
 
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after, uint8_t start_x)
     {
+        ESP_LOGI(TAG, "Render lines");
         auto &theme{Settings::Settings::GetTheme()};
         uint8_t fw, fh;
         size_t lines_per_page{GetLinesPerPageCount()};
@@ -340,12 +397,20 @@ namespace Scene
             ui->end(),
             [](auto &item)
             { return item.displayable; });
+
+        if (first_displaying == ui->end())
+        {
+            ESP_LOGE(TAG, "First displaying not found.");
+            return;
+        }
+
+        size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
         Font::GetFontx(first_displaying->font, 0, &fw, &fh);
 
         uint16_t lines_start_x{first_displaying->x},
             lines_start_y(first_displaying->y - first_line * fh),
             clear_start_y(first_displaying->y - (first_line * fh) - (last_line - first_line) * fh),
-            clear_end_y(clear_start_y + (last_line - first_line + 1) * fh);
+            clear_end_y(clear_start_y + (last_line - first_line + 1) * fh + 2);
 
         if (clear_line_after && clear_start_y - fh >= 0)
         {
@@ -357,16 +422,23 @@ namespace Scene
             lines_start_y -= fh;
             clear_end_y -= fh;
 
-            UiStringItem &first_line_item{*(first_displaying + first_line)};
-
             display.Clear(theme.Colors.MainBackgroundColor,
                           lines_start_x + start_x * fw,
                           clear_end_y,
                           display.GetWidth(),
                           clear_end_y + fh);
 
-            UiStringItem item{first_line_item};
+            if (selected.is_selected)
+            {
+                ESP_LOGI(TAG, "Render selecting 1");
+                RenderSelecting();
+                ESP_LOGI(TAG, "Render selecting 1 end");
+            }
+
+            UiStringItem item{(*ui)[first_displaying_index + first_line]};
+            ESP_LOGI(TAG, "Erasing to start_x %d, %s", start_x, item.label.c_str());
             item.label.erase(item.label.begin(), item.label.begin() + start_x);
+            ESP_LOGI(TAG, "Erasing end");
             item.x += start_x * fw;
 
             display.DrawStringItem(&item);
@@ -378,7 +450,18 @@ namespace Scene
             first_line++;
         }
 
-        display.Clear(theme.Colors.MainBackgroundColor, lines_start_x, clear_start_y, display.GetWidth(), clear_end_y);
+        display.Clear(theme.Colors.MainBackgroundColor,
+                      lines_start_x,
+                      clear_start_y,
+                      display.GetWidth(),
+                      clear_end_y);
+
+        if (selected.is_selected)
+        {
+            ESP_LOGI(TAG, "Render selecting 2");
+            RenderSelecting(first_line);
+            ESP_LOGI(TAG, "Render selecting 2 end");
+        }
 
         auto first_render_line{first_displaying + first_line};
         auto render_end{first_displaying + last_line + 1};
@@ -427,12 +510,55 @@ namespace Scene
             cursor_y = cursor.y;
         }
 
-        ESP_LOGD(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
+        ESP_LOGI(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
 
         uint16_t x, y;
         GetCursorXY(&x, &y, cursor_x, cursor_y);
 
-        display.Clear(Settings::Settings::GetTheme().Colors.MainBackgroundColor, x, y, x + cursor.width, y + cursor.height);
+        auto &theme{Settings::Settings::GetTheme()};
+        Color clear_color{theme.Colors.MainBackgroundColor};
+
+        if (selected.is_selected)
+        {
+            size_t first_displaying_index{
+                static_cast<size_t>(std::find_if(
+                                        GetContentUiStart(),
+                                        ui->end(),
+                                        [](auto &item)
+                                        { return item.displayable; }) -
+                                    GetContentUiStart())};
+            size_t cy{cursor_y + first_displaying_index};
+
+            bool is_cursor_selected{
+                (cy > selected.start_y && cy < selected.end_y) ||
+                (cy == selected.start_y &&
+                 ((cursor_x >= selected.start_x && (cursor_x < selected.end_x || cy < selected.end_y)) ||
+                  (cursor_x >= selected.start_x &&
+                   selected.start_x == selected.end_x))) ||
+                (cy == selected.end_y &&
+                 (cursor_x >= selected.start_x || cy > selected.start_y) &&
+                 cursor_x < selected.end_x)};
+
+            ESP_LOGI(TAG, "cy: %d", cy);
+            ESP_LOGI(TAG, "(cy > selected.start_y && cy < selected.end_y) %d", (cy > selected.start_y && cy < selected.end_y));
+            ESP_LOGI(TAG, "(cy == selected.start_y(%d) && \n"
+                          "  ((cursor_x >= selected.start_x (%d) && (cursor_x < selected.end_x(%d) || cy < selected.end_y(%d))) ||\n"
+                          "  (cursor_x >= selected.start_x (%d) &&\n"
+                          "  selected.start_x == selected.end_x (%d))))",
+                     cy == selected.start_y, cursor_x >= selected.start_x, cursor_x < selected.end_x, cy < selected.end_y, cursor_x >= selected.start_x, selected.start_x == selected.end_x);
+            ESP_LOGI(TAG, "(cy == selected.end_y(%d) &&\n"
+                          "(cursor_x >= selected.start_x(%d) || cy > selected.start_y(%d)) &&\n"
+                          "cursor_x < selected.end_x(%d))",
+                     cy == selected.end_y, cursor_x >= selected.start_x, cy > selected.start_y, cursor_x < selected.end_x);
+
+            if (is_cursor_selected)
+            {
+                ESP_LOGI(TAG, "Clear cursor with selecting color");
+                clear_color = theme.Colors.SelectingColor;
+            }
+        }
+
+        display.Clear(clear_color, x, y, x + cursor.width, y + cursor.height);
         y -= 2;
 
         if (line != nullptr)
@@ -461,8 +587,6 @@ namespace Scene
 
         uint16_t cursor_x{}, cursor_y{};
         GetCursorXY(&cursor_x, &cursor_y);
-        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor.x, cursor.y);
-        ESP_LOGI(TAG, "Render cursor: x: %d, y: %d", cursor_x, cursor_y);
 
         display.DrawCursor(
             cursor_x,
@@ -630,12 +754,15 @@ namespace Scene
                 {
                     scrolled_count = ScrollContent(Direction::Bottom, rerender, scrolling);
                     if (scrolled_count)
+                    {
                         cursor_y = std::count_if(
                                        GetContentUiStart(),
                                        ui->end(),
                                        [](auto &item)
                                        { return item.displayable; }) -
                                    scrolled_count;
+                        ESP_LOGI(TAG, "cursor_y = %d, scrolled_count = %d", cursor_y, scrolled_count);
+                    }
                 }
                 else
                     cursor_changed = false;
@@ -703,9 +830,9 @@ namespace Scene
                 return 0;
             }
 
-            if (count > ui->end() - last_displayable)
+            if (count > ui->end() - last_displayable - 1)
             {
-                count = ui->end() - last_displayable;
+                count = ui->end() - last_displayable - 1;
             }
 
             std::vector<UiStringItem>::iterator it{};
@@ -1710,5 +1837,314 @@ namespace Scene
         {
             Scene::Focus(Direction::Bottom);
         }
+    }
+
+    void Scene::Select(Direction direction, bool rerender)
+    {
+        bool is_start_point{};
+        auto first_displaying{
+            std::find_if(GetContentUiStart(),
+                         ui->end(),
+                         [](auto &item)
+                         { return item.displayable; })};
+
+        if (first_displaying == ui->end())
+        {
+            ESP_LOGE(TAG, "First displaying not found.");
+            return;
+        }
+
+        if (!selected.is_selected)
+        {
+            selected.is_selected = true;
+
+            is_start_point = direction == Direction::Left || direction == Direction::Up;
+
+            selected.end_y = selected.start_y =
+                static_cast<size_t>(first_displaying - GetContentUiStart()) + cursor.y;
+            selected.end_x = selected.start_x = cursor.x;
+        }
+        else
+        {
+            is_start_point = cursor.x == selected.start_x &&
+                             (first_displaying - GetContentUiStart() + cursor.y) == selected.start_y;
+        }
+
+        size_t ui_start{GetContentUiStartIndex(GetStage())};
+
+        size_t last_line_x;
+
+        if (direction == Direction::Up)
+        {
+            if (is_start_point && selected.start_y > 0)
+            {
+                selected.start_y--;
+                last_line_x = (*ui)[ui_start + selected.start_y].label.length() - 1;
+                selected.start_x = selected.start_x > last_line_x ? last_line_x : selected.start_x;
+            }
+            else if (!is_start_point && selected.end_y > 0)
+            {
+                selected.end_y--;
+                last_line_x = (*ui)[ui_start + selected.end_y].label.length() - 1;
+                selected.end_x = selected.end_x > last_line_x ? last_line_x : selected.end_x;
+            }
+        }
+        else if (direction == Direction::Right)
+        {
+            if (is_start_point)
+            {
+                last_line_x = (*ui)[ui_start + selected.start_y].label.length() - 1;
+                if (selected.start_x < last_line_x)
+                {
+                    selected.start_x++;
+                }
+                else if (ui_start + selected.start_y < ui->size() - 1)
+                {
+                    selected.start_x = 0;
+                    selected.start_y++;
+                }
+            }
+            else
+            {
+                last_line_x = (*ui)[ui_start + selected.end_y].label.length() - 1;
+                if (ui_start + selected.end_y == ui->size() - 1)
+                    last_line_x++;
+
+                if (selected.end_x < last_line_x)
+                {
+                    selected.end_x++;
+                }
+                else if (ui_start + selected.end_y < ui->size() - 1)
+                {
+                    selected.end_x = 0;
+                    selected.end_y++;
+                }
+            }
+        }
+        else if (direction == Direction::Bottom)
+        {
+            if (is_start_point && ui_start + selected.start_y < ui->size() - 1)
+            {
+                selected.start_y++;
+                last_line_x = (*ui)[ui_start + selected.start_y].label.length() - 1;
+                selected.start_x = selected.start_x > last_line_x ? last_line_x : selected.start_x;
+            }
+            else if (!is_start_point && ui_start + selected.end_y < ui->size() - 1)
+            {
+                selected.end_y++;
+                last_line_x = (*ui)[ui_start + selected.end_y].label.length() - 1;
+                if (ui_start + selected.end_y == ui->size() - 1)
+                    last_line_x++;
+
+                selected.end_x = selected.end_x > last_line_x ? last_line_x : selected.end_x;
+            }
+        }
+        else // Direction::Left
+        {
+            if (is_start_point)
+            {
+                if (selected.start_x > 0)
+                {
+                    selected.start_x--;
+                }
+                else if (selected.start_y > 0)
+                {
+                    selected.start_y--;
+                    last_line_x = (*ui)[ui_start + selected.start_y].label.length() - 1;
+                    selected.start_x = last_line_x;
+                }
+            }
+            else
+            {
+                if (selected.end_x > 0)
+                {
+                    selected.end_x--;
+                }
+                else if (selected.end_y > 0)
+                {
+                    selected.end_y--;
+                    last_line_x = (*ui)[ui_start + selected.start_y].label.length() - 1;
+                    selected.end_x = last_line_x;
+                }
+            }
+        }
+
+        ESP_LOGD(TAG, "Selected: sx %d, sy %d, ex %d, ey %d",
+                 selected.start_x, selected.start_y, selected.end_x, selected.end_y);
+        if (selected.start_y > selected.end_y ||
+            (selected.start_y == selected.end_y &&
+             selected.start_x >= selected.end_x))
+        {
+            if (direction == Direction::Up)
+            {
+                ResetSelecting(rerender, 1);
+            }
+            else if (direction == Direction::Bottom)
+            {
+                ResetSelecting(rerender, -1);
+            }
+            else
+            {
+                ResetSelecting(rerender);
+            }
+            return;
+        }
+
+        if (!rerender)
+            return;
+
+        if (direction == Direction::Up)
+        {
+            UpdateSelecting(1);
+        }
+        else if (direction == Direction::Bottom)
+        {
+            UpdateSelecting(-1);
+        }
+        else
+        {
+            UpdateSelecting();
+        }
+    }
+
+    void Scene::ResetSelecting(bool rerender, int8_t offset_y)
+    {
+        size_t start_x, start_y, end_y;
+        bool lines_visible{GetSelectedLines(start_y, end_y, start_x)};
+        selected.start_x = selected.end_x = selected.start_y = selected.end_y = 0;
+
+        if (rerender && lines_visible)
+        {
+            RenderSelectedLines(start_y, end_y, start_x, offset_y);
+        }
+
+        selected.is_selected = false;
+    }
+
+    void Scene::RenderSelecting(uint8_t offset)
+    {
+        auto first_displaying{
+            std::find_if(GetContentUiStart(),
+                         ui->end(),
+                         [](auto &item)
+                         { return item.displayable; })};
+
+        if (first_displaying == ui->end())
+        {
+            ESP_LOGE(TAG, "First displaying not found");
+            return;
+        }
+
+        size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
+        size_t lines_per_page{GetLinesPerPageCount()};
+        size_t ui_start{GetContentUiStartIndex(GetStage())};
+
+        for (size_t i{first_displaying_index + offset};
+             i < ui->size() &&
+             i < first_displaying_index + lines_per_page;
+             i++)
+        {
+            if (i - ui_start < selected.start_y)
+            {
+                continue;
+            }
+
+            if (i - ui_start > selected.end_y)
+            {
+                break;
+            }
+
+            uint8_t cur_sx{static_cast<uint8_t>(selected.start_y < i - ui_start ? 0 : selected.start_x)},
+                cur_y{static_cast<uint8_t>(i - first_displaying_index)},
+                cur_ex{static_cast<uint8_t>(selected.end_y > i - ui_start ? (*ui)[i].label.length() : selected.end_x)};
+
+            uint16_t sx, ex, sy, ey;
+            GetSelectingXY(sx, sy, ex, ey, cur_sx, cur_y, cur_ex, cur_y);
+            display.DrawSelecting(sx, sy, ex, ey);
+        }
+    }
+
+    void Scene::GetSelectingXY(uint16_t &ret_sx, uint16_t &ret_sy, uint16_t &ret_ex, uint16_t &ret_ey,
+                               uint8_t sx, uint8_t sy, uint8_t ex, uint8_t ey)
+    {
+        auto first_line{GetContentUiStart()};
+
+        ret_sx = static_cast<uint16_t>(sx * cursor.width + first_line->x);
+        ret_sy = static_cast<uint16_t>(first_line->y - ey * cursor.height + 2);
+        ret_ex = static_cast<uint16_t>(ex * cursor.width + first_line->x);
+        ret_ey = static_cast<uint16_t>(first_line->y - sy * cursor.height + 2 + cursor.height);
+
+        ESP_LOGD(TAG, "GetSelectingXY: sy %d, ey %d, sx %d, ex %d", ret_sy, ret_ey, ret_sx, ret_ex);
+    }
+
+    void Scene::UpdateSelecting(int8_t offset_y)
+    {
+        size_t start_x, start_y, end_y;
+        if (GetSelectedLines(start_y, end_y, start_x))
+        {
+            RenderSelectedLines(start_y, end_y, start_x, offset_y);
+        }
+    }
+
+    bool Scene::GetSelectedLines(size_t &start_y, size_t &end_y, size_t &start_x)
+    {
+        auto first_displaying{
+            std::find_if(GetContentUiStart(),
+                         ui->end(),
+                         [](auto &item)
+                         { return item.displayable; })};
+
+        auto last_displaying{
+            std::find_if(first_displaying,
+                         ui->end(),
+                         [](auto &item)
+                         { return !item.displayable; })};
+
+        if (first_displaying == ui->end())
+        {
+            ESP_LOGE(TAG, "First displaying is not found");
+            return false;
+        }
+
+        last_displaying--;
+
+        auto ui_start{GetContentUiStart()};
+        bool found_visible{
+            (selected.start_y <= (int)(last_displaying - ui_start) &&
+             selected.start_y >= (int)(first_displaying - ui_start)) ||
+            (selected.start_y < (int)(first_displaying - ui_start) &&
+             selected.end_y >= (int)(first_displaying - ui_start))};
+
+        if (found_visible)
+        {
+            start_x = selected.start_y < (int)(first_displaying - ui_start)
+                          ? 0
+                          : selected.start_x;
+            start_y = selected.start_y < (int)(first_displaying - ui_start)
+                          ? 0
+                          : selected.start_y - (first_displaying - ui_start);
+            end_y = selected.end_y > (int)(last_displaying - ui_start)
+                        ? (last_displaying - ui_start + 1)
+                        : selected.end_y - (first_displaying - ui_start);
+        }
+
+        return found_visible;
+    }
+
+    void Scene::RenderSelectedLines(uint8_t start_y, uint8_t end_y, uint8_t start_x, int8_t offset_y)
+    {
+        if (offset_y < 0)
+        {
+            start_y = start_y < -offset_y ? 0 : start_y + offset_y;
+            start_x = 0;
+        }
+        else if (offset_y)
+        {
+            size_t lines_per_page{GetLinesPerPageCount()};
+            end_y = end_y + offset_y > lines_per_page - 1 ? lines_per_page - 1 : end_y + offset_y;
+            start_x = 0;
+        }
+
+        RenderLines(start_y, end_y, false, start_x);
     }
 }
