@@ -8,6 +8,18 @@ extern QueueHandle_t xQueueRunnerStdin;
 
 namespace Scene
 {
+
+    std::string Scene::clipboard{
+        "from random import randint\n"
+        "print(randint(0, 10))\n"
+        "import os\n"
+        "print(os.listdir('/sdcard/py'))\n"
+        "print(input(\"Enter str:\"))"
+        "import sys\n"
+        "print(sys.path)\n"
+        "for l in sys.path:\n"
+        "    print(type(l), ' ', l)"};
+
     Scene::Scene(DisplayController &_display) : display{_display} {}
 
     void Scene::Value(char value)
@@ -32,18 +44,21 @@ namespace Scene
 
         if (IsCursorControlling())
         {
-            if (selected.is_selected)
-            {
-                ResetSelecting();
-            }
-
             if (!is_ctrl_pressed && value != '\b')
             {
+                if (selected.is_selected)
+                {
+                    ResetSelecting();
+                }
                 CursorInsertChars(std::string(1, value), GetLinesScroll());
             }
             else if (value == 'v' || value == 'V')
             {
-                CursorPaste();
+                Paste();
+            }
+            else if (value == 'c' || value == 'C')
+            {
+                Copy();
             }
         }
     }
@@ -538,18 +553,6 @@ namespace Scene
                 (cy == selected.end_y &&
                  (cursor_x >= selected.start_x || cy > selected.start_y) &&
                  cursor_x < selected.end_x)};
-
-            ESP_LOGI(TAG, "cy: %d", cy);
-            ESP_LOGI(TAG, "(cy > selected.start_y && cy < selected.end_y) %d", (cy > selected.start_y && cy < selected.end_y));
-            ESP_LOGI(TAG, "(cy == selected.start_y(%d) && \n"
-                          "  ((cursor_x >= selected.start_x (%d) && (cursor_x < selected.end_x(%d) || cy < selected.end_y(%d))) ||\n"
-                          "  (cursor_x >= selected.start_x (%d) &&\n"
-                          "  selected.start_x == selected.end_x (%d))))",
-                     cy == selected.start_y, cursor_x >= selected.start_x, cursor_x < selected.end_x, cy < selected.end_y, cursor_x >= selected.start_x, selected.start_x == selected.end_x);
-            ESP_LOGI(TAG, "(cy == selected.end_y(%d) &&\n"
-                          "(cursor_x >= selected.start_x(%d) || cy > selected.start_y(%d)) &&\n"
-                          "cursor_x < selected.end_x(%d))",
-                     cy == selected.end_y, cursor_x >= selected.start_x, cy > selected.start_y, cursor_x < selected.end_x);
 
             if (is_cursor_selected)
             {
@@ -1706,12 +1709,16 @@ namespace Scene
         AddStageModal(code_run_stage, modal);
     }
 
-    void Scene::CursorPaste()
+    void Scene::Paste()
     {
+        if (selected.is_selected)
+        {
+            ResetSelecting();
+        }
+
         if (clipboard.size())
         {
             ESP_LOGI(TAG, "Ctrl + V");
-            ESP_LOGI(TAG, "CursorInsertChars(clipboard, GetLinesScroll(%d))", GetLinesScroll());
             CursorInsertChars(clipboard, GetLinesScroll());
         }
     }
@@ -2146,5 +2153,33 @@ namespace Scene
         }
 
         RenderLines(start_y, end_y, false, start_x);
+    }
+
+    void Scene::Copy()
+    {
+        if (IsCursorControlling() && selected.is_selected)
+        {
+            clipboard.clear();
+            size_t ui_start_index{GetContentUiStartIndex(GetStage())};
+
+            if (selected.start_y == selected.end_y)
+            {
+                clipboard.append(
+                    (*ui)[ui_start_index + selected.start_y].label,
+                    selected.start_x,
+                    selected.end_x - selected.start_x);
+            }
+            else
+            {
+                clipboard.append((*ui)[ui_start_index + selected.start_y].label, selected.start_x);
+                for (size_t i{ui_start_index + selected.start_y + 1}; i < ui_start_index + selected.end_y; i++)
+                {
+                    clipboard.append((*ui)[i].label);
+                }
+
+                clipboard.append((*ui)[ui_start_index + selected.end_y].label, 0, selected.end_x);
+            }
+            ESP_LOGI(TAG, "Copied: %s", clipboard.c_str());
+        }
     }
 }

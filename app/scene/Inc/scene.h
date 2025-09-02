@@ -67,16 +67,7 @@ namespace Scene
     class Scene
     {
         bool is_cursor_controlling{};
-        std::string clipboard{
-            "from random import randint\n"
-            "print(randint(0, 10))\n"
-            "import os\n"
-            "print(os.listdir('/sdcard/py'))\n"
-            "print(input(\"Enter str:\"))"
-            "import sys\n"
-            "print(sys.path)\n"
-            "for l in sys.path:\n"
-            "    print(type(l), ' ', l)"};
+        static std::string clipboard;
         Cursor cursor{};
         Selected selected{};
         uint8_t stage{};
@@ -112,7 +103,6 @@ namespace Scene
         void CursorInit(FontxFile *font, uint8_t x = 0, uint8_t y = 0);
         void CursorDeleteChars(size_t count, size_t scrolling = 0, int16_t initial_x = -1, int16_t initial_y = -1);
         void CursorInsertChars(std::string chars, size_t scrolling = 0, bool rerender = true);
-        void CursorPaste();
         void CursorAppendLine(const char *label = "", Color color = Color::None);
         void CursorInsertLine(std::vector<UiStringItem>::iterator line_before, const char *label, Color color, bool displayable);
 
@@ -211,6 +201,9 @@ namespace Scene
         void Select(Direction direction, bool rerender = true);
         void ResetSelecting(bool rerender = true, int8_t offset_y = 0);
         bool GetSelectedLines(size_t &start_y, size_t &end_y, size_t &start_x);
+
+        void Copy();
+        void Paste();
 
     public:
         Scene(DisplayController &display);
