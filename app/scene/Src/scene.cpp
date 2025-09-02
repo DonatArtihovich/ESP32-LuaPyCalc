@@ -60,6 +60,10 @@ namespace Scene
             {
                 Copy();
             }
+            else if (value == 'a' || value == 'A')
+            {
+                SelectAll();
+            }
         }
     }
 
@@ -1848,6 +1852,15 @@ namespace Scene
 
     void Scene::Select(Direction direction, bool rerender)
     {
+        size_t ui_start{GetContentUiStartIndex(GetStage())};
+
+        if (selected.start_x == 0 && selected.start_y == 0 &&
+            selected.end_x == (*ui)[ui->size() - 1].label.length() &&
+            selected.end_y == ui->size() - 1 - ui_start)
+        {
+            ResetSelecting();
+        }
+
         bool is_start_point{};
         auto first_displaying{
             std::find_if(GetContentUiStart(),
@@ -1876,8 +1889,6 @@ namespace Scene
             is_start_point = cursor.x == selected.start_x &&
                              (first_displaying - GetContentUiStart() + cursor.y) == selected.start_y;
         }
-
-        size_t ui_start{GetContentUiStartIndex(GetStage())};
 
         size_t last_line_x;
 
@@ -2180,6 +2191,20 @@ namespace Scene
                 clipboard.append((*ui)[ui_start_index + selected.end_y].label, 0, selected.end_x);
             }
             ESP_LOGI(TAG, "Copied: %s", clipboard.c_str());
+        }
+    }
+
+    void Scene::SelectAll(bool rerender)
+    {
+        selected.start_x = selected.start_y = 0;
+        selected.end_y = ui->size() - 1 - GetContentUiStartIndex(GetStage());
+        selected.end_x = (*ui)[ui->size() - 1].label.length();
+        selected.is_selected = true;
+
+        if (rerender)
+        {
+            UpdateSelecting();
+            RenderCursor();
         }
     }
 }

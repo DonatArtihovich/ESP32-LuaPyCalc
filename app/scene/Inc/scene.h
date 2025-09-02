@@ -199,11 +199,12 @@ namespace Scene
         virtual void ClearContent(Color color = Color::None);
 
         void Select(Direction direction, bool rerender = true);
+        void SelectAll(bool rerender = true);
         void ResetSelecting(bool rerender = true, int8_t offset_y = 0);
         bool GetSelectedLines(size_t &start_y, size_t &end_y, size_t &start_x);
 
-        void Copy();
-        void Paste();
+        virtual void Copy();
+        virtual void Paste();
 
     public:
         Scene(DisplayController &display);
