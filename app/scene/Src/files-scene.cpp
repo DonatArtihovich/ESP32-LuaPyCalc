@@ -1304,6 +1304,7 @@ namespace Scene
         else
         {
             Scene::Paste();
+            ToggleSaveButton(true, true);
         }
     }
 
@@ -1387,6 +1388,7 @@ namespace Scene
         else
         {
             Scene::Cut();
+            ToggleSaveButton(true, true);
         }
     }
 }

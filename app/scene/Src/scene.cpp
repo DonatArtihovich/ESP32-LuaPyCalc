@@ -970,7 +970,6 @@ namespace Scene
             return;
 
         int16_t initial_x{cursor.x}, initial_y{cursor.y};
-        ESP_LOGI(TAG, "Cursor delete chars x %d, y %d, initial_count %d", initial_x, initial_y, initial_count);
 
         if (!initial_count)
             return;
@@ -998,11 +997,11 @@ namespace Scene
 
         if (initial_x < initial_count)
         {
-            int8_t count{static_cast<int8_t>(initial_count)};
+            int64_t count{static_cast<int64_t>(initial_count)};
 
             while (count > 0)
             {
-                if (initial_x > count)
+                if (initial_x >= count)
                 {
                     initial_x -= count;
                     break;
@@ -1010,15 +1009,14 @@ namespace Scene
                 else
                 {
                     count -= initial_x;
-                    initial_x -= count;
-                }
 
-                if (count > 0 && start_line_index != GetContentUiStartIndex())
-                {
-                    initial_x = (*ui)[--start_line_index].label.size() - 1;
+                    if (start_line_index != GetContentUiStartIndex())
+                    {
+                        initial_x = (*ui)[--start_line_index].label.size() - 1;
 
-                    count--;
-                    initial_y--;
+                        count--;
+                        initial_y--;
+                    }
                 }
             }
         }
@@ -1029,8 +1027,8 @@ namespace Scene
 
         size_t delete_x{static_cast<size_t>(initial_x)};
         uint8_t lines_per_page = GetLinesPerPageCount();
-
         size_t line_index{start_line_index};
+
         while (count > 0)
         {
             UiStringItem &line{(*ui)[line_index]};
@@ -1144,19 +1142,14 @@ namespace Scene
             CursorAppendLine();
         }
 
-        auto first_rerender_line_index{scrolled > 0 ? 0 : initial_y};
-        auto last_rerender_line_index{erased_count
-                                          ? lines_per_page - 1
-                                      : (last_changed_index > lines_per_page - 1)
-                                          ? lines_per_page - 1
-                                          : last_changed_index};
+        size_t first_rerender_line_index{static_cast<size_t>(scrolled > 0 ? 0 : initial_y)};
+        size_t last_rerender_line_index{static_cast<size_t>(erased_count
+                                                                ? lines_per_page - 1
+                                                            : (last_changed_index > lines_per_page - 1)
+                                                                ? lines_per_page - 1
+                                                                : last_changed_index)};
 
-        if (first_displaying + last_rerender_line_index > ui->end() - 1)
-        {
-            last_rerender_line_index = ui->end() - 1 - first_displaying;
-        }
-
-        if (scrolled > 0)
+        if (first_displaying + last_rerender_line_index > ui->end() - 1 || scrolled > 0)
         {
             RenderContent();
         }
