@@ -87,6 +87,11 @@ namespace Scene
 
         void SortFiles();
 
+        void Copy() override;
+        void Paste() override;
+
+        void PasteFile();
+
     public:
         FilesScene(DisplayController &display, SDCard &_sdcard);
         void Init() override;

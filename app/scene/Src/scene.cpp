@@ -9,7 +9,7 @@ extern QueueHandle_t xQueueRunnerStdin;
 namespace Scene
 {
 
-    std::string Scene::clipboard{
+    Clipboard Scene::clipboard{
         "from random import randint\n"
         "print(randint(0, 10))\n"
         "import os\n"
@@ -18,7 +18,8 @@ namespace Scene
         "import sys\n"
         "print(sys.path)\n"
         "for l in sys.path:\n"
-        "    print(type(l), ' ', l)"};
+        "    print(type(l), ' ', l)",
+        false};
 
     Scene::Scene(DisplayController &_display) : display{_display} {}
 
@@ -1715,15 +1716,18 @@ namespace Scene
 
     void Scene::Paste()
     {
+        if (clipboard.is_file_copied || !IsCursorControlling())
+            return;
+
         if (selected.is_selected)
         {
             ResetSelecting();
         }
 
-        if (clipboard.size())
+        if (clipboard.data.length())
         {
             ESP_LOGI(TAG, "Ctrl + V");
-            CursorInsertChars(clipboard, GetLinesScroll());
+            CursorInsertChars(clipboard.data, GetLinesScroll());
         }
     }
 
@@ -2170,27 +2174,28 @@ namespace Scene
     {
         if (IsCursorControlling() && selected.is_selected)
         {
-            clipboard.clear();
+            clipboard.data.clear();
+            clipboard.is_file_copied = false;
             size_t ui_start_index{GetContentUiStartIndex(GetStage())};
 
             if (selected.start_y == selected.end_y)
             {
-                clipboard.append(
+                clipboard.data.append(
                     (*ui)[ui_start_index + selected.start_y].label,
                     selected.start_x,
                     selected.end_x - selected.start_x);
             }
             else
             {
-                clipboard.append((*ui)[ui_start_index + selected.start_y].label, selected.start_x);
+                clipboard.data.append((*ui)[ui_start_index + selected.start_y].label, selected.start_x);
                 for (size_t i{ui_start_index + selected.start_y + 1}; i < ui_start_index + selected.end_y; i++)
                 {
-                    clipboard.append((*ui)[i].label);
+                    clipboard.data.append((*ui)[i].label);
                 }
 
-                clipboard.append((*ui)[ui_start_index + selected.end_y].label, 0, selected.end_x);
+                clipboard.data.append((*ui)[ui_start_index + selected.end_y].label, 0, selected.end_x);
             }
-            ESP_LOGI(TAG, "Copied: %s", clipboard.c_str());
+            ESP_LOGI(TAG, "Copied: %s", clipboard.data.c_str());
         }
     }
 

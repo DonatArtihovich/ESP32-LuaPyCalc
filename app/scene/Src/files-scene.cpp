@@ -91,6 +91,16 @@ namespace Scene
                 }
                 enter = false;
             }
+            else if ((value == 'c' || value == 'C') && is_ctrl_pressed)
+            {
+                Copy();
+                enter = false;
+            }
+            else if ((value == 'v' || value == 'V') && is_ctrl_pressed)
+            {
+                Paste();
+                enter = false;
+            }
         }
 
         if (enter)
@@ -101,7 +111,8 @@ namespace Scene
 
     size_t FilesScene::ReadDirectory()
     {
-        std::vector<std::string> files{sdcard.ReadDirectory(curr_directory.c_str())};
+        std::vector<std::string> files{};
+        sdcard.ReadDirectory(curr_directory.c_str(), files);
         auto &theme{Settings::Settings::GetTheme()};
         ui->erase(GetContentUiStart(), ui->end());
 
@@ -798,11 +809,17 @@ namespace Scene
         std::string focused_file{curr_directory + "/" + filename};
 
         std::string modal_label{"Do you want to delete "};
-        modal_label += sdcard.IsDirectory(focused_file.c_str())
-                           ? (sdcard.ReadDirectory(focused_file.c_str()).size()
-                                  ? ("directory " + filename + " and it's contents?")
-                                  : ("directory " + filename + "?"))
-                           : ("file " + filename + "?");
+        if (sdcard.IsDirectory(focused_file.c_str()))
+        {
+            std::vector<std::string> files{};
+            sdcard.ReadDirectory(focused_file.c_str(), files);
+            modal_label += files.size() ? ("directory " + filename + " and it's contents?")
+                                        : ("directory " + filename + "?");
+        }
+        else
+        {
+            modal_label += "file " + filename + "?";
+        }
 
         ChangeItemFocus(&(*modal.ui.begin()), true);
         AddModalLabel(modal_label, modal);
@@ -850,6 +867,8 @@ namespace Scene
         {
             ret = sdcard.RemoveFile(path.c_str());
         }
+
+        ESP_LOGI(TAG, "Remove ret: %s", esp_err_to_name(ret));
 
         if (ESP_OK != ret)
             return;
@@ -1257,5 +1276,73 @@ namespace Scene
         }
 
         return false;
+    }
+
+    void FilesScene::Copy()
+    {
+        if (IsStage(FilesSceneStage::DirectoryStage))
+        {
+            auto focused{GetFocused()};
+            if (focused != ui->end() && focused >= GetContentUiStart())
+            {
+                clipboard.data = curr_directory + "/" + focused->label;
+                if (clipboard.data.ends_with('/'))
+                {
+                    clipboard.data.erase(clipboard.data.end() - 1);
+                }
+                clipboard.is_file_copied = true;
+
+                ESP_LOGI(TAG, "Copy file %s", clipboard.data.c_str());
+            }
+        }
+        else
+        {
+            Scene::Copy();
+        }
+    }
+
+    void FilesScene::Paste()
+    {
+        if (IsStage(FilesSceneStage::DirectoryStage) && clipboard.is_file_copied)
+        {
+            PasteFile();
+        }
+        else
+        {
+            Scene::Paste();
+        }
+    }
+
+    void FilesScene::PasteFile()
+    {
+        std::string filename{};
+        size_t nfind{clipboard.data.rfind('/')};
+        if (nfind == std::string::npos)
+        {
+            return;
+        }
+
+        filename.append(clipboard.data, clipboard.data.rfind('/') + 1);
+        std::string new_path{curr_directory + "/" + filename};
+
+        if (sdcard.CopyFile(clipboard.data.c_str(), new_path.c_str()) != ESP_OK)
+        {
+            return;
+        }
+
+        if (sdcard.IsDirectory(new_path.c_str()))
+        {
+            filename += "/";
+        }
+
+        ESP_LOGI(TAG, "Paste file %s", filename.c_str());
+        UiStringItem item{filename, Settings::Settings::GetTheme().Colors.MainTextColor, display.fx16G};
+        item.displayable = (ui->end() - 1)->displayable;
+        ui->push_back(item);
+
+        if ((ui->end() - 1)->displayable)
+        {
+            RenderContent();
+        }
     }
 }

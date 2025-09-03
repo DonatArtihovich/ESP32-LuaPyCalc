@@ -64,10 +64,15 @@ namespace Scene
         bool is_selected;
     };
 
+    struct Clipboard
+    {
+        std::string data{};
+        bool is_file_copied;
+    };
+
     class Scene
     {
         bool is_cursor_controlling{};
-        static std::string clipboard;
         Cursor cursor{};
         Selected selected{};
         uint8_t stage{};
@@ -75,6 +80,7 @@ namespace Scene
         size_t stdin_entered{};
 
     protected:
+        static Clipboard clipboard;
         DisplayController &display;
         std::vector<UiStringItem> main_ui{};
         std::vector<UiStringItem> *ui{&main_ui};
