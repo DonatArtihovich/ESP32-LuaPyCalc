@@ -68,15 +68,21 @@ namespace SD
         size_t result = current_pos - ftell(file);
         fclose(file);
 
-        ESP_LOGI(TAG, "Read %d from %s: %s", result, path, buff);
+        ESP_LOGD(TAG, "Read %d from %s: %s", result, path, buff);
         return result;
     }
 
-    esp_err_t SDCard::WriteFile(const char *path, const char *buff, uint32_t pos, std::ios_base::seekdir seek_point)
+    esp_err_t SDCard::WriteFile(
+        const char *path,
+        const char *buff,
+        uint32_t pos,
+        std::ios_base::seekdir seek_point,
+        std::ios_base::openmode mode)
     {
         esp_err_t ret = ESP_FAIL;
 
-        std::ofstream file(path, std::ios::out);
+        std::ofstream file(path, mode);
+
         if (file.is_open())
         {
             file.seekp(pos, seek_point);
@@ -88,22 +94,21 @@ namespace SD
         return ret;
     }
 
-    std::vector<std::string> SDCard::ReadDirectory(const char *path)
+    esp_err_t SDCard::ReadDirectory(const char *path, std::vector<std::string> &files)
     {
-        std::vector<std::string> files{};
         DIR *dir = opendir(path);
 
         if (!dir)
         {
             ESP_LOGE(TAG, "Failed to read directory \"%s\"", path);
             closedir(dir);
-            return files;
+            return ESP_FAIL;
         }
 
         dirent *curr = nullptr;
         while ((curr = readdir(dir)) != nullptr)
         {
-            ESP_LOGD(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
+            ESP_LOGI(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
             std::string filename(curr->d_name);
             if (curr->d_type == 2)
             {
@@ -114,7 +119,7 @@ namespace SD
         }
 
         closedir(dir);
-        return files;
+        return ESP_OK;
     }
 
     esp_err_t SDCard::Unmount()
@@ -138,20 +143,37 @@ namespace SD
 
     esp_err_t SDCard::RemoveDirectory(const char *path)
     {
-        namespace fs = std::filesystem;
-        std::error_code ec{};
-
-        if (fs::exists(path, ec))
+        ESP_LOGI(TAG, "RemoveDirectory");
+        DIR *dir = opendir(path);
+        if (!dir)
         {
-            if (ec)
-                return ESP_FAIL;
-
-            bool removed = fs::remove_all(path, ec);
-
-            if (ec || !removed)
-                return ESP_FAIL;
+            return ESP_FAIL;
         }
-        else
+
+        struct dirent *entry;
+        char full_path[512] = {0};
+
+        while ((entry = readdir(dir)) != nullptr)
+        {
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            {
+                continue;
+            }
+
+            snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+            if (IsDirectory(full_path))
+            {
+                RemoveDirectory(full_path);
+            }
+            else
+            {
+                RemoveFile(full_path);
+            }
+        }
+        closedir(dir);
+
+        if (rmdir(path) != 0)
         {
             return ESP_FAIL;
         }
@@ -173,7 +195,7 @@ namespace SD
     {
         ESP_LOGI(TAG, "Creating directory at path %s", path);
         std::error_code ec{};
-        if ((std::filesystem::exists(path, ec) ||
+        if ((Exists(path) ||
              std::filesystem::create_directory(path)) &&
             !ec)
         {
@@ -187,13 +209,9 @@ namespace SD
     {
         ESP_LOGI(TAG, "Creating file at path %s", path);
         std::error_code ec{};
-        if (std::filesystem::exists(path, ec))
+        if (Exists(path))
         {
             return ESP_OK;
-        }
-        else if (ec)
-        {
-            return ESP_FAIL;
         }
 
         std::fstream file{};
@@ -224,5 +242,71 @@ namespace SD
         }
 
         return ESP_FAIL;
+    }
+
+    esp_err_t SDCard::CopyFile(const char *path, const char *new_path)
+    {
+        if (!Exists(path) || Exists(new_path))
+        {
+            return ESP_FAIL;
+        }
+
+        ESP_LOGI(TAG, "Copy file %s to %s", path, new_path);
+        if (!IsDirectory(path))
+        {
+            size_t pos{};
+            char buff[250] = {0};
+
+            size_t curr_read{};
+            while ((curr_read = ReadFile(path, buff, sizeof(buff), pos)) > 0)
+            {
+                if (WriteFile(new_path, buff, pos, std::ios::beg, std::ios::app) != ESP_OK)
+                {
+                    return ESP_FAIL;
+                }
+                memset(buff, 0, sizeof(buff));
+                pos += curr_read;
+            }
+        }
+        else
+        {
+            std::vector<std::string> files{};
+            esp_err_t ret{ReadDirectory(path, files)};
+
+            if (ESP_OK != ret)
+                return ret;
+
+            CreateDirectory(new_path);
+            ESP_LOGI(TAG, "Create directory %s", new_path);
+            for (std::string &file : files)
+            {
+                std::string old_path{std::string(path) + "/" + file};
+                std::string copy_path{std::string(new_path) + "/" + file};
+                esp_err_t ret{IsDirectory(old_path.c_str())
+                                  ? CreateDirectory(copy_path.c_str())
+                                  : CopyFile(old_path.c_str(), copy_path.c_str())};
+
+                if (ret != ESP_OK)
+                {
+                    return ESP_FAIL;
+                }
+                ESP_LOGI(TAG, "Copy Dir File %s to %s", (std::string(path) + "/" + file).c_str(), (std::string(new_path) + "/" + file).c_str());
+            }
+        }
+
+        return ESP_OK;
+    }
+
+    bool SDCard::Exists(const char *path)
+    {
+        std::error_code ec{};
+        if (std::filesystem::exists(path, ec) && !ec)
+        {
+            ESP_LOGI(TAG, "Path %s exists", path);
+            return true;
+        }
+
+        ESP_LOGI(TAG, "Path %s not exists", path);
+        return false;
     }
 }

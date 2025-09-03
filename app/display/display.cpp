@@ -173,10 +173,6 @@ namespace Display
                 ESP_LOGD(TAG, "Item not displayable, %s", it->label.c_str());
                 continue;
             }
-            else
-            {
-                ESP_LOGD(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
-            }
 
             Font::GetFontx(it->font, 0, &fw, &fh);
             uint16_t width = it->label.size() * fw;
@@ -186,6 +182,7 @@ namespace Display
                 lcd.DrawFillRect(it->y, it->x, it->y + fh, it->x + width, it->backgroundColor);
             }
             lcd.DrawString(it->font, it->y, it->x, (uint8_t *)it->label.c_str(), it->color);
+            ESP_LOGD(TAG, "Displaying item %s, x: %d, y: %d", it->label.c_str(), x, y);
         }
     }
 
@@ -302,5 +299,10 @@ namespace Display
         case Position::NotSpecified:
             break;
         }
+    }
+
+    void DisplayController::DrawSelecting(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y)
+    {
+        lcd.DrawFillRect(start_y, start_x, end_y, end_x, Settings::Settings::GetTheme().Colors.SelectingColor);
     }
 }

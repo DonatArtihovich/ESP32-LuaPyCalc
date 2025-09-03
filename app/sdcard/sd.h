@@ -31,14 +31,17 @@ namespace SD
         esp_err_t Unmount();
 
         size_t ReadFile(const char *path, char *buff, size_t len, uint32_t pos = 0, uint8_t seek_point = SEEK_SET);
-        esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, std::ios_base::seekdir seek_point = std::ios_base::beg);
-        std::vector<std::string> ReadDirectory(const char *path);
+        esp_err_t WriteFile(const char *path, const char *buff, uint32_t pos = 0, std::ios_base::seekdir seek_point = std::ios_base::beg, std::ios_base::openmode = std::ios::out);
+        esp_err_t ReadDirectory(const char *path, std::vector<std::string> &files);
 
         esp_err_t CreateDirectory(const char *path);
         esp_err_t CreateFile(const char *path);
         esp_err_t RemoveDirectory(const char *path);
         esp_err_t RemoveFile(const char *path);
         esp_err_t RenameFile(const char *path, const char *new_path);
+        esp_err_t CopyFile(const char *path, const char *new_path);
+
+        bool Exists(const char *path);
         bool IsDirectory(const char *path);
     };
 }
