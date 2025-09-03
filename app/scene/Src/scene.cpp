@@ -964,20 +964,13 @@ namespace Scene
         return 0;
     }
 
-    void Scene::CursorDeleteChars(size_t initial_count, size_t scrolling, int16_t initial_x, int16_t initial_y)
+    void Scene::CursorDeleteChars(size_t initial_count, size_t scrolling)
     {
         if (!IsCursorControlling())
             return;
 
-        if (initial_x < 0)
-        {
-            initial_x = cursor.x;
-        }
-
-        if (initial_y < 0)
-        {
-            initial_y = cursor.y;
-        }
+        int16_t initial_x{cursor.x}, initial_y{cursor.y};
+        ESP_LOGI(TAG, "Cursor delete chars x %d, y %d, initial_count %d", initial_x, initial_y, initial_count);
 
         if (!initial_count)
             return;
@@ -993,8 +986,8 @@ namespace Scene
         {
             return;
         }
-        size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
 
+        size_t first_displaying_index{static_cast<size_t>(first_displaying - ui->begin())};
         size_t count{initial_count};
         size_t start_line_index{first_displaying_index + initial_y};
 
@@ -1003,11 +996,7 @@ namespace Scene
             ClearCursor(&(*ui)[start_line_index]);
         }
 
-        if (count > GetLineLength())
-        {
-            return;
-        }
-        else if (initial_x < initial_count)
+        if (initial_x < initial_count)
         {
             int8_t count{static_cast<int8_t>(initial_count)};
 
@@ -2221,6 +2210,36 @@ namespace Scene
     void Scene::Cut()
     {
         ESP_LOGI(TAG, "Cut");
-        Scene::Copy();
+        if (selected.is_selected && IsCursorControlling())
+        {
+            Scene::Copy();
+
+            auto first_displaying{
+                std::find_if(GetContentUiStart(),
+                             ui->end(),
+                             [](auto &item)
+                             { return item.displayable; })};
+
+            if (first_displaying == ui->end())
+            {
+                ESP_LOGE(TAG, "First displaying not found");
+                return;
+            }
+
+            size_t first_displaying_index{static_cast<size_t>(first_displaying - GetContentUiStart())};
+
+            if (cursor.x != selected.end_x)
+            {
+                cursor.x = selected.end_x;
+            }
+
+            if (first_displaying_index + cursor.y != selected.end_y)
+            {
+                cursor.y = selected.end_y - first_displaying_index;
+            }
+
+            ResetSelecting(false);
+            CursorDeleteChars(clipboard.data.length(), GetLinesScroll());
+        }
     }
 }
