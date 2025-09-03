@@ -73,7 +73,7 @@ namespace Scene
                 SaveFile();
                 enter = false;
             }
-            else if (!(*ui)[3].label.size() && IsCursorControlling())
+            else if (!is_ctrl_pressed && !(*ui)[3].label.size() && IsCursorControlling())
             {
                 ToggleSaveButton(true, true);
             }
@@ -94,6 +94,11 @@ namespace Scene
             else if ((value == 'c' || value == 'C') && is_ctrl_pressed)
             {
                 Copy();
+                enter = false;
+            }
+            else if ((value == 'x' || value == 'X') && is_ctrl_pressed)
+            {
+                Cut();
                 enter = false;
             }
             else if ((value == 'v' || value == 'V') && is_ctrl_pressed)
@@ -1282,18 +1287,7 @@ namespace Scene
     {
         if (IsStage(FilesSceneStage::DirectoryStage))
         {
-            auto focused{GetFocused()};
-            if (focused != ui->end() && focused >= GetContentUiStart())
-            {
-                clipboard.data = curr_directory + "/" + focused->label;
-                if (clipboard.data.ends_with('/'))
-                {
-                    clipboard.data.erase(clipboard.data.end() - 1);
-                }
-                clipboard.is_file_copied = true;
-
-                ESP_LOGI(TAG, "Copy file %s", clipboard.data.c_str());
-            }
+            CopyFile();
         }
         else
         {
@@ -1333,9 +1327,30 @@ namespace Scene
         if (sdcard.IsDirectory(new_path.c_str()))
         {
             filename += "/";
+            if (clipboard.is_cut)
+            {
+                if (sdcard.RemoveDirectory(clipboard.data.c_str()) == ESP_OK)
+                {
+                    ESP_LOGI(TAG, "Directory %s removed.", clipboard.data.c_str());
+                }
+                clipboard.is_cut = false;
+            }
+        }
+        else if (clipboard.is_cut)
+        {
+            if (sdcard.RemoveFile(clipboard.data.c_str()) == ESP_OK)
+            {
+                ESP_LOGI(TAG, "File %s removed.", clipboard.data.c_str());
+            }
+            clipboard.is_cut = false;
         }
 
         ESP_LOGI(TAG, "Paste file %s", filename.c_str());
+        if ((main_ui.end() - 1)->displayable && !(main_ui.end() - 1)->focusable)
+        {
+            main_ui.erase(main_ui.end() - 1, main_ui.end());
+        }
+
         UiStringItem item{filename, Settings::Settings::GetTheme().Colors.MainTextColor, display.fx16G};
         item.displayable = (ui->end() - 1)->displayable;
         ui->push_back(item);
@@ -1343,6 +1358,35 @@ namespace Scene
         if ((ui->end() - 1)->displayable)
         {
             RenderContent();
+        }
+    }
+
+    void FilesScene::CopyFile()
+    {
+        auto focused{GetFocused()};
+        if (focused != ui->end() && focused >= GetContentUiStart())
+        {
+            clipboard.data = curr_directory + "/" + focused->label;
+            if (clipboard.data.ends_with('/'))
+            {
+                clipboard.data.erase(clipboard.data.end() - 1);
+            }
+            clipboard.is_file_copied = true;
+
+            ESP_LOGI(TAG, "Copy file %s", clipboard.data.c_str());
+        }
+    }
+
+    void FilesScene::Cut()
+    {
+        if (IsStage(FilesSceneStage::DirectoryStage))
+        {
+            CopyFile();
+            clipboard.is_cut = true;
+        }
+        else
+        {
+            Scene::Cut();
         }
     }
 }

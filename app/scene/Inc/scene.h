@@ -67,7 +67,8 @@ namespace Scene
     struct Clipboard
     {
         std::string data{};
-        bool is_file_copied;
+        bool is_file_copied{};
+        bool is_cut{};
     };
 
     class Scene
@@ -210,6 +211,7 @@ namespace Scene
         bool GetSelectedLines(size_t &start_y, size_t &end_y, size_t &start_x);
 
         virtual void Copy();
+        virtual void Cut();
         virtual void Paste();
 
     public:

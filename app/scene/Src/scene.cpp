@@ -19,6 +19,7 @@ namespace Scene
         "print(sys.path)\n"
         "for l in sys.path:\n"
         "    print(type(l), ' ', l)",
+        false,
         false};
 
     Scene::Scene(DisplayController &_display) : display{_display} {}
@@ -60,6 +61,10 @@ namespace Scene
             else if (value == 'c' || value == 'C')
             {
                 Copy();
+            }
+            else if (value == 'x' || value == 'X')
+            {
+                Cut();
             }
             else if (value == 'a' || value == 'A')
             {
@@ -2211,5 +2216,11 @@ namespace Scene
             UpdateSelecting();
             RenderCursor();
         }
+    }
+
+    void Scene::Cut()
+    {
+        ESP_LOGI(TAG, "Cut");
+        Scene::Copy();
     }
 }

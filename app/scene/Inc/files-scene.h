@@ -88,8 +88,10 @@ namespace Scene
         void SortFiles();
 
         void Copy() override;
+        void Cut() override;
         void Paste() override;
 
+        void CopyFile();
         void PasteFile();
 
     public:
