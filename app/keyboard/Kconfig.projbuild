@@ -1,6 +1,6 @@
 config GPIO_KEYBOARD_CLK 
     int "Keyboard shift registers CLK number"
-    default 2
+    default 16
 
 config GPIO_KEYBOARD_SIPO_DS
     int "Keyboard SIPO DS number"

@@ -1,5 +1,8 @@
 #include "../Inc/main.h"
 #include "sdkconfig.h"
+#include "esp_timer.h"
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
 
 static const char *TAG = "App";
 
@@ -140,10 +143,13 @@ namespace Main
         vTaskDelete(NULL);
     }
 
+    uint64_t Main::last_active_time{};
+
     Main::Main() : scene{new Scene::StartScene{display}} {}
 
     void Main::Setup()
     {
+        ESP_ERROR_CHECK(InitSleepModes());
         ESP_ERROR_CHECK(Settings::Settings::Init());
         ESP_ERROR_CHECK(keyboard.Init());
         ESP_ERROR_CHECK(display.Init());
@@ -166,6 +172,7 @@ namespace Main
         using Keyboard::Key, Scene::Direction, Keyboard::KeyboardController;
         Key controllers[]{Key::Enter, Key::Escape, Key::Delete, Key::Top, Key::Right, Key::Bottom, Key::Left, Key::Caps, Key::Tab};
         Scene::SceneId sceneId = Scene::SceneId::CurrentScene;
+        bool pressed{};
 
         for (auto key : controllers)
         {
@@ -212,6 +219,8 @@ namespace Main
                 default:
                     break;
                 }
+
+                pressed = true;
             }
         }
 
@@ -227,10 +236,23 @@ namespace Main
             if (KeyboardController::IsKeyPressed(key))
             {
                 scene->Value(KeyboardController::GetKeyValue(key));
+                pressed = true;
             }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(150));
+        if (!pressed)
+        {
+            uint64_t idle_time{(esp_timer_get_time() - last_active_time) / 1'000'000};
+            if (idle_time >= 5)
+            {
+                EnterLightSleepMode();
+                last_active_time = esp_timer_get_time();
+            }
+        }
+        else
+        {
+            last_active_time = esp_timer_get_time();
+        }
     }
 
     void Main::SwitchScene(Scene::SceneId id)
@@ -399,6 +421,37 @@ namespace Main
     {
         scene->DisplayCodeLog(is_end);
     }
+
+    esp_err_t Main::InitSleepModes()
+    {
+        gpio_config_t gpio_cfg{
+            .pin_bit_mask = (1ULL << CONFIG_GPIO_SLEEP_WKUP),
+            .mode = GPIO_MODE_INPUT,
+            .pull_up_en = GPIO_PULLUP_DISABLE,
+            .pull_down_en = GPIO_PULLDOWN_DISABLE,
+            .intr_type = GPIO_INTR_DISABLE,
+        };
+        gpio_config(&gpio_cfg);
+
+        // rtc_gpio_set_direction((gpio_num_t)CONFIG_GPIO_SLEEP_WKUP, RTC_GPIO_MODE_INPUT_ONLY);
+
+        return ESP_OK;
+    }
+
+    void Main::EnterLightSleepMode()
+    {
+        display.BacklightOff();
+        esp_sleep_enable_ext0_wakeup((gpio_num_t)CONFIG_GPIO_SLEEP_WKUP, 0);
+
+        esp_light_sleep_start();
+
+        display.BacklightOn();
+    }
+
+    void Main::EnterDeepSleepMode()
+    {
+        ESP_LOGI(TAG, "Enter Deep Sleep");
+    }
 }
 
 extern "C" void app_main(void)
@@ -413,6 +466,7 @@ extern "C" void app_main(void)
         {
             App.Tick();
             xSemaphoreGive(xAppMutex);
+            vTaskDelay(pdMS_TO_TICKS(150));
         }
         else
         {

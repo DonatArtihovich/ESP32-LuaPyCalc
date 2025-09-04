@@ -47,10 +47,16 @@ namespace Main
             (gpio_num_t)CONFIG_GPIO_DISPLAY_BL,
         };
 
+        static uint64_t last_active_time;
+
         std::unique_ptr<Scene::Scene> scene;
 
         void SwitchScene(Scene::SceneId id);
         esp_err_t InitCodeRunner();
+        esp_err_t InitSleepModes();
+
+        void EnterLightSleepMode();
+        void EnterDeepSleepMode();
 
     public:
         Main();
