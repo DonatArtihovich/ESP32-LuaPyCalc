@@ -92,5 +92,8 @@ namespace Display
         void DrawSelecting(uint16_t start_x, uint16_t start_y, uint16_t end_x, uint16_t end_y);
         uint16_t GetWidth();
         uint16_t GetHeight();
+
+        void BacklightOff();
+        void BacklightOn();
     };
 }

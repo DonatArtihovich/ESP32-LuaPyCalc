@@ -4,6 +4,10 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_task_wdt.h"
+#include "sdkconfig.h"
+#include "esp_timer.h"
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
 
 #include "keyboard.h"
 #include "sd.h"
@@ -47,10 +51,17 @@ namespace Main
             (gpio_num_t)CONFIG_GPIO_DISPLAY_BL,
         };
 
+        static int64_t last_active_time;
+        esp_timer_handle_t deep_sleep_timer;
+
         std::unique_ptr<Scene::Scene> scene;
 
         void SwitchScene(Scene::SceneId id);
         esp_err_t InitCodeRunner();
+        esp_err_t InitSleepModes();
+
+        void EnterLightSleepMode();
+        static void EnterDeepSleepMode(void *arg);
 
     public:
         Main();

@@ -20,4 +20,4 @@ config GPIO_DISPLAY_DC
 
 config GPIO_DISPLAY_BL
     int "Display BL number"
-    default -1
+    default 22

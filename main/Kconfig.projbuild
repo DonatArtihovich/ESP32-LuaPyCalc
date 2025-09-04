@@ -1,0 +1,11 @@
+config GPIO_SLEEP_WKUP
+    int "Sleep Wakeup"
+    default 2
+
+config LIGHT_SLEEP_TIMEOUT
+    int "Enter Light Sleep Timeout (sec)"
+    default 30
+
+config DEEP_SLEEP_TIMEOUT
+    int "Enter Light Sleep Timeout (sec)"
+    default 900
