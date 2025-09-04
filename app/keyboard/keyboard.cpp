@@ -146,7 +146,7 @@ void TaskReadKeyboard(void *args)
             Keyboard::KeyState = (Keyboard::KeyState << 8) | read;
         }
 
-        ESP_LOGI(TAG, "KeyState 0x%016llx", ~Keyboard::KeyState);
-        vTaskDelay(pdMS_TO_TICKS(400));
+        ESP_LOGD(TAG, "KeyState 0x%016llx", ~Keyboard::KeyState);
+        vTaskDelay(pdMS_TO_TICKS(100));
     }
 }
