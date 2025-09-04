@@ -27,7 +27,7 @@ namespace Scene
     void Scene::Value(char value)
     {
         bool is_ctrl_pressed{KeyboardController::IsKeyPressed(Keyboard::Key::Ctrl)};
-        ESP_LOGI(TAG, "Entered value: %c, Ctrl pressed: %d", value, is_ctrl_pressed);
+        ESP_LOGD(TAG, "Entered value: %c, Ctrl pressed: %d", value, is_ctrl_pressed);
 
         if (IsModalStage())
         {
@@ -167,12 +167,12 @@ namespace Scene
             ChangeItemFocus(&(*last_focused), false, true);
             ChangeItemFocus(&(*new_focused), true, true);
 
-            ESP_LOGI(TAG, "Last focused %lu: %s", last_focused->id, last_focused->label.c_str());
-            ESP_LOGI(TAG, "New focused %lu: %s", new_focused->id, new_focused->label.c_str());
+            ESP_LOGV(TAG, "Last focused %lu: %s", last_focused->id, last_focused->label.c_str());
+            ESP_LOGV(TAG, "New focused %lu: %s", new_focused->id, new_focused->label.c_str());
             return 1;
         }
 
-        ESP_LOGI(TAG, "New focus not found.");
+        ESP_LOGV(TAG, "New focus not found.");
         return 0;
     }
 
@@ -216,16 +216,16 @@ namespace Scene
         switch (direction)
         {
         case Direction::Up:
-            ESP_LOGI(TAG, "Arrow Up");
+            ESP_LOGD(TAG, "Arrow Up");
             break;
         case Direction::Right:
-            ESP_LOGI(TAG, "Arrow Right");
+            ESP_LOGD(TAG, "Arrow Right");
             break;
         case Direction::Bottom:
-            ESP_LOGI(TAG, "Arrow Bottom");
+            ESP_LOGD(TAG, "Arrow Bottom");
             break;
         case Direction::Left:
-            ESP_LOGI(TAG, "Arrow Left");
+            ESP_LOGD(TAG, "Arrow Left");
             break;
         }
 
@@ -292,7 +292,7 @@ namespace Scene
         UiStringItem &header_item{main_ui[0]};
         header_item.label = header;
         display.SetPosition(&header_item, Position::Center, Position::End);
-        ESP_LOGI(TAG, "Change header to \"%s\"", header_item.label.c_str());
+        ESP_LOGV(TAG, "Change header to \"%s\"", header_item.label.c_str());
 
         if (rerender)
         {
@@ -330,7 +330,7 @@ namespace Scene
 
     void Scene::Delete()
     {
-        ESP_LOGI(TAG, "Delete pressed.");
+        ESP_LOGD(TAG, "Delete pressed.");
         if (IsCodeRunning())
         {
             if (CodeRunController::IsWaitingInput() && stdin_entered > 0)
@@ -413,7 +413,7 @@ namespace Scene
 
     void Scene::RenderLines(uint8_t first_line, uint8_t last_line, bool clear_line_after, uint8_t start_x)
     {
-        ESP_LOGI(TAG, "Render lines");
+        ESP_LOGD(TAG, "Render lines");
         auto &theme{Settings::Settings::GetTheme()};
         uint8_t fw, fh;
         size_t lines_per_page{GetLinesPerPageCount()};
@@ -455,15 +455,12 @@ namespace Scene
 
             if (selected.is_selected)
             {
-                ESP_LOGI(TAG, "Render selecting 1");
                 RenderSelecting();
-                ESP_LOGI(TAG, "Render selecting 1 end");
             }
 
             UiStringItem item{(*ui)[first_displaying_index + first_line]};
-            ESP_LOGI(TAG, "Erasing to start_x %d, %s", start_x, item.label.c_str());
+
             item.label.erase(item.label.begin(), item.label.begin() + start_x);
-            ESP_LOGI(TAG, "Erasing end");
             item.x += start_x * fw;
 
             display.DrawStringItem(&item);
@@ -483,9 +480,7 @@ namespace Scene
 
         if (selected.is_selected)
         {
-            ESP_LOGI(TAG, "Render selecting 2");
             RenderSelecting(first_line);
-            ESP_LOGI(TAG, "Render selecting 2 end");
         }
 
         auto first_render_line{first_displaying + first_line};
@@ -535,7 +530,7 @@ namespace Scene
             cursor_y = cursor.y;
         }
 
-        ESP_LOGI(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
+        ESP_LOGD(TAG, "Clear cursor: x %d, y %d", cursor_x, cursor_y);
 
         uint16_t x, y;
         GetCursorXY(&x, &y, cursor_x, cursor_y);
@@ -566,7 +561,6 @@ namespace Scene
 
             if (is_cursor_selected)
             {
-                ESP_LOGI(TAG, "Clear cursor with selecting color");
                 clear_color = theme.Colors.SelectingColor;
             }
         }
@@ -774,7 +768,6 @@ namespace Scene
                                        [](auto &item)
                                        { return item.displayable; }) -
                                    scrolled_count;
-                        ESP_LOGI(TAG, "cursor_y = %d, scrolled_count = %d", cursor_y, scrolled_count);
                     }
                 }
                 else
@@ -1426,7 +1419,7 @@ namespace Scene
         if (!IsModalStage())
             return;
 
-        ESP_LOGI(TAG, "Enter %d Stage", GetStage());
+        ESP_LOGD(TAG, "Enter %d Stage", GetStage());
         Modal &modal{GetStageModal()};
 
         if (modal.PreEnter)
@@ -1636,7 +1629,6 @@ namespace Scene
         {
             Modal &modal{GetStageModal()};
             modal.ui.erase(modal.ui.begin() + 1, modal.ui.end());
-            ESP_LOGI(TAG, "CodeRunModal.data: %s", modal.data.c_str());
 
             if (modal.data.size())
             {
@@ -1660,7 +1652,7 @@ namespace Scene
         {
             if (CodeRunController::IsRunning())
                 return;
-            ESP_LOGI(TAG, "direction %d", (int)direction);
+
             if (direction == Direction::Up || direction == Direction::Bottom)
             {
                 if (ScrollContent(direction, false, GetLinesScroll()) > 0)
@@ -1713,7 +1705,7 @@ namespace Scene
 
         if (clipboard.data.length())
         {
-            ESP_LOGI(TAG, "Ctrl + V");
+            ESP_LOGD(TAG, "Ctrl + V");
             CursorInsertChars(clipboard.data, GetLinesScroll());
         }
     }
@@ -1782,7 +1774,7 @@ namespace Scene
         if (!IsCodeRunning())
             return;
 
-        ESP_LOGI(TAG, "Code Successfully executed.");
+        ESP_LOGD(TAG, "Code Successfully executed.");
 
         UiStringItem end_item{"Successfully executed.", Settings::Settings::GetTheme().Colors.CodeSuccessColor, GetContentUiStart()->font, false};
         ui->push_back(end_item);
@@ -1796,20 +1788,13 @@ namespace Scene
         if (!IsCodeRunning())
             return;
 
-        ESP_LOGI(TAG, "Display code log...");
+        ESP_LOGD(TAG, "Display code log...");
 
         RenderModalContent();
         if (!code_end)
         {
             RenderCursor();
         }
-
-        // for (auto it{GetContentUiStart()}; it < ui->end(); it++)
-        // {
-        //     ESP_LOGW(TAG, "After Display: %s, displayable: %d, x: %d, y: %d",
-        //              it->label.c_str(),
-        //              it->displayable, it->x, it->y);
-        // }
     }
 
     bool Scene::IsCodeRunning()
@@ -1819,7 +1804,7 @@ namespace Scene
 
     void Scene::Tab()
     {
-        ESP_LOGI(TAG, "Tab pressed.");
+        ESP_LOGD(TAG, "Tab pressed.");
 
         if (IsCursorControlling())
         {
@@ -2182,7 +2167,7 @@ namespace Scene
 
                 clipboard.data.append((*ui)[ui_start_index + selected.end_y].label, 0, selected.end_x);
             }
-            ESP_LOGI(TAG, "Copied: %s", clipboard.data.c_str());
+            ESP_LOGD(TAG, "Copied: %s", clipboard.data.c_str());
         }
     }
 
@@ -2202,7 +2187,7 @@ namespace Scene
 
     void Scene::Cut()
     {
-        ESP_LOGI(TAG, "Cut");
+        ESP_LOGD(TAG, "Cut");
         if (selected.is_selected && IsCursorControlling())
         {
             Scene::Copy();

@@ -59,7 +59,7 @@ namespace Main
         {
             if (xQueueReceive(xQueueRunnerProcessing, &processing, portMAX_DELAY) == pdPASS)
             {
-                ESP_LOGI(TAG, "Code processing: %s, is file: %d", processing.data, processing.is_file);
+                ESP_LOGD(TAG, "Code processing: %s, is file: %d", processing.data, processing.is_file);
 
                 esp_err_t ret{ESP_OK};
                 if (processing.is_file)
@@ -76,8 +76,6 @@ namespace Main
                         processing.language,
                         traceback, sizeof(traceback));
                 }
-
-                ESP_LOGI(TAG, "Code run ret: %d", ret);
 
                 while (CodeRunController::IsWaitingOutput())
                 {
@@ -260,19 +258,19 @@ namespace Main
         case SceneId::CurrentScene:
             return;
         case SceneId::StartScene:
-            ESP_LOGI(TAG, "Switch to Start Scene");
+            ESP_LOGD(TAG, "Switch to Start Scene");
             scene = std::make_unique<Scene::StartScene>(display);
             break;
         case SceneId::FilesScene:
-            ESP_LOGI(TAG, "Switch to Files Scene");
+            ESP_LOGD(TAG, "Switch to Files Scene");
             scene = std::make_unique<Scene::FilesScene>(display, sdcard);
             break;
         case SceneId::CodeScene:
-            ESP_LOGI(TAG, "Switch to Code Scene");
+            ESP_LOGD(TAG, "Switch to Code Scene");
             scene = std::make_unique<Scene::CodeScene>(display);
             break;
         case SceneId::SettingsScene:
-            ESP_LOGI(TAG, "Switch to Settings Scene");
+            ESP_LOGD(TAG, "Switch to Settings Scene");
             scene = std::make_unique<Scene::SettingsScene>(display);
             break;
         }
@@ -394,7 +392,7 @@ namespace Main
         xTaskCreate(TaskRunnerDisplaying, "Code Log Displaying", 2048, this, 8, &xTaskRunnerDisplaying);
         tsk_check(xTaskRunnerDisplaying);
 
-        ESP_LOGI(TAG, "Init FreeRTOS Runner objects.");
+        ESP_LOGD(TAG, "Init FreeRTOS Runner objects.");
         return ESP_OK;
     }
 

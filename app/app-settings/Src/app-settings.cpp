@@ -93,7 +93,7 @@ namespace Settings
             ret = nvs_get_i8(nvs_handle, "theme", &buffer);
             if (ret == ESP_OK)
             {
-                ESP_LOGI(TAG, "Read theme from NVS: %d", buffer);
+                ESP_LOGD(TAG, "Read theme from NVS: %d", buffer);
                 current_theme = (Themes)buffer;
             }
             else if (ret == ESP_ERR_NVS_NOT_FOUND)
@@ -104,7 +104,7 @@ namespace Settings
             ret = nvs_get_i8(nvs_handle, "fsort", &buffer);
             if (ret == ESP_OK)
             {
-                ESP_LOGI(TAG, "Read files sorting from NVS: %d", buffer);
+                ESP_LOGD(TAG, "Read files sorting from NVS: %d", buffer);
                 current_files_sorting = (FilesSortingModes)buffer;
             }
             else if (ret == ESP_ERR_NVS_NOT_FOUND)
@@ -130,7 +130,7 @@ namespace Settings
             ret = nvs_set_i8(nvs_handle, "theme", (int8_t)current_theme);
             if (ret == ESP_OK)
             {
-                ESP_LOGI(TAG, "Save theme into NVS: %d", (int8_t)current_theme);
+                ESP_LOGD(TAG, "Save theme into NVS: %d", (int8_t)current_theme);
             }
 
             nvs_close(nvs_handle);
@@ -147,7 +147,7 @@ namespace Settings
             ret = nvs_set_i8(nvs_handle, "fsort", (int8_t)current_files_sorting);
             if (ret == ESP_OK)
             {
-                ESP_LOGI(TAG, "Save files sorting mode into NVS: %d", (int8_t)current_files_sorting);
+                ESP_LOGD(TAG, "Save files sorting mode into NVS: %d", (int8_t)current_files_sorting);
             }
 
             nvs_close(nvs_handle);

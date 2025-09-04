@@ -265,7 +265,7 @@ namespace Scene
         strncpy(process.data, code.c_str(), code.size() + 1);
 
         xQueueSend(xQueueRunnerProcessing, &process, portMAX_DELAY);
-        ESP_LOGI(TAG, "Send processing code item");
+        ESP_LOGD(TAG, "Send processing code item");
     }
 
     bool CodeScene::IsCodeRunning()

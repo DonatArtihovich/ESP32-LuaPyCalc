@@ -61,7 +61,7 @@ namespace Scene
         {
             if (IsStage(SettingsSceneStage::ThemeSettingsModalStage))
             {
-                ESP_LOGI(TAG, "New theme: %s", focused->label.c_str());
+                ESP_LOGD(TAG, "New theme: %s", focused->label.c_str());
 
                 for (size_t i{}; i < sizeof(theme_labels) / sizeof(*theme_labels); i++)
                 {
@@ -77,7 +77,7 @@ namespace Scene
 
             if (IsStage(SettingsSceneStage::FilesSortingModalStage))
             {
-                ESP_LOGI(TAG, "New files sorting: %s", focused->label.c_str());
+                ESP_LOGD(TAG, "New files sorting: %s", focused->label.c_str());
 
                 for (size_t i{}; i < sizeof(fsort_labels) / sizeof(*fsort_labels); i++)
                 {

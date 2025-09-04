@@ -38,7 +38,7 @@ namespace CodeRunner
             ret |= PythonRunController::RunCodeString(code, traceback, traceback_len);
             break;
         default:
-            ESP_LOGI(TAG, "Language is not implemented yet");
+            ESP_LOGE(TAG, "Language is not implemented yet");
         }
 
         esp_task_wdt_config_t wdt_conf{
@@ -64,7 +64,7 @@ namespace CodeRunner
             ret |= PythonRunController::RunCodeFile(path, traceback, traceback_len);
             break;
         default:
-            ESP_LOGI(TAG, "Language is not implemented yet");
+            ESP_LOGE(TAG, "Language is not implemented yet");
         }
 
         return ret;
