@@ -105,7 +105,6 @@ extern "C" mp_obj_t upy_input_impl(size_t n_args, const mp_obj_t *pos_args)
     }
     buf[index] = '\0';
 
-    ESP_LOGI(TAG, "Upy input return \"%s\"", mp_obj_str_get_str(mp_obj_new_str(buf, index)));
     CodeRunController::SetIsWaitingInput(false);
     return mp_obj_new_str(buf, index);
 }
@@ -205,7 +204,7 @@ namespace CodeRunner
     esp_err_t PythonRunController::RunCodeFile(const char *path, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
-        ESP_LOGI(TAG, "Run Python File: %s", path);
+        ESP_LOGD(TAG, "Run Python File: %s", path);
         std::string code{};
 
         std::ifstream file(path);
@@ -219,7 +218,7 @@ namespace CodeRunner
 
         file.close();
 
-        ESP_LOGI(TAG, "Read python code: %s", code.c_str());
+        ESP_LOGD(TAG, "Read python code: %s", code.c_str());
 
         ret |= RunCodeString(code.c_str(), traceback, traceback_len);
         return ret;

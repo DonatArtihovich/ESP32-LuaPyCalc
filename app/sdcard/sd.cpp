@@ -108,7 +108,7 @@ namespace SD
         dirent *curr = nullptr;
         while ((curr = readdir(dir)) != nullptr)
         {
-            ESP_LOGI(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
+            ESP_LOGV(TAG, "SD Card read %s: %s, %d", path, curr->d_name, curr->d_type);
             std::string filename(curr->d_name);
             if (curr->d_type == 2)
             {
@@ -143,7 +143,7 @@ namespace SD
 
     esp_err_t SDCard::RemoveDirectory(const char *path)
     {
-        ESP_LOGI(TAG, "RemoveDirectory");
+        ESP_LOGV(TAG, "Remove Directory");
         DIR *dir = opendir(path);
         if (!dir)
         {
@@ -193,7 +193,7 @@ namespace SD
 
     esp_err_t SDCard::CreateDirectory(const char *path)
     {
-        ESP_LOGI(TAG, "Creating directory at path %s", path);
+        ESP_LOGV(TAG, "Creating directory at path %s", path);
         std::error_code ec{};
         if ((Exists(path) ||
              std::filesystem::create_directory(path)) &&
@@ -207,7 +207,7 @@ namespace SD
 
     esp_err_t SDCard::CreateFile(const char *path)
     {
-        ESP_LOGI(TAG, "Creating file at path %s", path);
+        ESP_LOGV(TAG, "Creating file at path %s", path);
         std::error_code ec{};
         if (Exists(path))
         {
@@ -232,7 +232,7 @@ namespace SD
 
     esp_err_t SDCard::RenameFile(const char *path, const char *new_path)
     {
-        ESP_LOGI(TAG, "Rename file %s to %s", path, new_path);
+        ESP_LOGV(TAG, "Rename file %s to %s", path, new_path);
         std::error_code ec{};
         std::filesystem::rename(path, new_path, ec);
 
@@ -251,7 +251,7 @@ namespace SD
             return ESP_FAIL;
         }
 
-        ESP_LOGI(TAG, "Copy file %s to %s", path, new_path);
+        ESP_LOGV(TAG, "Copy file %s to %s", path, new_path);
         if (!IsDirectory(path))
         {
             size_t pos{};
@@ -277,7 +277,7 @@ namespace SD
                 return ret;
 
             CreateDirectory(new_path);
-            ESP_LOGI(TAG, "Create directory %s", new_path);
+            ESP_LOGV(TAG, "Create directory %s", new_path);
             for (std::string &file : files)
             {
                 std::string old_path{std::string(path) + "/" + file};
@@ -290,7 +290,7 @@ namespace SD
                 {
                     return ESP_FAIL;
                 }
-                ESP_LOGI(TAG, "Copy Dir File %s to %s", (std::string(path) + "/" + file).c_str(), (std::string(new_path) + "/" + file).c_str());
+                ESP_LOGD(TAG, "Copy Dir File %s to %s", (std::string(path) + "/" + file).c_str(), (std::string(new_path) + "/" + file).c_str());
             }
         }
 
@@ -302,11 +302,11 @@ namespace SD
         std::error_code ec{};
         if (std::filesystem::exists(path, ec) && !ec)
         {
-            ESP_LOGI(TAG, "Path %s exists", path);
+            ESP_LOGV(TAG, "Path %s exists", path);
             return true;
         }
 
-        ESP_LOGI(TAG, "Path %s not exists", path);
+        ESP_LOGV(TAG, "Path %s not exists", path);
         return false;
     }
 }

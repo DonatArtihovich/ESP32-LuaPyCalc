@@ -254,12 +254,10 @@ namespace Scene
             std::string filename{std::string(1, '/') + focused->label};
             if (sdcard.IsDirectory((curr_directory + filename).c_str()))
             {
-                ESP_LOGI(TAG, "%s is directory", filename.c_str());
                 OpenDirectory(filename.c_str());
             }
             else
             {
-                ESP_LOGI(TAG, "%s isn't directory", filename.c_str());
                 OpenFile(filename.c_str());
             }
         }
@@ -368,7 +366,7 @@ namespace Scene
     {
         if (!Scene::Focus(direction, add_cond))
         {
-            ESP_LOGI(TAG, "Basic focus not found");
+            ESP_LOGD(TAG, "Basic focus not found");
             if (direction == Direction::Bottom)
             {
                 ScrollContent(direction, true, directory_lines_scroll);
@@ -394,7 +392,7 @@ namespace Scene
             curr_directory.erase(curr_directory.rfind('/'));
         }
 
-        ESP_LOGI(TAG, "Opening directory %s", curr_directory.c_str());
+        ESP_LOGD(TAG, "Opening directory %s", curr_directory.c_str());
         ReadDirectory();
         ToggleUpButton(false);
         RenderContent();
@@ -603,12 +601,12 @@ namespace Scene
         while (line != ui->end() && sdcard.WriteFile(file_path.c_str(), line->label.c_str(), pos) == ESP_OK)
         {
             pos += line->label.size();
-            ESP_LOGI(TAG, "Writing \"%s\", pos %lld", line->label.c_str(), pos);
+            ESP_LOGV(TAG, "Writing \"%s\", pos %lld", line->label.c_str(), pos);
             line++;
         }
 
         ToggleSaveButton(false, true);
-        ESP_LOGI(TAG, "File %s saved.", file_path.c_str());
+        ESP_LOGD(TAG, "File %s saved.", file_path.c_str());
     }
 
     void FilesScene::InitModals()
@@ -873,8 +871,6 @@ namespace Scene
             ret = sdcard.RemoveFile(path.c_str());
         }
 
-        ESP_LOGI(TAG, "Remove ret: %s", esp_err_to_name(ret));
-
         if (ESP_OK != ret)
             return;
 
@@ -907,9 +903,8 @@ namespace Scene
         if (next_displaying != main_ui.end())
         {
             next_displaying->displayable = true;
-            ESP_LOGI(TAG, "Make %s displayable", next_displaying->label.c_str());
         }
-        ESP_LOGI(TAG, "Erasing file item %s", file_item->label.c_str());
+
         main_ui.erase(file_item);
     }
 
@@ -990,7 +985,7 @@ namespace Scene
             std::transform(extension.begin(), extension.end(), extension.begin(), tolower);
         }
 
-        ESP_LOGI(TAG, "File extension: %s", extension.c_str());
+        ESP_LOGV(TAG, "File extension: %s", extension.c_str());
 
         if (extension == ".lua")
         {
@@ -1000,17 +995,13 @@ namespace Scene
         {
             runner_language = CodeLanguage::Python;
         }
-        // else if (extension == ".rb")
-        // {
-        //     runner_language = CodeLanguage::Ruby;
-        // }
         else
         {
             runner_language = CodeLanguage::Text;
         }
 
         const char *arr[]{"Text", "Lua", "Python" /*, "Ruby" */};
-        ESP_LOGI(TAG, "Detected language: %s", arr[(int)runner_language]);
+        ESP_LOGD(TAG, "Detected language: %s", arr[(int)runner_language]);
     }
 
     void FilesScene::RunFile()
@@ -1041,7 +1032,7 @@ namespace Scene
     {
         using Settings::FilesSortingModes;
         FilesSortingModes mode{Settings::Settings::GetFilesSortingMode()};
-        ESP_LOGI(TAG, "Sorting files %d...", (int)mode);
+        ESP_LOGV(TAG, "Sorting files %d...", (int)mode);
 
         std::function<bool(UiStringItem & a, UiStringItem & b)> sort_cb{};
 
@@ -1330,23 +1321,17 @@ namespace Scene
             filename += "/";
             if (clipboard.is_cut)
             {
-                if (sdcard.RemoveDirectory(clipboard.data.c_str()) == ESP_OK)
-                {
-                    ESP_LOGI(TAG, "Directory %s removed.", clipboard.data.c_str());
-                }
+                sdcard.RemoveDirectory(clipboard.data.c_str()) == ESP_OK;
                 clipboard.is_cut = false;
             }
         }
         else if (clipboard.is_cut)
         {
-            if (sdcard.RemoveFile(clipboard.data.c_str()) == ESP_OK)
-            {
-                ESP_LOGI(TAG, "File %s removed.", clipboard.data.c_str());
-            }
+            sdcard.RemoveFile(clipboard.data.c_str()) == ESP_OK;
             clipboard.is_cut = false;
         }
 
-        ESP_LOGI(TAG, "Paste file %s", filename.c_str());
+        ESP_LOGD(TAG, "Paste file %s", filename.c_str());
         if ((main_ui.end() - 1)->displayable && !(main_ui.end() - 1)->focusable)
         {
             main_ui.erase(main_ui.end() - 1, main_ui.end());
@@ -1374,7 +1359,7 @@ namespace Scene
             }
             clipboard.is_file_copied = true;
 
-            ESP_LOGI(TAG, "Copy file %s", clipboard.data.c_str());
+            ESP_LOGD(TAG, "Copy file %s", clipboard.data.c_str());
         }
     }
 

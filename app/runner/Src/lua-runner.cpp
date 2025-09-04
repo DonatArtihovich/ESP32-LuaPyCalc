@@ -31,7 +31,7 @@ namespace CodeRunner
     esp_err_t LuaRunController::RunCodeString(const char *code, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
-        ESP_LOGI(TAG, "Run Lua code string...");
+        ESP_LOGD(TAG, "Run Lua code string...");
 
         lua_State *L{setup_lua()};
         int lua_ret = LUA_OK;
@@ -59,7 +59,7 @@ namespace CodeRunner
     esp_err_t LuaRunController::RunCodeFile(const char *path, char *traceback, size_t traceback_len)
     {
         esp_err_t ret{ESP_OK};
-        ESP_LOGI(TAG, "Run Lua code file %s...", path);
+        ESP_LOGD(TAG, "Run Lua code file %s...", path);
 
         std::string module_dir = std::string(path).substr(0, std::string(path).find_last_of('/'));
         lua_State *L{setup_lua(module_dir.c_str())};
@@ -129,7 +129,7 @@ namespace CodeRunner
     {
         CodeRunController::SetIsWaitingInput(true);
 
-        ESP_LOGI(TAG, "Is waiting input: true");
+        ESP_LOGD(TAG, "Is waiting input: true");
         xSemaphoreGive(xDisplayingSemaphore);
 
         int n = lua_gettop(L);
@@ -142,13 +142,11 @@ namespace CodeRunner
             if (lua_type(L, 1) == LUA_TSTRING)
             {
                 prompt = lua_tostring(L, 1);
-                ESP_LOGI(TAG, "Prompt: %s", prompt);
             }
             else if (lua_type(L, 1) == LUA_TNUMBER)
             {
                 is_num = true;
                 chars_count = lua_tonumber(L, 1);
-                ESP_LOGI(TAG, "Chars number: %d", chars_count);
             }
             else
             {
@@ -167,8 +165,6 @@ namespace CodeRunner
         {
             return luaL_error(L, "invalid format string");
         }
-
-        ESP_LOGI(TAG, "Lua input argument: %s", prompt);
 
         char *io_buff = (char *)luaM_malloc_(L, (chars_count + 1) * sizeof(char), LUA_TSTRING);
         memset(io_buff, 0, (chars_count + 1) * sizeof(char));
@@ -258,7 +254,7 @@ namespace CodeRunner
             lua_pushnil(L);
         }
 
-        ESP_LOGI(TAG, "Is waiting input: false");
+        ESP_LOGD(TAG, "Is waiting input: false");
         CodeRunController::SetIsWaitingInput(false);
 
         return 1;
