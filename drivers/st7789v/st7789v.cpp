@@ -1143,7 +1143,6 @@ int DrawUTF8String(TFT_t * dev, FontxFile *fx, uint16_t x, uint16_t y, unsigned 
     // Backlight ON
     void ST7789V::BacklightOn()
     {
-        ESP_LOGI(TAG, "Backlight On: %d", dev._bl);
         if (dev._bl >= 0)
         {
             gpio_set_level(dev._bl, 1);

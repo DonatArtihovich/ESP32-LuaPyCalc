@@ -1,8 +1,4 @@
 #include "../Inc/main.h"
-#include "sdkconfig.h"
-#include "esp_timer.h"
-#include "esp_sleep.h"
-#include "driver/rtc_io.h"
 
 static const char *TAG = "App";
 
@@ -143,7 +139,7 @@ namespace Main
         vTaskDelete(NULL);
     }
 
-    uint64_t Main::last_active_time{};
+    int64_t Main::last_active_time{};
 
     Main::Main() : scene{new Scene::StartScene{display}} {}
 
@@ -242,8 +238,8 @@ namespace Main
 
         if (!pressed)
         {
-            uint64_t idle_time{(esp_timer_get_time() - last_active_time) / 1'000'000};
-            if (idle_time >= 5)
+            int64_t idle_time{static_cast<int64_t>(esp_timer_get_time() - last_active_time) / 1'000'000LL};
+            if (idle_time >= CONFIG_LIGHT_SLEEP_TIMEOUT)
             {
                 EnterLightSleepMode();
                 last_active_time = esp_timer_get_time();
@@ -433,8 +429,6 @@ namespace Main
         };
         gpio_config(&gpio_cfg);
 
-        // rtc_gpio_set_direction((gpio_num_t)CONFIG_GPIO_SLEEP_WKUP, RTC_GPIO_MODE_INPUT_ONLY);
-
         return ESP_OK;
     }
 
@@ -443,14 +437,26 @@ namespace Main
         display.BacklightOff();
         esp_sleep_enable_ext0_wakeup((gpio_num_t)CONFIG_GPIO_SLEEP_WKUP, 0);
 
+        const esp_timer_create_args_t tim_args =
+            {
+                .callback = EnterDeepSleepMode,
+                .name = "deep_sleep_timer",
+            };
+
+        esp_timer_create(&tim_args, &deep_sleep_timer);
+        esp_timer_start_once(deep_sleep_timer, CONFIG_DEEP_SLEEP_TIMEOUT * 1'000'000LL);
+
         esp_light_sleep_start();
+
+        esp_timer_stop(deep_sleep_timer);
+        esp_timer_delete(deep_sleep_timer);
 
         display.BacklightOn();
     }
 
-    void Main::EnterDeepSleepMode()
+    void Main::EnterDeepSleepMode(void *arg)
     {
-        ESP_LOGI(TAG, "Enter Deep Sleep");
+        esp_deep_sleep_start();
     }
 }
 
