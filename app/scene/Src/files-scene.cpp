@@ -1321,13 +1321,13 @@ namespace Scene
             filename += "/";
             if (clipboard.is_cut)
             {
-                sdcard.RemoveDirectory(clipboard.data.c_str()) == ESP_OK;
+                sdcard.RemoveDirectory(clipboard.data.c_str());
                 clipboard.is_cut = false;
             }
         }
         else if (clipboard.is_cut)
         {
-            sdcard.RemoveFile(clipboard.data.c_str()) == ESP_OK;
+            sdcard.RemoveFile(clipboard.data.c_str());
             clipboard.is_cut = false;
         }
 
