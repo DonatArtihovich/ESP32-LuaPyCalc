@@ -25,6 +25,7 @@ namespace Sipo
     {
         for (uint8_t i = 0; i < 8; i++)
         {
+
             if (lsb)
             {
                 gpio_set_level(ds, ((data >> (7 - i)) & 0x01));
@@ -33,8 +34,9 @@ namespace Sipo
             {
                 gpio_set_level(ds, ((data >> i) & 0x01));
             }
-            gpio_set_level(clk, 1);
+
             gpio_set_level(clk, 0);
+            gpio_set_level(clk, 1);
         }
     }
 
