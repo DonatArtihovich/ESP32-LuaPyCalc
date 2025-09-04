@@ -234,7 +234,7 @@ namespace Main
             }
         }
 
-        if (!pressed)
+        if (!pressed && !CodeRunController::IsRunning())
         {
             int64_t idle_time{static_cast<int64_t>(esp_timer_get_time() - last_active_time) / 1'000'000LL};
             if (idle_time >= CONFIG_LIGHT_SLEEP_TIMEOUT)
