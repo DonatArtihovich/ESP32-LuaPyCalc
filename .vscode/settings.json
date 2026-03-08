@@ -90,5 +90,6 @@
     "codecvt": "cpp",
     "python_bindings.h": "c",
     "python-bindings.h": "c"
-  }
+  },
+  "idf.currentSetup": "D:/Espressif/frameworks/esp-idf-v5.4.1/"
 }

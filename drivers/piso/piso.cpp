@@ -3,8 +3,8 @@
 namespace Piso
 {
     PisoController::PisoController(
-        gpio_num_t lh,
         gpio_num_t clk,
+        gpio_num_t lh,
         gpio_num_t ds)
         : _lh{lh},
           _clk{clk},
