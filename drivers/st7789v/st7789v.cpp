@@ -261,7 +261,7 @@ namespace LCD
         delayMS(10);
 
         spi_master_write_command(0x36); // Memory Data Access Control
-        spi_master_write_data_byte(0x00);
+        spi_master_write_data_byte(0xC0);
 
         spi_master_write_command(0x2A); // Column Address Set
         spi_master_write_data_byte(0x00);

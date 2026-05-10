@@ -140,13 +140,17 @@ void TaskReadKeyboard(void *args)
 
         for (uint8_t i = 0; i < 8; i++)
         {
-            sipo.SendByte(~(1 << i), false);
+            sipo.SendByte(~(1 << i), true);
+            esp_rom_delay_us(20);
             uint8_t read = piso.ReadByte();
-            // ESP_LOGD(TAG, "Row (SIPO) %i: 0x%02X", 7 - i, read);
+            ESP_LOGD(TAG, "Row (SIPO) %i: 0x%02X, Sent: %02X", 7 - i, read, ~(1 << i));
             Keyboard::KeyState = (Keyboard::KeyState << 8) | read;
         }
 
-        ESP_LOGD(TAG, "KeyState 0x%016llx", ~Keyboard::KeyState);
+        if (~Keyboard::KeyState) {
+            ESP_LOGD(TAG, "KeyState 0x%016llx", ~Keyboard::KeyState);
+            ESP_LOGD(TAG, "Button %d pressed. popcount %d", __builtin_ctzll(~Keyboard::KeyState), __builtin_popcountll(~Keyboard::KeyState));
+        }
         vTaskDelay(pdMS_TO_TICKS(100));
     }
 }

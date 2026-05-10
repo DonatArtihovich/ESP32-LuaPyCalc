@@ -10,7 +10,6 @@ QueueHandle_t xQueueRunnerStdin = NULL;
 TaskHandle_t xTaskRunnerIO = NULL;
 TaskHandle_t xTaskRunnerProcessing = NULL;
 TaskHandle_t xTaskRunnerDisplaying = NULL;
-TaskHandle_t xTaskRunnerWatchdogResetting = NULL;
 
 SemaphoreHandle_t xIsRunningMutex = NULL;
 SemaphoreHandle_t xIsWaitingInputMutex = NULL;
