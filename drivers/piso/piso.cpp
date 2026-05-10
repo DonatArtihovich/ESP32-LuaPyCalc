@@ -24,15 +24,20 @@ namespace Piso
     {
         uint8_t data{};
         gpio_set_level(_lh, 0);
-        esp_rom_delay_us(1);
+        esp_rom_delay_us(5);
         gpio_set_level(_lh, 1);
+        esp_rom_delay_us(5);
 
         for (int i = 0; i < 8; i++)
         {
-            data = (data << 1) | (gpio_get_level(_ds) & 0x01);
-            gpio_set_level(_clk, 1);
-            esp_rom_delay_us(1);
-            gpio_set_level(_clk, 0);
+            data |= ((gpio_get_level(_ds) & 0x01) << (7 - i));
+            if (i < 7)
+            {
+                gpio_set_level(_clk, 1);
+                esp_rom_delay_us(5);
+                gpio_set_level(_clk, 0);
+                esp_rom_delay_us(5);
+            }
         }
 
         return data;

@@ -8,7 +8,6 @@ extern QueueHandle_t xQueueRunnerStdin;
 extern TaskHandle_t xTaskRunnerIO;
 extern TaskHandle_t xTaskRunnerProcessing;
 extern TaskHandle_t xTaskRunnerDisplaying;
-extern TaskHandle_t xTaskRunnerWatchdogResetting;
 
 extern SemaphoreHandle_t xIsRunningMutex;
 extern SemaphoreHandle_t xIsWaitingInputMutex;
